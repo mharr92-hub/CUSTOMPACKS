@@ -348,3 +348,11 @@ begin
   revoke all on public.message_templates from anon;
 end
 $$;
+
+-- -----------------------------------------------------------------------------
+-- Bucket público para fotos del catálogo y la galería (contenido de marketing).
+-- El arte de clientes y las evidencias van en buckets privados (004, 007).
+-- -----------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('catalog', 'catalog', true, 10485760, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do nothing;
