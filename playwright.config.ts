@@ -36,5 +36,6 @@ export default defineConfig({
         timeout: 180_000,
         stdout: "ignore",
         stderr: "pipe",
+        env: { ADMIN_EMAIL: "admin@provenpack.test", NEXT_PUBLIC_SITE_URL: baseURL },
       },
 });
