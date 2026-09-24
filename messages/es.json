@@ -58,5 +58,253 @@
     "heroSupport": "Cajas, bolsas y empaque alimentario con tu marca. Cuéntanos qué necesitas y te enviamos la cotización formal en 24 horas hábiles.",
     "ctaQuote": "Cotiza en 5 minutos",
     "ctaWhatsapp": "Hablar por WhatsApp"
+  },
+  "enums": {
+    "segment": {
+      "commercial": "Comercio y retail",
+      "food": "Restaurantes y alimentos"
+    },
+    "condition": {
+      "hot": "Caliente",
+      "cold": "Frío",
+      "grease": "Grasa",
+      "fragile": "Frágil",
+      "liquid": "Líquido"
+    },
+    "sizeFamily": {
+      "box": "Cajas",
+      "bag": "Bolsas",
+      "food_box": "Empaque alimentario"
+    },
+    "settingType": {
+      "number": "Número",
+      "string": "Texto",
+      "boolean": "Sí / No",
+      "json": "JSON"
+    }
+  },
+  "auth": {
+    "emailSubject": "Tu enlace de acceso a {brand}",
+    "emailText": "Hola. Usa este enlace para entrar al panel de {brand}: {link}. Vence en {minutes} minutos. Si no lo pediste, ignora este correo."
+  },
+  "admin": {
+    "title": "Panel interno",
+    "nav": {
+      "label": "Menú del panel",
+      "inbox": "Bandeja",
+      "orders": "Pedidos",
+      "catalog": "Catálogo",
+      "templates": "Plantillas",
+      "reports": "Reportes",
+      "users": "Usuarios",
+      "settings": "Configuración",
+      "signOut": "Salir",
+      "viewSite": "Ver sitio"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "sales": "Ventas",
+      "ops": "Operaciones y QA",
+      "viewer": "Solo lectura",
+      "client": "Cliente"
+    },
+    "login": {
+      "title": "Entrar al panel",
+      "intro": "Te enviamos un enlace de acceso a tu correo. No necesitas contraseña.",
+      "email": "Correo",
+      "submit": "Enviar enlace",
+      "sending": "Enviando…",
+      "sent": "Si el correo tiene acceso al panel, te llegará un enlace en unos segundos. Vence en 60 minutos.",
+      "devLinkTitle": "Modo local",
+      "devLinkBody": "No hay servicio de correo configurado. Abre el enlace directamente:",
+      "devLinkOpen": "Abrir enlace de acceso",
+      "invalidEmail": "Escribe un correo válido, por ejemplo nombre@empresa.com.",
+      "linkError": "El enlace venció o ya se usó. Pide uno nuevo."
+    },
+    "noAccess": {
+      "title": "Sin acceso",
+      "body": "Tu cuenta no tiene permiso para esta sección del panel. Si crees que es un error, pide acceso a un administrador.",
+      "back": "Volver al sitio",
+      "signOut": "Entrar con otra cuenta"
+    },
+    "provisional": "PROVISIONAL",
+    "provisionalHint": "Valor propuesto, pendiente de validar con la fábrica o con Mark.",
+    "inactive": "Inactivo",
+    "active": "Activo",
+    "readOnly": "Solo lectura: tu rol no permite editar.",
+    "catalog": {
+      "title": "Catálogo",
+      "intro": "Datos maestros que alimentan el sitio y el cotizador. Lo marcado como PROVISIONAL es una propuesta que falta validar contra las muestras y la ficha de la fábrica.",
+      "entityCount": "{count, plural, =0 {Sin registros} one {# registro} other {# registros}}",
+      "provisionalCount": "{count, plural, =0 {ninguno provisional} one {# provisional} other {# provisionales}}",
+      "manage": "Administrar",
+      "compatTitle": "Compatibilidades",
+      "compatIntro": "Qué papeles y calibres admite cada tipo. El cotizador solo ofrece combinaciones válidas.",
+      "entities": {
+        "categories": {
+          "title": "Categorías",
+          "singular": "categoría"
+        },
+        "product_types": {
+          "title": "Tipos de producto",
+          "singular": "tipo de producto"
+        },
+        "standard_sizes": {
+          "title": "Tamaños estándar",
+          "singular": "tamaño"
+        },
+        "papers": {
+          "title": "Papeles",
+          "singular": "papel"
+        },
+        "calibers": {
+          "title": "Calibres",
+          "singular": "calibre"
+        },
+        "print_options": {
+          "title": "Impresión",
+          "singular": "opción de impresión"
+        },
+        "finishes": {
+          "title": "Acabados",
+          "singular": "acabado"
+        },
+        "eco_attributes": {
+          "title": "Atributos ambientales",
+          "singular": "atributo ambiental"
+        },
+        "food_attributes": {
+          "title": "Aptitud alimentaria",
+          "singular": "atributo alimentario"
+        },
+        "gallery_samples": {
+          "title": "Galería de muestras",
+          "singular": "muestra"
+        }
+      },
+      "fields": {
+        "code": "Código",
+        "name": "Nombre",
+        "description": "Descripción",
+        "slug": "Slug (URL)",
+        "category_id": "Categoría",
+        "segments": "Segmentos",
+        "size_family": "Familia de tamaños",
+        "typical_uses": "Usos típicos (uno por línea)",
+        "family": "Familia",
+        "length_cm": "Largo interior (cm)",
+        "width_cm": "Ancho interior (cm)",
+        "height_cm": "Alto interior (cm)",
+        "is_barrier": "Papel con barrera (grasa o humedad)",
+        "suggested_for_conditions": "Se sugiere cuando el producto es",
+        "simple_label": "Explicación simple para el cliente",
+        "grammage_gsm": "Gramaje (g/m²)",
+        "points": "Puntos (pt)",
+        "min_weight_g": "Peso mínimo sugerido (g)",
+        "max_weight_g": "Peso máximo sugerido (g)",
+        "ink_count": "Número de tintas",
+        "requires_pantone": "Pide código Pantone",
+        "is_no_print": "Es la opción «sin impresión»",
+        "show_badge": "Mostrar sello (solo con certificado vigente)",
+        "certificate_url": "URL del certificado",
+        "product_type_id": "Tipo de producto",
+        "paper_id": "Papel",
+        "finish_ids": "Acabados",
+        "tags": "Etiquetas (una por línea)",
+        "sort_order": "Orden",
+        "is_active": "Activo (visible en el sitio)",
+        "is_provisional": "Provisional (por validar)",
+        "affects_price": "Afecta el precio",
+        "factory_notes": "Notas para fábrica (internas)",
+        "photo": "Foto principal",
+        "photos": "Fotos adicionales"
+      },
+      "hints": {
+        "code": "Mayúsculas, números y guiones. Es el código que ve la fábrica.",
+        "slug": "Minúsculas y guiones. Forma parte de la URL pública.",
+        "galleryCode": "Formato M-001.",
+        "weights": "El cotizador sugiere este calibre si el peso por unidad cae en el rango."
+      },
+      "columns": {
+        "order": "Orden",
+        "photo": "Foto",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "none": "—",
+      "empty": "Todavía no hay registros.",
+      "actions": {
+        "new": "Nuevo",
+        "edit": "Editar",
+        "view": "Ver",
+        "save": "Guardar cambios",
+        "create": "Crear",
+        "saving": "Guardando…",
+        "moveUp": "Subir",
+        "moveDown": "Bajar",
+        "activate": "Activar",
+        "deactivate": "Desactivar",
+        "uploadPhoto": "Subir foto",
+        "uploadExtra": "Agregar foto",
+        "removePhoto": "Quitar foto",
+        "backToList": "Volver al listado",
+        "backToCatalog": "Volver al catálogo",
+        "chooseFile": "Elegir foto"
+      },
+      "newTitle": "Nuevo: {entity}",
+      "editTitle": "Editar {entity}",
+      "photoHelp": "JPG, PNG o WebP de hasta 10 MB. Sin foto, el sitio muestra un marcador con el código.",
+      "saved": "Cambios guardados.",
+      "errors": {
+        "required": "Campo obligatorio.",
+        "invalid": "Formato no válido.",
+        "tooLong": "Texto demasiado largo.",
+        "outOfRange": "Valor fuera de rango.",
+        "duplicate": "Ya existe un registro con ese código o slug.",
+        "in_use": "No se puede: está en uso por otros registros.",
+        "not_found": "El registro ya no existe.",
+        "forbidden": "Tu rol no permite esta acción.",
+        "generic": "No se pudo guardar. Intenta de nuevo.",
+        "photoType": "La foto debe ser JPG, PNG o WebP.",
+        "photoSize": "La foto no puede superar 10 MB.",
+        "photoMissing": "Elige un archivo."
+      }
+    },
+    "compat": {
+      "title": "Compatibilidades",
+      "intro": "Elige un tipo y marca qué papeles y calibres admite. «Exige» convierte esa opción en obligatoria (lista blanca); «No permitido» la excluye con un motivo que ve el cliente.",
+      "selectType": "Tipo de producto",
+      "show": "Ver",
+      "anyCaliber": "Cualquier calibre",
+      "anyPaper": "Cualquier papel",
+      "paper": "Papel",
+      "result": "Resultado para el cliente",
+      "states": {
+        "none": "Sin regla",
+        "allowed": "Exige / permite",
+        "blocked": "No permitido"
+      },
+      "reason": "Motivo (lo ve el cliente)",
+      "reasonPlaceholder": "Por ejemplo: El balde para pollo exige papel antigrasa.",
+      "save": "Guardar regla",
+      "editCell": "Editar regla: {paper} · {caliber}",
+      "allowedResult": "Disponible",
+      "blockedResult": "No disponible",
+      "requiresResult": "Excluido por lista blanca",
+      "saved": "Regla guardada."
+    },
+    "settings": {
+      "title": "Configuración",
+      "intro": "Valores que usa la plataforma (plazos, vigencia, límites). Al editar un valor provisional deja de estar marcado como tal.",
+      "key": "Clave",
+      "value": "Valor",
+      "description": "Descripción",
+      "public": "Público",
+      "save": "Guardar",
+      "saved": "Configuración guardada.",
+      "invalid": "Valor no válido para este tipo.",
+      "boolTrue": "Sí",
+      "boolFalse": "No"
+    }
   }
 }
