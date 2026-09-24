@@ -59,12 +59,12 @@ Aceptación: `pnpm dev` abre la página de inicio con el layout; `pnpm lint && p
 
 Objetivo: esquema completo del catálogo (§7, §13) con RLS, seed provisional y CRUD en el panel interno.
 
-- [ ] Migración `001_master_data`: `categories`, `product_types`, `standard_sizes`, `papers`, `calibers`, `print_options`, `finishes`, `eco_attributes`, `food_attributes`, `compatibilities` (product_type × paper × caliber, `allowed`, `reason`), `gallery_samples` (code `M-001`, fotos, tags), `settings` (clave, valor, tipo), `message_templates`. Todas con `code`, `name`, `description`, `photo_url`, `is_active`, `is_provisional`, `sort_order`, `affects_price`, `factory_notes`.
-- [ ] Migración `002_auth`: `profiles` (user_id, name, role enum `admin|sales|ops|viewer|client`, company_id, whatsapp). Trigger: nuevo usuario con `ADMIN_EMAIL` → role admin.
-- [ ] RLS: público lee solo `is_active = true`; staff lee y escribe según rol; auditoría por trigger en `updated_at/updated_by`.
-- [ ] `supabase/seed.sql` con los valores propuestos de §7 marcados `is_provisional = true`, incluidas 12 tipos de caja (elige los 12 más usados en food service y retail de la lista de candidatos), 6 tipos de bolsa, 5 papeles, 3 calibres (ligero/medio/pesado, gramaje `NULL`), 10 tamaños genéricos S1–S10 por familia, opciones de impresión, acabados, atributos y 6 compatibilidades de ejemplo (balde y cono exigen antigrasa; rígida excluye microcorrugado).
-- [ ] Admin `/admin/catalogo`: tablas editables por entidad, reordenar, activar/desactivar, subir foto a Storage, editor de compatibilidades en matriz; etiqueta "PROVISIONAL" visible; `/admin/configuracion` para `settings`.
-- [ ] Tests Vitest de `lib/compat.ts` (combinación válida/no válida con razón).
+- [x] Migración `001_master_data`: `categories`, `product_types`, `standard_sizes`, `papers`, `calibers`, `print_options`, `finishes`, `eco_attributes`, `food_attributes`, `compatibilities` (product_type × paper × caliber, `allowed`, `reason`), `gallery_samples` (code `M-001`, fotos, tags), `settings` (clave, valor, tipo), `message_templates`. Todas con `code`, `name`, `description`, `photo_url`, `is_active`, `is_provisional`, `sort_order`, `affects_price`, `factory_notes`.
+- [x] Migración `002_auth`: `profiles` (user_id, name, role enum `admin|sales|ops|viewer|client`, company_id, whatsapp). Trigger: nuevo usuario con `ADMIN_EMAIL` → role admin.
+- [x] RLS: público lee solo `is_active = true`; staff lee y escribe según rol; auditoría por trigger en `updated_at/updated_by`.
+- [x] `supabase/seed.sql` con los valores propuestos de §7 marcados `is_provisional = true`, incluidas 12 tipos de caja (elige los 12 más usados en food service y retail de la lista de candidatos), 6 tipos de bolsa, 5 papeles, 3 calibres (ligero/medio/pesado, gramaje `NULL`), 10 tamaños genéricos S1–S10 por familia, opciones de impresión, acabados, atributos y 6 compatibilidades de ejemplo (balde y cono exigen antigrasa; rígida excluye microcorrugado).
+- [x] Admin `/admin/catalogo`: tablas editables por entidad, reordenar, activar/desactivar, subir foto a Storage, editor de compatibilidades en matriz; etiqueta "PROVISIONAL" visible; `/admin/configuracion` para `settings`.
+- [x] Tests Vitest de `lib/compat.ts` (combinación válida/no válida con razón).
 
 Aceptación: admin puede crear un tipo nuevo con foto, marcar compatibilidades y verlo en la API pública; seed corre limpio en base vacía.
 

@@ -69,3 +69,51 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
 ### D-014 · 24/09/2026 · Tests con base de datos
 - **Decisión:** `pnpm test` corre dos proyectos de Vitest: `unit` (lógica pura) y `db` (migraciones, RLS y triggers contra un Postgres embebido efímero que se crea y destruye en cada corrida). En CI se usa el mismo mecanismo (binarios Linux). `TEST_DATABASE_URL` permite apuntar a otro Postgres.
 - **Cómo cambiarla:** `vitest.config.mts`.
+
+### D-015 · 24/09/2026 · Bucket público para fotos del catálogo
+- **Duda:** `CLAUDE.md` pide Storage privado con URLs firmadas, pero las fotos del catálogo y la galería son contenido público de marketing.
+- **Decisión:** el bucket `catalog` es público (con CDN de Supabase y `next/image`). El arte de clientes, las evidencias de QA y los documentos van en buckets privados con URLs firmadas de corta duración.
+- **Cómo cambiarla:** marcar `catalog` como privado en `lib/storage` y `storage.buckets` y servir las fotos con URLs firmadas.
+
+### D-016 · 24/09/2026 · Los 12 tipos de caja, 6 bolsas y familias de tamaños
+- **Duda:** §7 da 17 candidatos de caja y 7 de bolsa, sin decir cuáles son los reales.
+- **Decisión (provisional):**
+  - Cajas: plegadiza con tapa, autoarmable de fondo automático, bandeja, dos piezas, rígida, mailer, gable con asa, clamshell, cono para papas, balde para pollo, pizza, y torta/pastelería.
+  - Quedan fuera: reverse tuck (muy similar a la plegadiza), RSC de corrugado, sándwich/wrap, caja con ventana (es un acabado) y sleeve.
+  - Bolsas: kraft con asa plana, kraft con asa retorcida, boutique laminada, SOS, delivery y antigrasa. Queda fuera el sobre con ventana.
+  - Los tamaños S1–S10 se agrupan en 3 familias con medidas interiores genéricas: `box`, `bag` y `food_box`. Todo va con `is_provisional = true`.
+- **Cómo cambiarla:** editar o desactivar desde admin > Catálogo.
+
+### D-017 · 24/09/2026 · Semántica de compatibilidades
+- **Decisión:** en `compatibilities` una regla `allowed=true` crea una lista blanca (por ejemplo, "el balde exige antigrasa" es una sola fila) y `allowed=false` excluye con un motivo. La regla exacta tipo+papel+calibre manda sobre la general. Detalle y tests en `lib/compat.ts`. Las 6 reglas de ejemplo del seed son:
+  - Balde y cono exigen papel antigrasa.
+  - La caja rígida no admite microcorrugado.
+  - El mailer no admite calibre ligero.
+  - La bolsa boutique exige papel estucado.
+  - La bolsa antigrasa exige papel antigrasa.
+- **Cómo cambiarla:** matriz en admin > Catálogo > Compatibilidades.
+
+### D-018 · 24/09/2026 · Quién edita el catálogo
+- **Decisión:** solo el rol `admin` escribe catálogo, compatibilidades y configuración. `sales`, `ops` y `viewer` leen todo, incluido lo inactivo. Lo aplican las políticas RLS de `002_auth` y cada Server Action.
+- **Cómo cambiarla:** políticas `*_admin_write` en una migración nueva.
+
+### D-019 · 24/09/2026 · Acceso al panel por enlace mágico
+- **Decisión:** solo `ADMIN_EMAIL` puede crear su cuenta con el enlace mágico. El resto del equipo entra por invitación (E6). La respuesta del login no revela si un correo existe. En modo local, sin correo real, el enlace se muestra en pantalla fuera de producción; en producción solo si `ALLOW_LOCAL_AUTH_LINKS=true`.
+- **Cómo cambiarla:** `requestStaffMagicLink` en `lib/auth/index.ts`.
+
+### D-020 · 24/09/2026 · Muestras de galería de referencia
+- **Duda:** no hay fotos todavía, pero el sitio y el cotizador necesitan muestras para funcionar ("quiero algo así").
+- **Decisión:** el seed carga 12 muestras de referencia (M-001 a M-012), provisionales y sin foto. El sitio muestra un marcador con el código, nunca fotos de terceros. `docs/lanzamiento.md` explica cómo reemplazarlas con el script de importación (E10).
+- **Cómo cambiarla:** desactivarlas o borrarlas en admin > Catálogo > Galería.
+
+### D-021 · 24/09/2026 · Caché del catálogo público
+- **Decisión:** el catálogo público se lee como `anon` (RLS garantiza que solo sale lo activo) y se cachea 5 minutos con la etiqueta `catalog`. Cada guardado en el panel invalida la etiqueta al instante (`updateTag`).
+- **Cómo cambiarla:** `lib/catalog/public.ts`.
+
+### D-022 · 24/09/2026 · Claves de configuración adicionales
+- **Decisión:** además de las de `TAREAS.md`, `settings` incluye estas claves (las no definidas por Mark van como provisionales):
+  - `deposit_pct` (50) y `lead_time_days_small`/`lead_time_days_standard` (30/45), definidas por Mark.
+  - `first_response_sla_hours` (4) y `quote_sla_hours` (24).
+  - `business_hours` (lunes a viernes, 08:00–17:00, America/Panama).
+  - `quote_expiry_reminder_days` [3, 1], `balance_reminder_days` [2, 5] y `nps_delay_days` (7).
+- **Cómo cambiarla:** admin > Configuración.
