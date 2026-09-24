@@ -1,0 +1,62 @@
+{
+  "common": {
+    "skipToContent": "Saltar al contenido",
+    "provisional": "PROVISIONAL",
+    "loading": "Cargando…",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "meta": {
+    "defaultTitle": "{brand} — Empaques de papel y cartón a tu medida",
+    "titleTemplate": "%s · {brand}",
+    "description": "Cajas, bolsas y empaque alimentario fabricados en planta propia en Perú. Sin cantidad mínima, 50 % al aprobar y 50 % contra entrega, verificación en planta."
+  },
+  "nav": {
+    "mainLabel": "Navegación principal",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "home": "Inicio",
+    "catalog": "Catálogo",
+    "catalogBoxes": "Cajas",
+    "catalogBags": "Bolsas",
+    "catalogPremium": "Bolsas premium",
+    "catalogFood": "Empaque alimentario",
+    "gallery": "Galería de muestras",
+    "howItWorks": "Cómo funciona",
+    "sustainability": "Sostenibilidad",
+    "clients": "Clientes",
+    "quote": "Cotiza",
+    "about": "Nosotros",
+    "faq": "Preguntas frecuentes",
+    "contact": "Contacto",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "ctaQuote": "Cotiza en 5 minutos",
+    "homeLinkLabel": "{brand}, ir al inicio"
+  },
+  "footer": {
+    "tagline": "Empaques de papel y cartón fabricados en planta propia en Perú, verificados por nuestro equipo.",
+    "explore": "Explora",
+    "company": "Empresa",
+    "legal": "Legal",
+    "conditionsTitle": "Condiciones",
+    "payment": "Pagas 50 % al aprobar y 50 % cuando recibes.",
+    "leadTime": "Entrega en 45 días; 30 días en volúmenes menores.",
+    "noMinimum": "Sin cantidad mínima ni máxima.",
+    "rights": "© {year} {brand}. Todos los derechos reservados."
+  },
+  "whatsapp": {
+    "fabLabel": "Escríbenos por WhatsApp",
+    "defaultMessage": "Hola {brand}, quiero información sobre empaques."
+  },
+  "home": {
+    "heroSupport": "Cajas, bolsas y empaque alimentario con tu marca. Cuéntanos qué necesitas y te enviamos la cotización formal en 24 horas hábiles.",
+    "ctaQuote": "Cotiza en 5 minutos",
+    "ctaWhatsapp": "Hablar por WhatsApp"
+  }
+}

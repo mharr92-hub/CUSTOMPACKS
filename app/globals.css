@@ -1,0 +1,138 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tokens de marca (provisionales, ver docs/DECISIONES.md): kraft, verde bosque
+ * y negro sobre fondo papel. Para cambiar la identidad basta con editar este
+ * bloque y config/brand.ts.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-kraft: var(--kraft);
+  --color-kraft-light: var(--kraft-light);
+  --color-forest: var(--forest);
+  --color-forest-dark: var(--forest-dark);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-signal-green: var(--signal-green);
+  --color-signal-yellow: var(--signal-yellow);
+  --color-signal-red: var(--signal-red);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Marca */
+  --kraft: #b98b57;
+  --kraft-light: #ebdcc6;
+  --forest: #1e4a36;
+  --forest-dark: #143326;
+  --ink: #15130f;
+  --paper: #faf6ef;
+
+  /* Semáforo de completitud */
+  --signal-green: #1f7a4d;
+  --signal-yellow: #b7791f;
+  --signal-red: #b3261e;
+
+  /* shadcn/ui */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--forest);
+  --primary-foreground: #fbf8f2;
+  --secondary: var(--kraft-light);
+  --secondary-foreground: var(--ink);
+  --muted: #f1ebe1;
+  --muted-foreground: #5b5448;
+  --accent: #efe4d3;
+  --accent-foreground: var(--ink);
+  --destructive: #b3261e;
+  --border: #e3d9c9;
+  --input: #d6c9b5;
+  --ring: var(--forest);
+  --chart-1: #1e4a36;
+  --chart-2: #b98b57;
+  --chart-3: #4f7a64;
+  --chart-4: #8a6a45;
+  --chart-5: #15130f;
+  --radius: 0.5rem;
+  --sidebar: #f4eee4;
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--forest);
+  --sidebar-primary-foreground: #fbf8f2;
+  --sidebar-accent: #ebe2d4;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--forest);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading tracking-tight text-balance;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
