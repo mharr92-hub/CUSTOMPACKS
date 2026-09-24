@@ -1,10 +1,9 @@
 import "server-only";
 import { z } from "zod";
+import { DEV_AUTH_SECRET } from "@/lib/auth/local-session";
 
 /** Postgres embebido que levanta `pnpm dev` / `pnpm db:start` cuando no hay DATABASE_URL. */
 export const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:54322/postgres";
-
-const DEV_AUTH_SECRET = "dev-only-insecure-secret-change-me-0123456789";
 
 const optionalString = z
   .string()
