@@ -177,7 +177,7 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
   // servidor y en este dispositivo.
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (["borrador", "tipo", "muestra"].some((k) => url.searchParams.has(k))) window.history.replaceState(null, "", url.pathname);
+    if (["borrador", "tipo", "muestra", "repetir"].some((k) => url.searchParams.has(k))) window.history.replaceState(null, "", url.pathname);
   }, []);
 
   const saveNowRef = useRef<() => Promise<string | null>>(async () => null);

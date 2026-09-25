@@ -57,6 +57,7 @@ export function FileUploader({
   confirm,
   onUploaded,
   testId,
+  limitsText,
 }: {
   label: string;
   hint?: string;
@@ -70,6 +71,8 @@ export function FileUploader({
   confirm: (input: { path: string; name: string; size: number }) => Promise<ConfirmResult>;
   onUploaded: (file: UploadedFile, previewUrl?: string) => void;
   testId?: string;
+  /** Texto de límites cuando no aplica "por pieza" (p. ej., evidencias de un hito). */
+  limitsText?: string;
 }) {
   const t = useTranslations("upload");
   const inputId = useId();
@@ -150,7 +153,7 @@ export function FileUploader({
             <UploadIcon className="size-4" />
             {t("choose")}
           </Button>
-          <p className="mt-1.5 text-xs text-muted-foreground">{t("limits", { max: maxMb, files: maxFiles })}</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">{limitsText ?? t("limits", { max: maxMb, files: maxFiles })}</p>
         </div>
       </div>
       {notice ? (

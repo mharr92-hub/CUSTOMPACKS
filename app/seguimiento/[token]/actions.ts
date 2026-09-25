@@ -6,6 +6,7 @@ import type { ConfirmResult, SlotResult } from "@/lib/artwork/upload-types";
 import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { clientInfo } from "@/lib/http/client-info";
 import { kickNotifications } from "@/lib/notify";
+import { confirmReceiptUpload, prepareReceiptUpload, submitSurvey, type OrderResult, type UploadConfirm, type UploadSlot } from "@/lib/orders";
 import { acceptQuote, requestQuoteChanges, type QuoteResult } from "@/lib/quotes";
 
 /*
@@ -77,5 +78,29 @@ export async function requestQuoteChangesAction(token: string, quoteId: string, 
     kickNotifications();
     revalidatePath(`/seguimiento/${token}`);
   }
+  return result;
+}
+
+/** Comprobante de pago del pedido (queda por confirmar). */
+export async function prepareReceiptUploadAction(token: string, file: { name: string; size: number }): Promise<UploadSlot> {
+  if (!TOKEN.test(token)) return { ok: false, error: "expired" };
+  return prepareReceiptUpload(token, { name: String(file.name).slice(0, 200), size: Number(file.size) });
+}
+
+export async function confirmReceiptUploadAction(token: string, input: { path: string; name: string }): Promise<UploadConfirm> {
+  if (!TOKEN.test(token)) return { ok: false, error: "expired" };
+  const result = await confirmReceiptUpload(token, { path: String(input.path), name: String(input.name).slice(0, 200) });
+  if (result.ok) {
+    kickNotifications();
+    revalidatePath(`/seguimiento/${token}`);
+  }
+  return result;
+}
+
+/** Encuesta NPS del pedido cerrado. */
+export async function submitSurveyAction(token: string, input: { score: number; comment: string }): Promise<OrderResult> {
+  if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  const result = await submitSurvey(token, { score: Number(input.score), comment: String(input.comment ?? ""), ip: (await clientInfo()).ip });
+  if (result.ok) revalidatePath(`/seguimiento/${token}`);
   return result;
 }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { FileTextIcon } from "lucide-react";
 import { PortalArtwork, type PortalPiece } from "@/components/artwork/portal-artwork";
+import { ClientOrder } from "@/components/portal/client-order";
 import { ClientQuote } from "@/components/portal/client-quote";
 import { PendingReply } from "@/components/portal/pending-reply";
 import { WhatsAppIcon } from "@/components/site/whatsapp-fab";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
 import { listPortalArtwork } from "@/lib/artwork/client-portal";
 import { formatDateTime } from "@/lib/format";
+import { getClientOrder } from "@/lib/orders";
 import { getClientQuote } from "@/lib/quotes";
 import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
 import { specPdfPath } from "@/lib/quote/links";
@@ -26,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Seguimiento del cliente por enlace seguro (PRD §10). E3: estado, piezas e
- * historial. E4, E7 y E8 agregan arte, cotización y pedido.
+ * historial; arte (E4), cotización (E7) y pedido (E8).
  */
 export default async function TrackingPage(props: PageProps<"/seguimiento/[token]">) {
   const { token } = await props.params;
@@ -35,7 +37,7 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
   const t = await getTranslations("tracking");
   const ts = await getTranslations("spec");
   const specT: SpecTranslator = (key, values) => ts(key as "none", values as never);
-  const [files, catalog, quote] = await Promise.all([listPortalArtwork(token), getPublicCatalog(), getClientQuote(token)]);
+  const [files, catalog, quote, order] = await Promise.all([listPortalArtwork(token), getPublicCatalog(), getClientQuote(token), getClientOrder(token)]);
   // Arte: piezas con impresión o con archivos ya cargados.
   const artPieces: PortalPiece[] = request.items
     .filter((item) => item.spec.artwork !== "not_applicable" || files.some((f) => f.itemId === item.id))
@@ -75,6 +77,7 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
       </section>
 
       {request.status === "data_pending" ? <PendingReply token={token} list={request.pendingList} /> : null}
+      {order ? <ClientOrder order={order} token={token} specHref={specPdfPath(request.id, token)} maxMb={uploadSettings(catalog).maxMb} /> : null}
       {quote ? (
         <ClientQuote
           token={token}

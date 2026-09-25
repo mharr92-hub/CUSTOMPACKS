@@ -12,6 +12,7 @@ import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
 import { getServerEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
 import { listRequestNotifications } from "@/lib/notify";
+import { getOrderRefForRequest } from "@/lib/orders";
 import { listTemplates } from "@/lib/notify/templates";
 import { getRequestDetail, getTimeline, listAssignableStaff, type TimelineEntry } from "@/lib/panel/requests";
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
@@ -47,7 +48,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
   const user = await requireStaff(undefined, `/admin/solicitudes/${id}`);
   const request = await getRequestDetail(user, id);
   if (!request) notFound();
-  const [timeline, artwork, catalog, notifications, templates, staff, rfqs, quotes] = await Promise.all([
+  const [timeline, artwork, catalog, notifications, templates, staff, rfqs, quotes, order] = await Promise.all([
     getTimeline(user, id),
     listRequestArtwork(user, id),
     getPublicCatalog(),
@@ -56,6 +57,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
     listAssignableStaff(user),
     listRfqs(user, id),
     listQuotes(user, id),
+    getOrderRefForRequest(user, id),
   ]);
   const t = await getTranslations("admin.request");
   const ta = await getTranslations("admin");
@@ -156,6 +158,11 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
           {ta(`lights.${request.trafficLight}`)}
         </span>
         {request.needsAdvice ? <span className="rounded-md bg-kraft-light px-2 py-0.5 text-xs font-medium text-kraft-dark">{t("needsAdvice")}</span> : null}
+        {order ? (
+          <Link href={`/admin/pedidos/${order.id}`} className="rounded-md bg-forest px-2 py-0.5 text-sm font-medium text-white hover:underline" data-testid="request-order-link">
+            {t("orderLink", { number: order.number })}
+          </Link>
+        ) : null}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         {[request.companyName, request.contactName].filter(Boolean).join(" · ")}

@@ -7,6 +7,8 @@ import { Wizard } from "@/components/wizard/wizard";
 import { getPublicCatalog, quoteConditions, uploadSettings } from "@/lib/catalog/public";
 import { serviceActor, withActor } from "@/lib/db/actor";
 import { todayInPanama } from "@/lib/leadtime";
+import { getReorderSource } from "@/lib/orders";
+import { reorderState } from "@/lib/orders/reorder";
 import { loadDraft } from "@/lib/quote/drafts";
 import { applyPreload, type Preload } from "@/lib/quote/flow";
 import { trackingPath } from "@/lib/quote/links";
@@ -49,7 +51,19 @@ export default async function QuotePage(props: PageProps<"/cotizar">) {
     }
   }
 
-  if (!token) {
+  // "Pedir de nuevo" desde el seguimiento (?repetir=<token del enlace>): el
+  // cotizador abre en el resumen con las piezas del pedido. Lleva el token en
+  // la URL, así que tampoco se carga la analítica y el wizard lo quita.
+  const reorderToken = draftToken ? null : param(params.repetir);
+  if (reorderToken) {
+    const source = await getReorderSource(reorderToken);
+    if (source) {
+      state = reorderState(source, catalog);
+      authoritative = true;
+    }
+  }
+
+  if (!token && !authoritative) {
     // Entrada desde una ficha (?tipo=) o una muestra de la galería (?muestra=):
     // el wizard la suma al borrador en curso de este dispositivo, si lo hay.
     const type = catalog.productTypes.find((ty) => ty.code === param(params.tipo));
@@ -74,7 +88,7 @@ export default async function QuotePage(props: PageProps<"/cotizar">) {
         initialIsAuthoritative={authoritative}
         preload={preload}
       />
-      {draftToken ? null : <AnalyticsScripts />}
+      {draftToken || reorderToken ? null : <AnalyticsScripts />}
     </>
   );
 }
