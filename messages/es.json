@@ -1225,19 +1225,19 @@
         },
         "what": {
           "title": "Qué datos recogemos",
-          "body": "Datos de contacto (nombre, cargo, empresa, RUC si lo das, correo, WhatsApp, ciudad y dirección de entrega), la especificación de tu solicitud, los archivos de arte y referencias que subes, y datos técnicos de navegación (páginas visitadas y origen de la visita)."
+          "body": "Datos de contacto (nombre, cargo, empresa, RUC si lo das, correo, WhatsApp, ciudad y dirección de entrega); la especificación de tu solicitud; los archivos de arte, referencias y comprobantes de pago que subes; tus respuestas a la encuesta de satisfacción; y datos técnicos: páginas visitadas, origen de la visita y, como constancia, la fecha, la hora y la dirección IP con que aceptas este tratamiento, apruebas una prueba de diseño o aceptas una cotización."
         },
         "why": {
           "title": "Para qué los usamos",
-          "body": "Para preparar tu cotización, pedir costos a la fábrica, producir y entregar tu pedido, enviarte avisos sobre tu solicitud y medir el uso del sitio para mejorarlo. No vendemos tus datos."
+          "body": "Para preparar tu cotización, pedir costos a la fábrica, producir y entregar tu pedido, registrar tus pagos, enviarte avisos sobre tu solicitud, proteger el sitio contra abusos y medir su uso para mejorarlo. No vendemos tus datos."
         },
         "share": {
           "title": "Con quién los compartimos",
-          "body": "Con la fábrica, solo la especificación y el arte necesarios para producir tu pedido, y con proveedores que nos prestan servicios (alojamiento, correo y analítica) bajo obligación de confidencialidad."
+          "body": "Con la fábrica, solo la especificación y el arte necesarios para producir tu pedido. Con proveedores que nos prestan servicios (alojamiento y base de datos, correo, analítica, protección contra abusos y registro de errores), bajo obligación de confidencialidad y solo para ese servicio."
         },
         "retention": {
           "title": "Cuánto tiempo los guardamos",
-          "body": "Los datos de solicitudes y pedidos, mientras exista la relación comercial y lo que exija la ley. Los archivos de arte, hasta 24 meses después de tu último pedido."
+          "body": "Los datos de solicitudes, pedidos y pagos, mientras exista la relación comercial y el tiempo que exija la ley. Los archivos de arte, {months} meses después del último movimiento de tu solicitud o pedido; luego los borramos. Si empiezas una cotización y no la envías, borramos el borrador a los 30 días."
         },
         "rights": {
           "title": "Tus derechos",
@@ -1249,7 +1249,7 @@
         },
         "security": {
           "title": "Seguridad",
-          "body": "Guardamos tus archivos en almacenamiento privado con enlaces de acceso que caducan, y solo el equipo asignado a tu solicitud puede verlos."
+          "body": "Guardamos tus archivos en almacenamiento privado, con enlaces de acceso que caducan, y solo el equipo asignado a tu solicitud puede verlos. Tu enlace de seguimiento es personal: no lo compartas. Limitamos los intentos repetidos en los formularios para evitar abusos."
         }
       }
     },

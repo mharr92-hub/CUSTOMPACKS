@@ -7,9 +7,16 @@ import { removeObject } from "@/lib/storage";
 /**
  * Retención del arte (PRD §9: 24 meses propuesta, `artwork_retention_months`).
  * El cron solo MARCA los archivos vencidos; se borran únicamente cuando admin
- * lo confirma. Mientras no haya pedidos (E8), la última actividad es el último
- * cambio de estado de la solicitud o el último archivo subido.
+ * lo confirma. La última actividad es lo más reciente entre el último cambio
+ * de estado de la solicitud, el último archivo subido y el último movimiento
+ * de su pedido (hito, entrega o cierre).
  */
+export async function artworkRetentionMonths(): Promise<number> {
+  const [row] = await withActor(serviceActor, (tx) => tx<{ months: number }[]>`
+    select coalesce((select (value #>> '{}')::int from public.settings where key = 'artwork_retention_months'), 24) as months`);
+  return row?.months ?? 24;
+}
+
 export async function flagExpiredArtwork(): Promise<number> {
   const rows = await withActor(serviceActor, (tx) => tx<{ id: string }[]>`
     with cfg as (
@@ -17,10 +24,14 @@ export async function flagExpiredArtwork(): Promise<number> {
     ),
     last_activity as (
       select r.id as request_id,
-             greatest(r.submitted_at, r.status_changed_at, coalesce(max(f.created_at), r.submitted_at)) as at
+             greatest(
+               r.submitted_at,
+               r.status_changed_at,
+               coalesce((select max(f.created_at) from public.artwork_files f where f.request_id = r.id), r.submitted_at),
+               coalesce((select max(greatest(o.status_changed_at, coalesce(o.closed_at, o.status_changed_at))) from public.orders o where o.request_id = r.id), r.submitted_at),
+               coalesce((select max(m.occurred_at) from public.milestones m join public.orders o on o.id = m.order_id where o.request_id = r.id), r.submitted_at)
+             ) as at
         from public.quote_requests r
-        left join public.artwork_files f on f.request_id = r.id
-       group by r.id
     )
     update public.artwork_files f
        set retention_flagged_at = now()

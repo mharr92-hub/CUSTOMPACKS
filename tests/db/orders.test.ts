@@ -19,6 +19,7 @@ const orders = await import("@/lib/orders");
 const { reorderState } = await import("@/lib/orders/reorder");
 const { putObject } = await import("@/lib/storage");
 const { todayInPanama, addDays } = await import("@/lib/leadtime");
+const { flagExpiredArtwork } = await import("@/lib/artwork/retention");
 type CurrentUser = import("@/lib/auth").CurrentUser;
 type WizardState = import("@/lib/quote/types").WizardState;
 
@@ -328,5 +329,30 @@ describe("procesos programados y recompra", () => {
     expect(state.contact.consent).toBe(false);
     expect(state.contact.comments).toContain((await orders.getClientOrder(o.accessToken))!.number);
     expect(await orders.getReorderSource("y".repeat(43))).toBeNull();
+  });
+
+  it("la retención del arte cuenta la actividad del pedido: no marca el arte de un pedido con movimiento reciente", async () => {
+    const o = await acceptedOrder({ quantity: 1000 });
+    const old = addDays(new Date(), -30 * 31);
+    // Fechas viejas sin pasar por los triggers (la auditoría conserva created_at).
+    await testSql().begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`update public.quote_requests set submitted_at = ${old}, status_changed_at = ${old} where id = ${o.requestId}`;
+      await tx`update public.artwork_files set created_at = ${old} where request_id = ${o.requestId}`;
+      await tx`update public.orders set status_changed_at = ${old}, created_at = ${old} where id = ${o.orderId}`;
+      await tx`update public.milestones set occurred_at = ${old} where order_id = ${o.orderId}`;
+    });
+    // Un hito de hace un mes mantiene vivo el arte.
+    await testSql()`insert into public.milestones (order_id, type, occurred_at) values (${o.orderId}, 'deposit_received', now() - interval '30 days')`;
+    await flagExpiredArtwork();
+    const [kept] = await testSql()<{ flagged: Date | null }[]>`select retention_flagged_at as flagged from public.artwork_files where request_id = ${o.requestId}`;
+    expect(kept?.flagged).toBeNull();
+    // Sin actividad reciente, se marca (no se borra).
+    await testSql()`update public.milestones set occurred_at = ${old} where order_id = ${o.orderId}`;
+    await flagExpiredArtwork();
+    const [flagged] = await testSql()<{ flagged: Date | null; deleted: Date | null }[]>`
+      select retention_flagged_at as flagged, deleted_at as deleted from public.artwork_files where request_id = ${o.requestId}`;
+    expect(flagged?.flagged).toBeInstanceOf(Date);
+    expect(flagged?.deleted).toBeNull();
   });
 });

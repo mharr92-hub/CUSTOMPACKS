@@ -4,12 +4,16 @@ import { expect, test } from "@playwright/test";
 const SKIP = /^\/(admin|api|auth|seguimiento)(\/|$)/;
 /** Un precio visible (US$ 12, $1.50, USD 20…) nunca debe aparecer en el sitio público. */
 const PRICE = /(US\$|\$|USD)\s?\d/;
+/** Sellos o certificaciones con nombre propio: solo con certificado vigente (hoy, ninguno). */
+const SEALS = /\b(FSC|PEFC|SFI|ISO\s?\d{4,5}|BRCGS?|HACCP)\b/;
+/** Imágenes que parecen logos de clientes o sellos. */
+const LOGO_LIKE = /logo|sello|certific|fsc|pefc|cliente/i;
 
 test.describe("E2 · sitio público", () => {
   test.skip(({ isMobile }) => isMobile, "El rastreo completo corre una sola vez (escritorio).");
   test.setTimeout(240_000);
 
-  test("navegación completa sin enlaces rotos, un h1 por página, sin precios ni etiquetas internas", async ({ page }) => {
+  test("navegación completa sin enlaces rotos, un h1 por página, sin precios, logos de clientes, sellos ni etiquetas internas", async ({ page }) => {
     const queue = ["/"];
     const seen = new Set<string>(queue);
     const problems: string[] = [];
@@ -27,6 +31,12 @@ test.describe("E2 · sitio público", () => {
       const text = await page.locator("main").innerText();
       if (text.includes("PROVISIONAL")) problems.push(`${path}: muestra PROVISIONAL`);
       if (PRICE.test(text)) problems.push(`${path}: muestra un precio`);
+      if (SEALS.test(text)) problems.push(`${path}: menciona un sello o certificación: ${text.match(SEALS)?.[0]}`);
+      const logos = await page
+        .locator("main img")
+        .evaluateAll((els) => els.map((el) => `${el.getAttribute("alt") ?? ""} ${el.getAttribute("src") ?? ""}`));
+      for (const img of logos) if (LOGO_LIKE.test(img)) problems.push(`${path}: imagen con aspecto de logo o sello: ${img.slice(0, 120)}`);
+      if (path === "/clientes" && logos.length > 0) problems.push("/clientes: muestra imágenes (solo con autorización escrita del cliente)");
 
       const hrefs = await page.locator("a[href^='/']").evaluateAll((els) => els.map((el) => el.getAttribute("href") ?? ""));
       for (const href of hrefs) {
