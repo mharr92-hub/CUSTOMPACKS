@@ -51,3 +51,7 @@ Estas respuestas definen cómo se corrigen algunos hallazgos de `docs/AUDITORIA.
 22. **Datos personales, Ley 81** (DAT-03, SEG-07).
     - ¿Quién atiende las solicitudes de acceso y eliminación?
     - ¿Qué datos hay que conservar aunque el cliente pida borrarlos (facturas o pedidos, por obligación contable)? ¿Durante cuánto tiempo?
+23. **Tiempo de respuesta de la fábrica al RFQ** (`docs/MEJORAS.md`, P-12).
+    - Para cotizar en 24 horas hábiles, la fábrica tiene que responder en una fracción de ese tiempo.
+    - ¿Qué tiempo de respuesta se puede acordar con la fábrica?
+    - Mientras tanto, el recordatorio propuesto usa la mitad del SLA de cotización (PROVISIONAL).

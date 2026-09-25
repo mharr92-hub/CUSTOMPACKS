@@ -17,6 +17,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E10 — Lanzamiento | ✅ Hecho (falta lo que depende de Mark: docs/lanzamiento.md) | 25/09/2026 |
 | Bloque 1 · Cierre de pendientes | ✅ Hecho | 25/09/2026 |
 | Bloque 2 · Auditoría completa | ✅ Hecho (docs/AUDITORIA.md) | 25/09/2026 |
+| Bloque 3 · Propuestas de mejora | ✅ Hecho (docs/MEJORAS.md; cola TAREAS-mejoras.md sin ejecutar) | 25/09/2026 |
 
 ---
 
@@ -705,3 +706,32 @@ MEASURE_WIZARD=1 pnpm test:e2e tests/e2e/wizard-timing.spec.ts --project=mobile 
 WIZARD_PACE=machine MEASURE_WIZARD=1 pnpm test:e2e tests/e2e/wizard-timing.spec.ts --project=mobile
 node scripts/bundle-size.mjs http://localhost:3200 /cotizar 250   # con pnpm build y pnpm start -p 3200
 ```
+
+---
+
+## Bloque 3 · Propuestas de mejora (25/09/2026)
+
+**Qué quedó hecho**
+- **`docs/MEJORAS.md`:** 37 propuestas.
+  - Cada una con problema, evidencia (IDs de la auditoría y archivos), cambio concreto, impacto en los KPI de PRD §3, esfuerzo, riesgo y fase.
+  - Ordenadas por impacto dividido entre esfuerzo.
+  - Responde las cuatro preguntas pedidas:
+    - cómo subir las solicitudes completas a la primera;
+    - cómo bajar el abandono del cotizador;
+    - cómo cotizar en menos de 24 h hábiles con un solo vendedor;
+    - qué automatizar primero para la fábrica.
+- **Fases:** 17 propuestas antes del lanzamiento (11 medium y 6 high), 18 para el primer mes y 2 para la fase 2. Ninguna necesita ultracode.
+- **`TAREAS-mejoras.md`:** la cola ejecutable, entre `COLA:INICIO` y `COLA:FIN`, con el mismo formato de `TAREAS.md`.
+  - Tiene un bloque por propuesta de antes del lanzamiento (M1 a M17), con casillas, esfuerzo, dependencias y criterios de aceptación.
+  - **No se ejecutó: Mark decide.**
+- **`docs/PREGUNTAS.md`:** pregunta 23, sobre el tiempo de respuesta acordado con la fábrica.
+- **`docs/DECISIONES.md`:** D-106.
+- **`docs/AUDITORIA.md`:** los resúmenes de UX, del panel y de la fase 2 quedaron alineados con la severidad verificada.
+
+**Qué falta / notas**
+- El impacto de cada propuesta es un juicio basado en la evidencia, no una medición. La propuesta P-07 (bloque M7) guarda los datos para medirlo.
+- Siete preguntas de `docs/PREGUNTAS.md` (1, 7 y 19 a 23) cambian cómo se ejecutan algunas propuestas. Mientras no haya respuesta, se usa la opción conservadora que indica `docs/MEJORAS.md`.
+
+**Cómo revisarlo**
+- Leer el resumen y las cuatro preguntas de `docs/MEJORAS.md`.
+- En `TAREAS-mejoras.md`, quitar los bloques que no se quieran y pegar el mensaje de arranque que está al principio del archivo.

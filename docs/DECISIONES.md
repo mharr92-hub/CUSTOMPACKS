@@ -735,3 +735,13 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - marca `PROVENPACK_SCRIPT=1`, con lo que el catálogo se lee sin la caché incremental de Next.
   - Lo usan `pnpm db:seed-demo` y `pnpm gallery:import`.
 - **Cómo cambiarla:** `scripts/lib/script-env.mjs`.
+
+### D-106 · 25/09/2026 · Auditoría y cola de mejoras
+- **Duda:** cómo tratar el defecto crítico DAT-01 en el bloque de auditoría, que solo permitía cambiar código por hallazgos críticos de seguridad; y cómo armar la cola de mejoras.
+- **Decisión:**
+  - DAT-01 (transacciones anidadas con `DB_POOL_MAX=1`) es de confiabilidad, no de seguridad. No se corrigió en la auditoría: quedó un aviso bloqueante en `docs/deploy.md` y es el primer bloque de la cola (M1).
+  - Las propuestas de `docs/MEJORAS.md` se ordenan por impacto (1 a 5) dividido entre el peso del esfuerzo (medium 1, high 2, ultracode 4).
+  - `TAREAS-mejoras.md` tiene un bloque por propuesta de "antes del lanzamiento" (M1 a M17), en el mismo orden, para que Mark apruebe o quite cada una.
+  - Los marcadores son comentarios HTML (`<!-- COLA:INICIO -->` y `<!-- COLA:FIN -->`), que no se ven en el documento renderizado.
+  - La cola no se ejecuta hasta que Mark lo pida.
+- **Cómo cambiarla:** editar `TAREAS-mejoras.md` (quitar, reordenar o agregar bloques). Para volver a priorizar, cambiar el impacto o el esfuerzo en `docs/MEJORAS.md`.
