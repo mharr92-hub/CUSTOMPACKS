@@ -173,11 +173,11 @@ Aceptación: todos los tests en verde en CI; informe de seguridad en `docs/segur
 
 ## E10 — Lanzamiento · esfuerzo: medium · semana 10
 
-- [ ] `docs/lanzamiento.md`: lista de lo que Mark debe entregar (fotos con código de muestra, textos definitivos, nombre y dominio, credenciales de Supabase, Resend, WhatsApp, GA4, Meta Pixel, correo de fábrica) y cómo cargarlo.
-- [ ] Script de importación de fotos de la galería desde una carpeta con nombres `M-001.jpg` → `gallery_samples`.
-- [ ] Guía de uso del panel para el equipo (`docs/manual-equipo.md`) con capturas.
-- [ ] Revisión final de textos legales y de que ninguna pantalla pública muestra precio, logos de clientes ni sellos de certificación.
-- [ ] Checklist de despliegue en `docs/deploy.md` verificado paso a paso en local.
+- [x] `docs/lanzamiento.md`: lista de lo que Mark debe entregar (fotos con código de muestra, textos definitivos, nombre y dominio, credenciales de Supabase, Resend, WhatsApp, GA4, Meta Pixel, correo de fábrica) y cómo cargarlo.
+- [x] Script de importación de fotos de la galería desde una carpeta con nombres `M-001.jpg` → `gallery_samples`.
+- [x] Guía de uso del panel para el equipo (`docs/manual-equipo.md`) con capturas.
+- [x] Revisión final de textos legales y de que ninguna pantalla pública muestra precio, logos de clientes ni sellos de certificación.
+- [x] Checklist de despliegue en `docs/deploy.md` verificado paso a paso en local.
 
 Aceptación: criterio de salida del MVP de §18 cumplido con una solicitud real de cada segmento.
 

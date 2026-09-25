@@ -14,7 +14,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E7 — RFQ y cotización | ✅ Hecho | 24/09/2026 |
 | E8 — Pedidos y seguimiento | ✅ Hecho | 24/09/2026 |
 | E9 — Calidad y seguridad | ✅ Hecho | 24/09/2026 |
-| E10 — Lanzamiento | ⏳ Pendiente | — |
+| E10 — Lanzamiento | ✅ Hecho (falta lo que depende de Mark: docs/lanzamiento.md) | 25/09/2026 |
 
 ---
 
@@ -581,3 +581,53 @@ node scripts/lighthouse.mjs http://localhost:3200 / /catalogo/cajas/plegadiza-co
 - `pnpm test:e2e`: 30/30 en verde (24 omitidos por proyecto móvil/escritorio).
 - CI (lint, typecheck, Vitest con respaldo, build con secretos y peso, Playwright): en verde, incluida la prueba de respaldo y restauración, obligatoria en CI.
 - `pnpm audit --prod`: sin vulnerabilidades.
+
+
+---
+
+## E10 — Lanzamiento
+
+**Qué quedó hecho**
+- **`docs/lanzamiento.md`:** lo que falta de Mark y cómo se carga:
+  - catálogo real y fotos de muestras;
+  - textos, logo, razón social y RUC;
+  - los datos del negocio que siguen PROVISIONAL, con su valor actual;
+  - preguntas abiertas: ITBMS, formato del RFQ, tolerancias;
+  - cuentas y credenciales, con la variable de cada una;
+  - equipo, solicitudes en curso y campaña inicial (eventos de GA4 y Meta, UTM);
+  - la lista del criterio de salida del MVP para marcar en producción.
+- **Importación de fotos de la galería (D-095):** `pnpm gallery:import <carpeta> [--crear] [--prueba]`.
+  - Foto principal y adicionales por código (`M-001.jpg`, `M-001-2.jpg`), con el tipo real validado.
+  - No duplica al repetir. Las muestras nuevas quedan inactivas y PROVISIONAL.
+- **`docs/manual-equipo.md`:** manual del panel con 19 capturas del flujo real, generadas desde el recorrido de Playwright (D-096).
+  - Cubre ingreso y roles, rutina diaria, bandeja, detalle, arte y proof, RFQ, cotización, pedido (pagos, hitos, QA), lo que ve el cliente, reportes, administración y preguntas frecuentes.
+- **Revisión final (D-097):**
+  - Política de privacidad al día con lo que trata el sistema.
+  - La retención del arte cuenta ahora la actividad del pedido (corrección).
+  - El rastreo del sitio público falla también con sellos de certificación o imágenes con aspecto de logo de cliente. Resultado: sin precios, sin logos de clientes y sin sellos.
+- **Checklist de despliegue verificado en local:**
+  - `pnpm verify:deploy`: base nueva, build de producción, secretos, cabeceras, SEO, acceso y crons. 23/23 en verde (D-100).
+  - `docs/deploy.md` suma el checklist completo: ensayo local, cuentas y verificación en producción.
+  - `db:migrate` ya no aplica el shim local contra Supabase, y `db:reset` se niega (D-094).
+- **Criterio de salida del MVP (D-099):** el ciclo completo se prueba solo en los dos segmentos: comercio con impresión y proof, y alimentos.
+- **Además:** el editor de cotización dejaba precio y subtotal fuera de la vista; ahora va en tarjetas (D-098).
+
+**Qué falta / notas**
+- Todo lo que depende de Mark está en `docs/lanzamiento.md`: cuentas, dominio, catálogo y fotos reales, datos PROVISIONAL, textos legales con razón social y revisión de un abogado.
+- El criterio de salida con solicitudes **reales** de cada segmento se marca en producción (sección 6 de `docs/lanzamiento.md`).
+- Fase 2 no se ejecuta hasta que Mark lo pida (TAREAS).
+
+**Cómo probarlo**
+```bash
+pnpm verify:deploy                                   # ensayo del despliegue a producción, sin cuentas
+pnpm gallery:import <carpeta> --prueba               # importación de fotos (sin cambiar nada)
+MANUAL_SHOTS_DIR=docs/manual pnpm test:e2e tests/e2e/journey.spec.ts --project=desktop   # regenera las capturas del manual
+pnpm test && pnpm test:e2e
+```
+
+**Resultado de la verificación (25/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 162/162 en verde en local (+2 de respaldo que corren en CI).
+- `pnpm test:e2e`: 30/30 en verde (24 omitidos por proyecto móvil/escritorio), con el ciclo completo en los dos segmentos.
+- `pnpm verify:deploy`: 23/23 comprobaciones en verde.
+- CI: en verde (lint, typecheck, Vitest con respaldo, build con secretos y peso, Playwright).
