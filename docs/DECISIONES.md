@@ -495,3 +495,78 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
 - **Duda:** el PRD no dice si los precios incluyen impuestos (ITBMS).
 - **Decisión:** la cotización no menciona impuestos: indica la moneda (USD) y las condiciones del PRD. Queda como pregunta para Mark en E10.
 - **Cómo cambiarla:** `messages/es.json` > `quotePdf`.
+
+### D-076 · 24/09/2026 · Migración de pedidos: `008_orders`
+- **Decisión:** TAREAS la llama `007_orders`, pero el 007 ya es `007_quotes_rfq` (D-069). La migración de pedidos queda como `008_orders`.
+- **Cómo cambiarla:** no se renumera; las siguientes siguen desde 009.
+
+### D-077 · 24/09/2026 · Estados e hitos del pedido
+- **Decisión:**
+  - Estados (§14): Esperando anticipo → Anticipo recibido → En producción → QA en planta → Embarcado → (En aduana) → Entregado → Cerrado. Un trigger impide saltar pasos.
+  - Tres hitos son automáticos: "Arte aprobado" (cuando el cliente aprobó el proof de todas las piezas impresas), "Anticipo recibido" y "Saldo recibido" (al confirmar el pago).
+  - Los demás los registra el equipo, siempre el siguiente paso válido:
+    - Producción exige anticipo y proof aprobado.
+    - QA exige cada punto del checklist.
+    - Cerrar exige el saldo confirmado.
+  - Checklist de QA: seis puntos por pieza (material, calibre, medidas, colores e impresión, acabado y cantidad), con el valor esperado sacado de la ficha congelada. Cada punto queda como Correcto, Observado (con comentario) o No aplica.
+  - Si el hito se registra con la fecha de hoy, guarda la hora real; si se registra con una fecha pasada, queda al mediodía de Panamá.
+- **Cómo cambiarla:** `MANUAL` y `STATUS_AFTER` en `lib/orders/index.ts`; checklist en `lib/orders/qa.ts`.
+
+### D-078 · 24/09/2026 · Montos del pedido solo en el PDF "Estado de pagos"
+- **Conflicto:** TAREAS pide mostrar en `/seguimiento/[token]` los "montos y estado de pagos", pero CLAUDE.md prohíbe mostrar precios en el portal. Prevalece CLAUDE.md.
+- **Decisión:**
+  - El portal muestra el estado de cada pago (Pendiente, Comprobante en revisión, Confirmado, Rechazado) y los porcentajes de la condición 50/50, sin montos.
+  - Los montos (total, anticipo, saldo, lo pagado y lo pendiente) van en el PDF "Estado de pagos", que el cliente descarga con su enlace; el equipo lo emite desde el panel.
+  - La base refuerza la regla: el rol anónimo no tiene permiso sobre las columnas de montos de `orders` ni de `payments`.
+- **Cómo cambiarla:** `lib/orders/statement-pdf.tsx` y `components/portal/client-order.tsx`.
+
+### D-079 · 24/09/2026 · Registro de pagos y comprobantes
+- **Decisión:**
+  - Pago que registra el equipo: queda confirmado de una vez.
+  - Comprobante que sube el cliente (PDF o foto): crea un pago "por confirmar", de anticipo si el anticipo aún no está confirmado y de saldo en otro caso, y avisa al equipo por correo. El equipo lo confirma con el monto recibido o lo rechaza.
+  - Hasta 5 comprobantes sin revisar por pedido (cada uno avisa al equipo). Un pedido cerrado ya no recibe comprobantes.
+  - Se aceptan pagos parciales; el formulario propone lo que falta.
+  - Datos de pago que ve el cliente: setting público `payment_instructions`, vacío y PROVISIONAL, para no inventar cuentas. Mientras esté vacío, el portal ofrece pedirlos por WhatsApp.
+- **Cómo cambiarla:** `recordPayment`, `reviewPayment` y `confirmReceiptUpload` en `lib/orders/index.ts`; el texto en `/admin/configuracion`.
+
+### D-080 · 24/09/2026 · Fecha estimada de entrega y alerta de atraso
+- **Decisión:**
+  - Plazo del pedido: el mayor de las líneas elegidas al aceptar.
+  - Inicio del plazo (§14): lo último entre el anticipo confirmado y el último proof aprobado; sin impresión, el anticipo. Hasta entonces la fecha dice "por confirmar".
+  - La ETA que carga el equipo al embarcar reemplaza a la fecha estimada en pantalla y en los avisos.
+  - Alerta de atraso: un pedido abierto cuya ETA, o fecha estimada si no hay ETA, ya pasó. Se marca en la lista y en el detalle del pedido.
+- **Cómo cambiarla:** `recomputeSchedule` e `isDelayed` en `lib/orders/index.ts`.
+
+### D-081 · 24/09/2026 · Evidencias de los hitos
+- **Decisión:**
+  - Bucket privado `evidence` que acepta JPG, PNG, WebP, MP4, MOV y PDF.
+  - Tamaño máximo por archivo según `upload_max_mb`; hasta 30 archivos por hito.
+  - Se verifica el tipo real del archivo; si el contenido no corresponde a un formato aceptado, se borra.
+  - El cliente ve las evidencias en su enlace apenas se suben, sin aprobación previa, con URL firmada de 10 minutos.
+  - El acta de entrega de §12 se sube como evidencia del hito "Entregado" (foto o PDF de la guía firmada).
+- **Cómo cambiarla:** `EVIDENCE_EXT`, `EVIDENCE_KINDS` y `MAX_EVIDENCE` en `lib/orders/index.ts`.
+
+### D-082 · 24/09/2026 · Avisos de los hitos
+- **Decisión:**
+  - El PRD redacta solo el texto del hito de QA. Para "Producción iniciada" y "Embarcado" se agregan plantillas de WhatsApp PROVISIONAL (`order_production` y `order_shipped`). "Entregado" usa la de §21-C.
+  - El texto de QA anuncia el "Embarque estimado": el formulario de QA tiene esa fecha (opcional). Si queda vacía, el aviso dice "por confirmar".
+  - Como el pedido ahora se crea solo al aceptar, el aviso "Cotización aceptada (equipo)" cambia a "El pedido ya está creado: solicita el anticipo". Solo se cambia si nadie editó el texto.
+- **Cómo cambiarla:** `/admin/plantillas`.
+
+### D-083 · 24/09/2026 · "Pedir de nuevo"
+- **Decisión:**
+  - El botón abre `/cotizar?repetir=<token>` en el resumen, con las mismas piezas y la cantidad que se pidió.
+  - Solo se copian las opciones que siguen activas en el catálogo; las que ya no están se vuelven a elegir.
+  - Los archivos no se copian. El comentario pide usar el arte aprobado del pedido anterior.
+  - El contacto viene prellenado, pero el consentimiento se vuelve a marcar.
+  - Como la URL lleva el token, no se carga la analítica y el wizard quita el parámetro de la barra.
+  - Al editar, reemplaza el borrador que hubiera en curso en ese dispositivo.
+- **Cómo cambiarla:** `lib/orders/reorder.ts` y `app/cotizar/page.tsx`.
+
+### D-084 · 24/09/2026 · Encuesta NPS y recordatorios de saldo
+- **Decisión:**
+  - Encuesta: formulario de 0 a 10 con comentario, en el enlace del cliente (`#encuesta`), una por pedido. Se abre al entregar y queda con la IP.
+  - El correo de la encuesta sale desde el día 7 después del cierre, una sola vez.
+  - Recordatorio de saldo por WhatsApp a los 2 y 5 días de la entrega, mientras el saldo no esté confirmado, una vez por día.
+  - Ambos corren en `lib/jobs.ts`, a lo sumo cada hora, con el uso del panel o con el cron diario.
+- **Cómo cambiarla:** `balanceReminders` y `npsSurveys` en `lib/orders/index.ts`; días en `lib/notify/schedule.ts`.

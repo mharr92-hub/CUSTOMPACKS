@@ -117,8 +117,8 @@ Objetivo: todos los eventos de §12 por correo y wa.me, con plantillas editables
 
 - [x] Migración `005_notifications`: `notifications` (evento, destinatario, canal, estado `queued|sent|simulated|failed`, payload, enviado_at) y carga de `message_templates` con los textos de §21-C.
 - [x] Servicio `lib/notify.ts`: render de plantilla con variables, envío por Resend (o simulado), enlace wa.me con texto precargado, registro en `activities`.
-- [ ] Disparadores por cambio de estado (trigger o hook en servidor) para cada fila de la tabla de §12.
-- [ ] Crons: vigencia por vencer (3 y 1 día), saldo pendiente (2 y 5 días tras entrega), encuesta NPS (7 días), SLA vencido al equipo (4 h sin respuesta, 24 h sin cotizar).
+- [x] Disparadores por cambio de estado (trigger o hook en servidor) para cada fila de la tabla de §12.
+- [x] Crons: vigencia por vencer (3 y 1 día), saldo pendiente (2 y 5 días tras entrega), encuesta NPS (7 días), SLA vencido al equipo (4 h sin respuesta, 24 h sin cotizar).
 - [x] Admin `/admin/plantillas` para editar textos y previsualizar.
 
 Aceptación: cada transición de estado genera la notificación correcta y visible en la solicitud; sin credenciales todo queda en `simulated` y se ve en consola.
@@ -152,11 +152,11 @@ Aceptación: de una solicitud verde se genera RFQ sin retipear nada, se registra
 
 Objetivo: pedido con hitos, evidencias de QA, pagos y vista del cliente (§6, §10, §11).
 
-- [ ] Migración `007_orders`: `orders` (número `P-AAAA-NNNNN`, cotización_id, estado, fecha_estimada_entrega, dirección, transporte, tracking, ETA, notas), `milestones` (tipo enum de §14, fecha, responsable, evidencias JSON, checklist_qa JSON), `payments` (tipo `deposit|balance`, monto, moneda, método, referencia, comprobante_url, fecha, confirmado_por).
-- [ ] Creación automática al aceptar cotización; montos 50/50 calculados; fecha estimada por `lib/leadtime.ts` al confirmar anticipo y proof.
-- [ ] Admin pedido: línea de tiempo, subir fotos y video por hito (bucket `evidence`), checklist QA contra la especificación (puntos generados desde la ficha: material, calibre, medidas, colores, acabado, cantidad), registrar pagos con comprobante, alertas de retraso.
-- [ ] Vista cliente `/seguimiento/[token]`: línea de tiempo, evidencias, documentos (cotización, ficha, comprobante), montos y estado de pagos, subir comprobante, botón "pedir de nuevo" (abre wizard precargado).
-- [ ] Recordatorios de saldo y encuesta NPS (formulario simple, guarda en `surveys`).
+- [x] Migración `007_orders`: `orders` (número `P-AAAA-NNNNN`, cotización_id, estado, fecha_estimada_entrega, dirección, transporte, tracking, ETA, notas), `milestones` (tipo enum de §14, fecha, responsable, evidencias JSON, checklist_qa JSON), `payments` (tipo `deposit|balance`, monto, moneda, método, referencia, comprobante_url, fecha, confirmado_por).
+- [x] Creación automática al aceptar cotización; montos 50/50 calculados; fecha estimada por `lib/leadtime.ts` al confirmar anticipo y proof.
+- [x] Admin pedido: línea de tiempo, subir fotos y video por hito (bucket `evidence`), checklist QA contra la especificación (puntos generados desde la ficha: material, calibre, medidas, colores, acabado, cantidad), registrar pagos con comprobante, alertas de retraso.
+- [x] Vista cliente `/seguimiento/[token]`: línea de tiempo, evidencias, documentos (cotización, ficha, comprobante), montos y estado de pagos, subir comprobante, botón "pedir de nuevo" (abre wizard precargado).
+- [x] Recordatorios de saldo y encuesta NPS (formulario simple, guarda en `surveys`).
 
 Aceptación: pedido completo de anticipo a cerrado con hitos, fotos y saldo; el cliente ve una foto de QA en menos de un minuto tras subirla.
 

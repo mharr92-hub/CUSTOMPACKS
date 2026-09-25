@@ -9,10 +9,10 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E2 — Sitio público | ✅ Hecho | 24/09/2026 |
 | E3 — Cotizador | ✅ Hecho | 24/09/2026 |
 | E4 — Arte y referencias | ✅ Hecho | 24/09/2026 |
-| E5 — Notificaciones | ✅ Hecho (crons de E7/E8 pendientes) | 24/09/2026 |
+| E5 — Notificaciones | ✅ Hecho (disparadores y crons de pedido completados en E8) | 24/09/2026 |
 | E6 — Panel interno | ✅ Hecho | 24/09/2026 |
 | E7 — RFQ y cotización | ✅ Hecho | 24/09/2026 |
-| E8 — Pedidos y seguimiento | ⏳ Pendiente | — |
+| E8 — Pedidos y seguimiento | ✅ Hecho | 24/09/2026 |
 | E9 — Calidad y seguridad | ⏳ Pendiente | — |
 | E10 — Lanzamiento | ⏳ Pendiente | — |
 
@@ -449,3 +449,71 @@ pnpm test:e2e     # de una solicitud verde a la aceptación del cliente desde su
   - Se registra el costo y se emite la cotización con el precio calculado.
   - Rechazar exige motivo.
   - El cliente descarga el PDF y acepta desde su enlace, sin ver ningún precio en pantalla.
+
+
+---
+
+## E8 — Pedidos y seguimiento
+
+**Qué quedó hecho**
+- **Migración `008_orders` (D-076):**
+  - `orders`: número `P-AAAA-NNNNN`, cotización, estado, líneas internas, total, anticipo y saldo, plazo, inicio del plazo, fecha estimada, dirección, transporte, guía, ETA, notas, entrega y cierre.
+  - `milestones`: tipo de §14, fecha, responsable, nota, evidencias y checklist de QA.
+  - `payments`: anticipo o saldo, estado, monto, método, referencia, comprobante y confirmación.
+  - `surveys`: NPS.
+  - Bucket privado `evidence`.
+  - Trigger de la máquina de estados del pedido (D-077); auditoría en las tres tablas.
+  - RLS: el cliente lee su pedido sin columnas de montos.
+  - Plantillas de producción y embarque; setting `payment_instructions` (PROVISIONAL, vacío).
+- **Creación automática al aceptar la cotización:**
+  - En la misma transacción: líneas y total según las cantidades elegidas, anticipo y saldo según el % de la cotización, y plazo = el mayor de las líneas.
+  - Si el proof ya está aprobado, queda el hito "Arte aprobado".
+- **Fecha estimada de entrega (D-080):** se calcula con `lib/leadtime.ts` al confirmar el anticipo y el proof, y se recalcula si el proof se aprueba después.
+- **Panel `/admin/pedidos`:**
+  - Lista: abiertos primero por fecha de entrega, alerta de atraso, estado de anticipo y saldo, comprobantes por revisar.
+  - Detalle:
+    - Línea de tiempo.
+    - Subida de fotos, video y PDF por hito (D-081).
+    - Registro del siguiente hito válido. QA usa el checklist contra la ficha, y el embarque lleva transporte, guía y ETA.
+    - Envío y notas internas.
+    - Pagos: registrar, confirmar o rechazar comprobantes, y ver el comprobante.
+    - Resumen con montos y el PDF "Estado de pagos".
+  - La solicitud enlaza a su pedido.
+- **Reglas:**
+  - Producción exige anticipo y proof aprobado.
+  - QA exige cada punto del checklist.
+  - Cerrar exige el saldo confirmado.
+  - El viewer solo lee.
+- **Portal del cliente `/seguimiento/[token]`:**
+  - Estado, fecha estimada o fecha de entrega, y rastreo.
+  - Etapas con fotos, video y el resultado de QA.
+  - Estado de los pagos, sin montos (D-078), y cómo pagar (D-079).
+  - Subida de comprobante.
+  - Documentos: estado de pagos, cotización y ficha técnica.
+  - "Pedir de nuevo" (D-083).
+  - Encuesta NPS (D-084).
+- **Avisos (D-082):** anticipo recibido, producción, QA, embarque, entrega con saldo y comprobante recibido (al equipo).
+- **Procesos:** recordatorios de saldo a los 2 y 5 días de la entrega y encuesta NPS a los 7 días del cierre, en `lib/jobs.ts`.
+- **E5 completo:** con esto quedan conectados los disparadores de pedido y los crons de saldo y NPS, así que se marcan las dos casillas que estaban abiertas en E5.
+
+**Qué falta / notas**
+- Datos de pago (banco, cuenta, Yappy): los carga Mark en `/admin/configuracion` > `payment_instructions`. Mientras tanto, el portal ofrece pedirlos por WhatsApp.
+- Los montos del pedido no se ven en el portal, a diferencia de lo que decía TAREAS: van en el PDF "Estado de pagos" (D-078, por la regla de precios de CLAUDE.md).
+- El recorrido completo cliente + equipo en una sola prueba es tarea de E9. En E8 hay un e2e desde la solicitud hasta el pedido cerrado.
+
+**Cómo probarlo**
+```bash
+pnpm dev          # aceptar una cotización en /seguimiento/<token> → /admin/pedidos/<id>: anticipo → producción → QA con fotos → embarque → entrega → saldo → cerrar
+pnpm test         # creación y montos, máquina de estados, proof, QA, evidencias, comprobantes, recordatorios, NPS, pedir de nuevo, permisos
+pnpm test:e2e     # pedido completo con foto de QA visible para el cliente
+```
+
+**Resultado de la verificación (24/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 135/135 en verde.
+- `pnpm test:e2e`: 25/25 en verde (23 omitidos por proyecto móvil/escritorio).
+- La prueba del pedido falló una vez en local sin dejar el detalle y no se volvió a reproducir en 7 corridas más, una con el servidor en frío. En CI hay un reintento con traza; si reaparece, se revisa en E9.
+- Criterio de aceptación (e2e): pedido de anticipo a cerrado con hitos, foto de QA y saldo.
+  - El cliente ve la foto de QA en su enlace segundos después de subirla (la prueba exige menos de un minuto).
+  - Sube el comprobante del saldo, el equipo lo confirma y el pedido se cierra.
+  - El portal no muestra ningún monto; el estado de pagos se descarga en PDF.
