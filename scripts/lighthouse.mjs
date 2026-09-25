@@ -3,6 +3,8 @@
 //   node scripts/lighthouse.mjs <baseUrl> <ruta> [ruta…]
 // Falla (exit 1) si rendimiento, SEO o accesibilidad quedan por debajo de LH_MIN (90).
 // Usa el Chromium de Playwright; no necesita Chrome instalado.
+// LH_THROTTLING=devtools aplica de verdad la red 4G lenta y la CPU 4× más lenta
+// (por defecto, "simulate": estima con el modelo de Lighthouse; ver D-103).
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
@@ -31,10 +33,12 @@ try {
       output: ["html", "json"],
       logLevel: "error",
       onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
+      throttlingMethod: process.env.LH_THROTTLING === "devtools" ? "devtools" : "simulate",
     });
     if (!result) throw new Error(`sin resultado para ${url}`);
     const { lhr, report } = result;
-    const file = path.join(outDir, `${p.replace(/[^a-z0-9]+/gi, "_") || "home"}.html`);
+    const suffix = process.env.LH_THROTTLING === "devtools" ? "-devtools" : "";
+    const file = path.join(outDir, `${p.replace(/[^a-z0-9]+/gi, "_") || "home"}${suffix}.html`);
     fs.writeFileSync(file, Array.isArray(report) ? report[0] : report);
     if (Array.isArray(report) && report[1]) fs.writeFileSync(file.replace(/.html$/, ".json"), report[1]);
     const scores = Object.fromEntries(Object.entries(lhr.categories).map(([k, v]) => [k, Math.round((v.score ?? 0) * 100)]));
