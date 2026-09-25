@@ -23,6 +23,8 @@ export const RATE_RULES = {
   /** Enlaces de acceso al panel por IP y por correo. */
   login: { limit: 20, windowSec: 900 },
   loginEmail: { limit: 5, windowSec: 900 },
+  /** Errores del navegador reenviados a Sentry, por IP. */
+  errors: { limit: 30, windowSec: 600 },
 } as const;
 export type RateBucket = keyof typeof RATE_RULES;
 

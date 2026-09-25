@@ -1,7 +1,10 @@
+import { captureError, sentryEnabled } from "@/lib/sentry";
+
 /**
  * Logger mínimo. En producción solo emite warn/error (y info estructurada del
  * servidor); en desarrollo emite todo. Es el único lugar donde se permite
- * `console.*` (regla de CLAUDE.md).
+ * `console.*` (regla de CLAUDE.md). Los errores también van a Sentry si hay
+ * DSN (en el navegador, a través de /api/errores).
  */
 type Level = "debug" | "info" | "warn" | "error";
 
@@ -21,6 +24,21 @@ function emit(level: Level, message: string, data?: Record<string, unknown>) {
   else if (level === "warn") console.warn(line);
   else console.log(line);
   /* eslint-enable no-console */
+  if (level === "error" && sentryEnabled()) report(message, data);
+}
+
+function report(message: string, data?: Record<string, unknown>) {
+  const error = data?.error;
+  if (typeof window === "undefined") {
+    void captureError({ message, error, extra: data, runtime: "server" });
+    return;
+  }
+  try {
+    const body = JSON.stringify({ message, error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : undefined, path: window.location.pathname });
+    navigator.sendBeacon?.("/api/errores", new Blob([body], { type: "application/json" }));
+  } catch {
+    // sin red: se pierde el aviso, no la página
+  }
 }
 
 function safeJson(data: Record<string, unknown>): string {

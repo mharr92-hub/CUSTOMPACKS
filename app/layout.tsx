@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { getTranslations } from "next-intl/server";
+import { ErrorReporter } from "@/components/error-reporter";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
@@ -42,7 +43,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={inter.variable}>
-      <body className="flex min-h-dvh flex-col antialiased">{children}</body>
+      <body className="flex min-h-dvh flex-col antialiased">
+        {children}
+        {process.env.NEXT_PUBLIC_SENTRY_DSN ? <ErrorReporter /> : null}
+      </body>
     </html>
   );
 }

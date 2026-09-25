@@ -783,7 +783,8 @@
       },
       "all": "Todos",
       "advice": "A propuesta del equipo",
-      "direct": "Sin dato"
+      "direct": "Sin dato",
+      "emptyDue": "No hay pedidos por vencer ni atrasados."
     },
     "rfq": {
       "title": "RFQ a fábrica",
