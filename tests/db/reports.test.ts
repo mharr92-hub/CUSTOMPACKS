@@ -89,7 +89,7 @@ describe("reportes del panel", () => {
     expect(await changeRequestStatus(sales, a.requestId, "in_review")).toEqual({ ok: true });
 
     const after = await getReports(viewer, range);
-    expect(after.map((t) => t.key)).toEqual(["pipeline", "requestTimes", "orderTimes", "conversion", "types", "materials", "losses", "ordersDue", "channels"]);
+    expect(after.map((t) => t.key)).toEqual(["conversion", "pipeline", "requestTimes", "orderTimes", "losses", "types", "materials", "ordersDue", "channels"]);
     expect(count(after, "pipeline", "En revisión") - count(before, "pipeline", "En revisión")).toBe(1);
     expect(count(after, "pipeline", "Enviada") - count(before, "pipeline", "Enviada")).toBe(1);
     const first = after.find((t) => t.key === "requestTimes")!.rows[0]!;

@@ -11,10 +11,11 @@ import { REQUEST_STATUSES } from "@/lib/states";
  * Reportes del panel (PRD §11): cada reporte es una tabla con columnas
  * tipadas; la pantalla y el CSV salen de la misma tabla.
  */
-export const REPORT_KEYS = ["pipeline", "requestTimes", "orderTimes", "conversion", "types", "materials", "losses", "ordersDue", "channels"] as const;
+/** Orden en pantalla: las tablas anchas (conversión, pedidos por vencer) ocupan una fila entera. */
+export const REPORT_KEYS = ["conversion", "pipeline", "requestTimes", "orderTimes", "losses", "types", "materials", "ordersDue", "channels"] as const;
 export type ReportKey = (typeof REPORT_KEYS)[number];
 
-export type ColumnKind = "text" | "int" | "dec" | "pct" | "date";
+export type ColumnKind = "text" | "code" | "int" | "dec" | "pct" | "date";
 export type ReportTable = { key: ReportKey; title: string; note: string | null; columns: { label: string; kind: ColumnKind }[]; rows: CsvValue[][] };
 export type ReportRange = { from: string; to: string };
 
@@ -176,7 +177,7 @@ async function topBy(tx: Tx, range: ReportRange, t: T, field: "type" | "paper"):
     title: t(isType ? "reports.tables.types" : "reports.tables.materials"),
     note: null,
     columns: [
-      { label: t("reports.columns.code"), kind: "text" },
+      { label: t("reports.columns.code"), kind: "code" },
       { label: t(isType ? "reports.columns.type" : "reports.columns.material"), kind: "text" },
       { label: t("reports.columns.pieces"), kind: "int" },
       { label: t("reports.columns.piecesAccepted"), kind: "int" },
@@ -220,7 +221,7 @@ async function ordersDue(tx: Tx, t: T, today: string): Promise<ReportTable> {
     title: t("reports.tables.ordersDue"),
     note: null,
     columns: [
-      { label: t("reports.columns.order"), kind: "text" },
+      { label: t("reports.columns.order"), kind: "code" },
       { label: t("reports.columns.client"), kind: "text" },
       { label: t("reports.columns.status"), kind: "text" },
       { label: t("reports.columns.dueDate"), kind: "date" },

@@ -28,10 +28,14 @@ function show(value: CsvValue, kind: ColumnKind): string {
   return String(value);
 }
 
+const numeric = (kind: ColumnKind) => kind === "int" || kind === "dec" || kind === "pct";
+
 function Report({ table, csvHref, emptyText, csvText }: { table: ReportTable; csvHref: string; emptyText: string; csvText: string }) {
   const id = `report-${table.key}`;
+  // Las tablas con muchas columnas ocupan el ancho completo.
+  const wide = table.columns.length > 4;
   return (
-    <section aria-labelledby={id} className="rounded-lg border border-border bg-card" data-testid={id}>
+    <section aria-labelledby={id} className={cn("rounded-lg border border-border bg-card", wide && "lg:col-span-2")} data-testid={id}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
         <h2 id={id} className="font-semibold">
           {table.title}
@@ -50,7 +54,7 @@ function Report({ table, csvHref, emptyText, csvText }: { table: ReportTable; cs
             <thead className="text-left text-xs text-muted-foreground">
               <tr>
                 {table.columns.map((c) => (
-                  <th key={c.label} scope="col" className={cn("pb-2 font-medium", c.kind !== "text" && c.kind !== "date" && "text-right")}>
+                  <th key={c.label} scope="col" className={cn("pb-2 font-medium", numeric(c.kind) ? "pl-4 text-right" : "pr-3")}>
                     {c.label}
                   </th>
                 ))}
@@ -62,7 +66,7 @@ function Report({ table, csvHref, emptyText, csvText }: { table: ReportTable; cs
                   {row.map((value, j) => {
                     const kind = table.columns[j]?.kind ?? "text";
                     return (
-                      <td key={j} className={cn("py-1.5", kind !== "text" && kind !== "date" ? "tabular text-right" : "pr-3")}>
+                      <td key={j} className={cn("py-1.5", numeric(kind) ? "tabular pl-4 text-right whitespace-nowrap" : "pr-3", (kind === "code" || kind === "date") && "whitespace-nowrap")}>
                         {show(value, kind)}
                       </td>
                     );
@@ -113,7 +117,7 @@ export default async function ReportsPage(props: PageProps<"/admin/reportes">) {
             key={table.key}
             table={table}
             csvHref={`/api/reportes/${table.key}?${query}`}
-            emptyText={t("empty")}
+            emptyText={table.key === "ordersDue" ? t("emptyDue") : t("empty")}
             csvText={t("csv")}
           />
         ))}
