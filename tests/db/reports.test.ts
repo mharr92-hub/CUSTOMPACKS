@@ -94,8 +94,9 @@ describe("reportes del panel", () => {
     expect(count(after, "pipeline", "Enviada") - count(before, "pipeline", "Enviada")).toBe(1);
     const first = after.find((t) => t.key === "requestTimes")!.rows[0]!;
     expect(first[0]).toBe("Enviada → En revisión");
-    expect(Number(first[1])).toBeGreaterThanOrEqual(1);
-    expect(Number(first[2])).toBeGreaterThan(0);
+    expect(count(after, "requestTimes", "Enviada → En revisión") - count(before, "requestTimes", "Enviada → En revisión")).toBe(1);
+    expect(typeof first[2]).toBe("number");
+    expect(Number(first[3])).toBeGreaterThan(0); // el promedio incluye las 5 horas de A
     expect(count(after, "conversion", "Comercio") - count(before, "conversion", "Comercio")).toBe(2);
     const types = after.find((t) => t.key === "types")!;
     expect(types.rows.some((r) => r[0] === a.typeCode)).toBe(true);

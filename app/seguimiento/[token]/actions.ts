@@ -8,6 +8,11 @@ import { clientInfo } from "@/lib/http/client-info";
 import { kickNotifications } from "@/lib/notify";
 import { confirmReceiptUpload, prepareReceiptUpload, submitSurvey, type OrderResult, type UploadConfirm, type UploadSlot } from "@/lib/orders";
 import { acceptQuote, requestQuoteChanges, type QuoteResult } from "@/lib/quotes";
+import { allowIp } from "@/lib/rate-limit";
+
+/** Tope de intentos alcanzado (la pantalla muestra el mensaje genérico de reintento). */
+type RateLimited = { ok: false; error: "rate_limited" };
+const RATE_LIMITED: RateLimited = { ok: false, error: "rate_limited" };
 
 /*
  * Acciones del portal del cliente (enlace seguro). Todo se valida contra el
@@ -22,6 +27,7 @@ function valid(token: string, itemId: string): boolean {
 
 export async function preparePortalUploadAction(token: string, itemId: string, file: { name: string; size: number }): Promise<SlotResult> {
   if (!valid(token, itemId)) return { ok: false, error: "expired" };
+  if (!(await allowIp("upload"))) return { ok: false, error: "rateLimited" };
   return prepareUpload({ scope: "client", accessToken: token, itemId, purpose: "artwork" }, { name: String(file.name).slice(0, 200), size: Number(file.size) });
 }
 
@@ -40,16 +46,18 @@ export async function portalFileUrlAction(token: string, fileId: string, downloa
   return portalFileUrl(token, fileId, download);
 }
 
-export async function approveProofAction(token: string, fileId: string, name: string): Promise<ApproveResult> {
+export async function approveProofAction(token: string, fileId: string, name: string): Promise<ApproveResult | RateLimited> {
   if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  if (!(await allowIp("portal"))) return RATE_LIMITED;
   const result = await approveProof(token, fileId, { name: String(name), ...(await clientInfo()) });
   if (result.ok) revalidatePath(`/seguimiento/${token}`);
   return result;
 }
 
 /** Respuesta del cliente a "nos faltan datos". */
-export async function clientReplyAction(token: string, text: string): Promise<ReplyResult> {
+export async function clientReplyAction(token: string, text: string): Promise<ReplyResult | RateLimited> {
   if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  if (!(await allowIp("portal"))) return RATE_LIMITED;
   const result = await clientReply(token, String(text));
   if (result.ok) {
     kickNotifications();
@@ -59,8 +67,9 @@ export async function clientReplyAction(token: string, text: string): Promise<Re
 }
 
 /** Aceptar la cotización eligiendo una cantidad por pieza (registra fecha, nombre, IP y navegador). */
-export async function acceptQuoteAction(token: string, quoteId: string, input: { name: string; selection: { itemId: string; quantity: number }[] }): Promise<QuoteResult> {
+export async function acceptQuoteAction(token: string, quoteId: string, input: { name: string; selection: { itemId: string; quantity: number }[] }): Promise<QuoteResult | RateLimited> {
   if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  if (!(await allowIp("portal"))) return RATE_LIMITED;
   const selection = Array.isArray(input.selection) ? input.selection.map((s) => ({ itemId: String(s.itemId), quantity: Number(s.quantity) })) : [];
   const result = await acceptQuote(token, String(quoteId), { name: String(input.name ?? ""), selection, ...(await clientInfo()) });
   if (result.ok) {
@@ -71,8 +80,9 @@ export async function acceptQuoteAction(token: string, quoteId: string, input: {
 }
 
 /** "Pedir cambios" a la cotización. */
-export async function requestQuoteChangesAction(token: string, quoteId: string, text: string): Promise<QuoteResult> {
+export async function requestQuoteChangesAction(token: string, quoteId: string, text: string): Promise<QuoteResult | RateLimited> {
   if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  if (!(await allowIp("portal"))) return RATE_LIMITED;
   const result = await requestQuoteChanges(token, String(quoteId), String(text));
   if (result.ok) {
     kickNotifications();
@@ -82,8 +92,9 @@ export async function requestQuoteChangesAction(token: string, quoteId: string, 
 }
 
 /** Comprobante de pago del pedido (queda por confirmar). */
-export async function prepareReceiptUploadAction(token: string, file: { name: string; size: number }): Promise<UploadSlot> {
+export async function prepareReceiptUploadAction(token: string, file: { name: string; size: number }): Promise<UploadSlot | { ok: false; error: "rateLimited" }> {
   if (!TOKEN.test(token)) return { ok: false, error: "expired" };
+  if (!(await allowIp("upload"))) return { ok: false, error: "rateLimited" };
   return prepareReceiptUpload(token, { name: String(file.name).slice(0, 200), size: Number(file.size) });
 }
 
@@ -98,8 +109,9 @@ export async function confirmReceiptUploadAction(token: string, input: { path: s
 }
 
 /** Encuesta NPS del pedido cerrado. */
-export async function submitSurveyAction(token: string, input: { score: number; comment: string }): Promise<OrderResult> {
+export async function submitSurveyAction(token: string, input: { score: number; comment: string }): Promise<OrderResult | RateLimited> {
   if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  if (!(await allowIp("portal"))) return RATE_LIMITED;
   const result = await submitSurvey(token, { score: Number(input.score), comment: String(input.comment ?? ""), ip: (await clientInfo()).ip });
   if (result.ok) revalidatePath(`/seguimiento/${token}`);
   return result;

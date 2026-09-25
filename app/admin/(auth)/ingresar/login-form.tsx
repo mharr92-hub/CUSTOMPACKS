@@ -27,7 +27,7 @@ export function LoginForm({ next }: { next: string }) {
         />
         {state.status === "error" ? (
           <p id="email-error" className="text-sm text-destructive">
-            {t("invalidEmail")}
+            {state.error === "rate_limited" ? t("rateLimited") : t("invalidEmail")}
           </p>
         ) : null}
       </div>

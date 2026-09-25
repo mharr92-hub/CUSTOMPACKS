@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, CloudIcon, CloudOffIcon, XIcon } from "lucide-react";
 import { loadDraftAction, saveDraftAction, submitQuoteAction } from "@/app/cotizar/actions";
+import { useTurnstile } from "@/components/wizard/turnstile";
 import { WhatsAppIcon } from "@/components/site/whatsapp-fab";
 import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
@@ -86,9 +87,10 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(false);
+  const [submitError, setSubmitError] = useState<false | "error" | "rate_limited" | "captcha">(false);
   const [blocking, setBlocking] = useState<{ step: StepId; item: number } | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const { enabled: captchaEnabled, mount: mountCaptcha, getToken: getCaptchaToken } = useTurnstile(state.step === 9);
   const [undo, setUndo] = useState<{ snapshot: FlowState; n: number } | null>(null);
   const stateRef = useRef(state);
   const tokenRef = useRef(initialToken);
@@ -377,10 +379,11 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
     try {
       const saved = await ensureSaved();
       if (!saved) {
-        setSubmitError(true);
+        setSubmitError("error");
         return;
       }
-      const result = await submitQuoteAction(saved);
+      const captchaToken = captchaEnabled ? await getCaptchaToken() : null;
+      const result = await submitQuoteAction(saved, captchaToken);
       if (result.ok) {
         submittedRef.current = true;
         dirtyRef.current = false;
@@ -391,9 +394,9 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
         return;
       }
       if (result.reason === "invalid") setBlocking({ step: result.step, item: result.item });
-      else setSubmitError(true);
+      else setSubmitError(result.reason === "rate_limited" || result.reason === "captcha" ? result.reason : "error");
     } catch {
-      setSubmitError(true);
+      setSubmitError("error");
     } finally {
       setSubmitting(false);
     }
@@ -529,6 +532,7 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
           </Button>
         </div>
       </nav>
+      {captchaEnabled && state.step === 9 ? <div ref={mountCaptcha} className="mx-auto flex max-w-3xl justify-center px-4 pb-32" /> : null}
     </WizardContext.Provider>
   );
 }

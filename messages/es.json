@@ -184,7 +184,8 @@
       "devLinkBody": "No hay servicio de correo configurado. Abre el enlace directamente:",
       "devLinkOpen": "Abrir enlace de acceso",
       "invalidEmail": "Escribe un correo válido, por ejemplo nombre@empresa.com.",
-      "linkError": "El enlace venció o ya se usó. Pide uno nuevo."
+      "linkError": "El enlace venció o ya se usó. Pide uno nuevo.",
+      "rateLimited": "Pediste varios enlaces seguidos. Espera 15 minutos y vuelve a intentarlo."
     },
     "noAccess": {
       "title": "Sin acceso",
@@ -1510,7 +1511,9 @@
       "fixStep": "Falta completar: {step}",
       "goToStep": "Ir al paso",
       "removed": "Quitaste la pieza {n}.",
-      "undo": "Deshacer"
+      "undo": "Deshacer",
+      "submitRateLimited": "Recibimos varias solicitudes seguidas desde tu conexión. Espera unos minutos y vuelve a enviar, o escríbenos por WhatsApp.",
+      "submitCaptcha": "No pudimos verificar el envío. Recarga la página y vuelve a enviar; tu avance está guardado."
     },
     "segmentOptions": {
       "commercial": "Comercio",
@@ -1875,7 +1878,8 @@
       "typeMismatch": "{name} no es un archivo válido de ese formato. Revisa que no esté dañado o renombrado.",
       "network": "Se cortó la conexión al subir {name}. Reintenta.",
       "expired": "La sesión de subida venció. Reintenta.",
-      "generic": "No pudimos subir {name}. Reintenta."
+      "generic": "No pudimos subir {name}. Reintenta.",
+      "rateLimited": "Subiste muchos archivos seguidos. Espera unos minutos y reintenta {name}."
     }
   },
   "artwork": {

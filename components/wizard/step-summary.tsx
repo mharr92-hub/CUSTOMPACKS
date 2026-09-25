@@ -49,7 +49,7 @@ export function StepSummary({
   actions,
 }: {
   submitting: boolean;
-  submitError: boolean;
+  submitError: false | "error" | "rate_limited" | "captcha";
   blocking: { step: StepId; item: number } | null;
   undo: { n: number } | null;
   actions: SummaryActions;
@@ -160,7 +160,7 @@ export function StepSummary({
 
       {submitError ? (
         <p ref={errorRef} tabIndex={-1} role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none">
-          {t("submitError")}
+          {submitError === "rate_limited" ? t("submitRateLimited") : submitError === "captcha" ? t("submitCaptcha") : t("submitError")}
         </p>
       ) : null}
       <p className="sr-only" aria-live="polite">

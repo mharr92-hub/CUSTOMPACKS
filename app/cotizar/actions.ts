@@ -12,6 +12,8 @@ import { parseWizardState } from "@/lib/quote/schema";
 import { submitDraft } from "@/lib/quote/submit";
 import type { StepId, WizardState } from "@/lib/quote/types";
 import { isValidEmail, type StepErrors } from "@/lib/quote/validate";
+import { verifyCaptcha } from "@/lib/captcha";
+import { allowIp, requestIp } from "@/lib/rate-limit";
 
 export type SaveResult = { ok: true; token: string } | { ok: false; submitted?: boolean };
 
@@ -19,6 +21,7 @@ export type SaveResult = { ok: true; token: string } | { ok: false; submitted?: 
 export async function saveDraftAction(token: string | null, payload: unknown): Promise<SaveResult> {
   const state = parseWizardState(payload);
   if (!state) return { ok: false };
+  if (!(await allowIp("draft"))) return { ok: false };
   try {
     const result = await saveDraft(isDraftToken(token) ? token : null, state);
     if (result.status === "submitted") return { ok: false, submitted: true };
@@ -48,6 +51,7 @@ export async function sendResumeLinkAction(token: string, email: string): Promis
   if (!isValidEmail(email)) return { ok: false, reason: "invalid" };
   if (!isDraftToken(token)) return { ok: false, reason: "failed" };
   try {
+    if (!(await allowIp("resume"))) return { ok: false, reason: "limit" };
     if (!(await claimResumeEmail(token))) return { ok: false, reason: "limit" };
     const t = serverT("wizard");
     const link = resumeLink(token);
@@ -67,7 +71,7 @@ export async function sendResumeLinkAction(token: string, email: string): Promis
 
 export type SubmitActionResult =
   | { ok: true; number: string }
-  | { ok: false; reason: "not_found" | "error" }
+  | { ok: false; reason: "not_found" | "error" | "rate_limited" | "captcha" }
   | { ok: false; reason: "invalid"; step: StepId; item: number; errors: StepErrors };
 
 /**
@@ -75,8 +79,10 @@ export type SubmitActionResult =
  * cookie httpOnly hacia /cotizar/listo y nunca en la URL: así no llega a GA4 ni
  * al Pixel de Meta.
  */
-export async function submitQuoteAction(token: string): Promise<SubmitActionResult> {
+export async function submitQuoteAction(token: string, captchaToken?: string | null): Promise<SubmitActionResult> {
   if (!isDraftToken(token)) return { ok: false, reason: "not_found" };
+  if (!(await allowIp("submit"))) return { ok: false, reason: "rate_limited" };
+  if (!(await verifyCaptcha(typeof captchaToken === "string" ? captchaToken : null, await requestIp()))) return { ok: false, reason: "captcha" };
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
   try {

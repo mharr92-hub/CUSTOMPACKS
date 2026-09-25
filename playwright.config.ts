@@ -39,6 +39,8 @@ export default defineConfig({
         env: {
           ADMIN_EMAIL: "admin@provenpack.test",
           FACTORY_EMAIL: "fabrica@provenpack.test",
+          // La suite corre todo desde una sola IP y un solo correo de admin (topes × 20).
+          RATE_LIMIT_FACTOR: "20",
           NEXT_PUBLIC_SITE_URL: baseURL,
           // Base aislada para e2e, recreada en cada corrida (no toca los datos de desarrollo).
           LOCAL_DB_PORT: "54323",

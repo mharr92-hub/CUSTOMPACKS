@@ -2,6 +2,7 @@ import "server-only";
 import { checkSlaOverdue, claimJob, processNotificationQueue } from "@/lib/notify";
 import { balanceReminders, npsSurveys } from "@/lib/orders";
 import { expireQuotes, quoteExpiryReminders } from "@/lib/quotes";
+import { purgeRateLimits } from "@/lib/rate-limit";
 
 /**
  * Procesos programados (D-054): SLA cada 10 minutos; cada hora, cotizaciones
@@ -19,5 +20,6 @@ export async function runDueJobs(opts: { force?: boolean } = {}): Promise<void> 
     await balanceReminders();
     await npsSurveys();
   }
+  if (opts.force || (await claimJob("rate_limits", 1440))) await purgeRateLimits();
   await processNotificationQueue(opts.force ? 100 : 25);
 }

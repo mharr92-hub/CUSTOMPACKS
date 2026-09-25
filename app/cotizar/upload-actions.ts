@@ -3,6 +3,7 @@
 import type { ConfirmResult, SlotResult } from "@/lib/artwork/upload-types";
 import { confirmUpload, draftFileUrl, prepareUpload, removeDraftFile } from "@/lib/artwork/uploads";
 import { isDraftToken } from "@/lib/quote/drafts";
+import { allowIp } from "@/lib/rate-limit";
 
 type Purpose = "artwork" | "reference";
 
@@ -13,6 +14,7 @@ function valid(token: string, itemKey: string, purpose: string): purpose is Purp
 /** Subidas del paso 7 del cotizador (los archivos cuelgan del borrador hasta enviar). */
 export async function prepareDraftUploadAction(draftToken: string, itemKey: string, purpose: string, file: { name: string; size: number }): Promise<SlotResult> {
   if (!valid(draftToken, itemKey, purpose)) return { ok: false, error: "expired" };
+  if (!(await allowIp("upload"))) return { ok: false, error: "rateLimited" };
   return prepareUpload({ scope: "draft", draftToken, itemKey, purpose }, { name: String(file.name).slice(0, 200), size: Number(file.size) });
 }
 
