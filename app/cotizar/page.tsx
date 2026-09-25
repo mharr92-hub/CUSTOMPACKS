@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AnalyticsScripts } from "@/components/analytics-scripts";
 import { Wizard } from "@/components/wizard/wizard";
-import { getPublicCatalog, quoteConditions } from "@/lib/catalog/public";
+import { getPublicCatalog, quoteConditions, uploadSettings } from "@/lib/catalog/public";
 import { serviceActor, withActor } from "@/lib/db/actor";
 import { todayInPanama } from "@/lib/leadtime";
 import { loadDraft } from "@/lib/quote/drafts";
@@ -25,7 +25,7 @@ function param(value: string | string[] | undefined): string | null {
 export default async function QuotePage(props: PageProps<"/cotizar">) {
   const params = await props.searchParams;
   const catalog = await getPublicCatalog();
-  const settings = quoteConditions(catalog);
+  const settings = { ...quoteConditions(catalog), upload: uploadSettings(catalog) };
 
   let state: WizardState = initialWizardState();
   let token: string | null = null;

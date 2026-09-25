@@ -165,6 +165,11 @@ export function publicSetting<T>(catalog: PublicCatalog, key: string, fallback: 
   return value === undefined || value === null ? fallback : (value as T);
 }
 
+/** Límites de subida de arte (settings): MB por archivo y archivos por pieza (PRD §9). */
+export function uploadSettings(catalog: PublicCatalog): { maxMb: number; maxFiles: number } {
+  return { maxMb: publicSetting(catalog, "max_file_mb", 100), maxFiles: publicSetting(catalog, "max_files_per_item", 10) };
+}
+
 /** Condiciones comerciales vigentes (settings): plazo por cantidad y anticipo. */
 export function quoteConditions(catalog: PublicCatalog): { leadTime: LeadTimeSettings; depositPct: number } {
   return {

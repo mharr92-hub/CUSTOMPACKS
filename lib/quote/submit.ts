@@ -6,13 +6,30 @@ import { trafficLight } from "@/lib/traffic-light";
 import { randomToken } from "@/lib/tokens";
 import { loadDraft } from "./drafts";
 import { itemSpecFromDraft, trafficInputFromSpec, type ItemSpec } from "./spec";
-import type { StepId, WizardState } from "./types";
+import type { ItemDraft, StepId, UploadedFile, WizardState } from "./types";
 import { normalizeWhatsapp, parseCm, validateAll, type StepErrors } from "./validate";
 
 export type SubmitResult =
   | { ok: true; requestId: string; number: string; accessToken: string; specs: ItemSpec[]; state: WizardState; alreadySubmitted: boolean }
   | { ok: false; reason: "not_found" }
   | { ok: false; reason: "invalid"; step: StepId; item: number; errors: StepErrors };
+
+/**
+ * Deja en cada pieza solo los archivos que el servidor verificó al subirlos
+ * (quote_draft_files): la lista que manda el navegador no es confiable.
+ */
+async function withVerifiedFiles(token: string, state: WizardState): Promise<WizardState> {
+  const rows = await withActor(serviceActor, (tx) => tx<{ item_key: string; purpose: string; storage_path: string }[]>`
+    select f.item_key, f.purpose, f.storage_path
+      from public.quote_draft_files f join public.quote_drafts d on d.id = f.draft_id
+     where d.token = ${token}`);
+  const verified = new Set(rows.map((r) => `${r.item_key}|${r.purpose}|${r.storage_path}`));
+  const keep = (item: ItemDraft, purpose: string, files: UploadedFile[]) => files.filter((f) => verified.has(`${item.key}|${purpose}|${f.path}`));
+  return {
+    ...state,
+    items: state.items.map((it) => ({ ...it, artworkFiles: keep(it, "artwork", it.artworkFiles), referencePhotos: keep(it, "reference", it.referencePhotos) })),
+  };
+}
 
 /**
  * Convierte un borrador en solicitud: revalida todo en el servidor (incluidas
@@ -23,7 +40,7 @@ export type SubmitResult =
 export async function submitDraft(token: string, meta: { ip: string | null }): Promise<SubmitResult> {
   const draft = await loadDraft(token);
   if (!draft) return { ok: false, reason: "not_found" };
-  const state = draft.state;
+  const state = await withVerifiedFiles(token, draft.state);
   const catalog = await getPublicCatalog();
 
   if (draft.submittedRequestId) {
@@ -101,6 +118,17 @@ export async function submitDraft(token: string, meta: { ip: string | null }): P
       }
       for (const sample of spec.references.samples) {
         await tx`insert into public.quote_references (item_id, kind, gallery_sample_id) values (${row.id}, 'gallery_sample', ${sample.id})`;
+      }
+      // Archivos subidos en el paso 7: el arte entra como versión 1, 2… en "Recibido".
+      if (spec.artworkFileCount > 0) {
+        for (const [v, file] of item.artworkFiles.entries()) {
+          await tx`
+            insert into public.artwork_files (item_id, request_id, kind, version, storage_path, file_name, format, size_bytes, status, uploaded_by_client)
+            values (${row.id}, ${request.id}, 'artwork', ${v + 1}, ${file.path}, ${file.name}, ${file.kind}, ${file.size}, 'received', true)`;
+        }
+      }
+      for (const photo of item.referencePhotos) {
+        await tx`insert into public.quote_references (item_id, kind, storage_path, note) values (${row.id}, 'photo', ${photo.path}, ${photo.name})`;
       }
     }
 

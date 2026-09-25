@@ -7,7 +7,7 @@ import type { FlowState } from "@/lib/quote/flow";
 import type { ItemDraft } from "@/lib/quote/types";
 import type { StepErrors } from "@/lib/quote/validate";
 
-export type WizardSettings = { leadTime: LeadTimeSettings; depositPct: number };
+export type WizardSettings = { leadTime: LeadTimeSettings; depositPct: number; upload: { maxMb: number; maxFiles: number } };
 
 export type WizardContextValue = {
   state: FlowState;

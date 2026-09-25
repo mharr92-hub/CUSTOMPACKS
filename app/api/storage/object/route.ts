@@ -27,7 +27,11 @@ export async function GET(request: Request) {
     "Content-Type": contentType,
     "Content-Length": String(stat.size),
     "Cache-Control": "private, no-store",
+    "X-Content-Type-Options": "nosniff",
   };
+  // Archivos subidos por terceros (SVG, EPS…): nunca ejecutan scripts en el origen del sitio.
+  // El PDF queda fuera porque el visor del navegador no abre en un documento aislado.
+  if (contentType !== "application/pdf") headers["Content-Security-Policy"] = "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'";
   if (claims.dn) headers["Content-Disposition"] = `attachment; filename*=UTF-8''${encodeURIComponent(claims.dn)}`;
   return new Response(Readable.toWeb(fs.createReadStream(file)) as ReadableStream, { headers });
 }

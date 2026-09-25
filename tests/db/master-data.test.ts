@@ -56,8 +56,13 @@ describe("perfiles y roles", () => {
   });
 
   it("no se puede quitar el último administrador", async () => {
+    // Otros archivos de tests crean administradores: dentro de la misma
+    // transacción (que se revierte) se degradan primero, así este queda como el último.
     await expect(
-      asActor({ kind: "user", userId: adminId }, (tx) => tx`update profiles set role = 'sales' where user_id = ${adminId}`),
+      asActor({ kind: "user", userId: adminId }, async (tx) => {
+        await tx`update profiles set role = 'sales' where role = 'admin' and user_id <> ${adminId}`;
+        await tx`update profiles set role = 'sales' where user_id = ${adminId}`;
+      }),
     ).rejects.toThrow(/al menos un administrador/);
   });
 

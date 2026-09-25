@@ -103,7 +103,8 @@ export function itemSpecFromDraft(item: ItemDraft, index: number, state: WizardS
     quantities: item.quantities.map(parseQuantity).filter((q): q is number => typeof q === "number"),
     frequency: item.frequency,
     artwork: hasPrinting ? item.artwork : "not_applicable",
-    artworkFileCount: item.artworkFiles.length,
+    // Solo cuenta el arte si la pieza lleva impresión y el cliente dijo tenerlo.
+    artworkFileCount: hasPrinting && item.artwork === "has_artwork" ? item.artworkFiles.length : 0,
     references: {
       links: item.referenceLinks.map((l) => l.trim()).filter(Boolean),
       samples: namedMany(catalog.gallery, item.referenceSampleIds),

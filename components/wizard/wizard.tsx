@@ -180,11 +180,13 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
     if (["borrador", "tipo", "muestra"].some((k) => url.searchParams.has(k))) window.history.replaceState(null, "", url.pathname);
   }, []);
 
-  const persist = useCallback(async (): Promise<string | null> => {
+  const saveNowRef = useRef<() => Promise<string | null>>(async () => null);
+  const saveNow = useCallback(async (): Promise<string | null> => {
     if (submittedRef.current) return tokenRef.current;
     setSaveStatus("saving");
+    const sent = stateRef.current;
     try {
-      const result = await saveDraftAction(tokenRef.current, stateRef.current);
+      const result = await saveDraftAction(tokenRef.current, sent);
       if (!result.ok) {
         if (result.submitted) {
           submittedRef.current = true;
@@ -195,19 +197,40 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
         setSaveStatus("error");
         return null;
       }
-      dirtyRef.current = false;
+      // Si hubo cambios mientras se guardaba, siguen pendientes.
+      dirtyRef.current = stateRef.current !== sent;
       if (result.token !== tokenRef.current) {
         tokenRef.current = result.token;
         setToken(result.token);
       }
       setSaveStatus("saved");
       writeLocal(result.token, stateRef.current);
-      return result.token;
+      return dirtyRef.current ? saveNowRef.current() : result.token;
     } catch {
       setSaveStatus("error");
       return null;
     }
   }, []);
+
+  useEffect(() => {
+    saveNowRef.current = saveNow;
+  }, [saveNow]);
+
+  // Los guardados van en fila: dos guardados simultáneos de un borrador nuevo
+  // crearían dos borradores distintos.
+  const inflightRef = useRef<Promise<string | null> | null>(null);
+  const persist = useCallback((): Promise<string | null> => {
+    const previous = inflightRef.current;
+    const run = (async () => {
+      if (previous) await previous.catch(() => null);
+      return saveNow();
+    })();
+    inflightRef.current = run;
+    void run.finally(() => {
+      if (inflightRef.current === run) inflightRef.current = null;
+    });
+    return run;
+  }, [saveNow]);
 
   // Autoguardado: localStorage al instante, servidor 1,2 s después del último cambio.
   useEffect(() => {

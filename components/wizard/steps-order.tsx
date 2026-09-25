@@ -10,6 +10,7 @@ import { checkDesiredDate, leadTimeDaysForQuantities } from "@/lib/leadtime";
 import { ARTWORK_CHOICES, FREQUENCIES, LEAD_SOURCES, type ItemDraft } from "@/lib/quote/types";
 import { itemHasPrinting, parseQuantity, type ErrorKey } from "@/lib/quote/validate";
 import { useWizard } from "./context";
+import { DraftFiles } from "./draft-files";
 import { Fieldset, OptionCard, TextField } from "./fields";
 
 const CHECKLIST = ["format", "dieline", "color", "resolution", "bleed", "fonts", "layer", "naming"] as const;
@@ -260,7 +261,12 @@ export function StepArtwork() {
                       />
                     ))}
                   </div>
-                  {item.artwork === "has_artwork" ? <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm">{t("uploadSoon")}</p> : null}
+                  {item.artwork === "has_artwork" ? (
+                    <div className="mt-4 space-y-2">
+                      <DraftFiles index={i} item={item} purpose="artwork" />
+                      {item.artworkFiles.length === 0 ? <p className="rounded-md bg-muted px-3 py-2 text-sm">{t("uploadLater")}</p> : null}
+                    </div>
+                  ) : null}
                 </Fieldset>
               ) : (
                 <p className="text-sm text-muted-foreground">{t("noPrint")}</p>
@@ -270,6 +276,7 @@ export function StepArtwork() {
                   <p className="font-semibold">{t("references")}</p>
                   <p className="text-sm text-muted-foreground">{t("referencesHint")}</p>
                 </div>
+                <DraftFiles index={i} item={item} purpose="reference" />
                 <SamplePicker index={i} item={item} />
                 <LinkList index={i} item={item} />
               </div>

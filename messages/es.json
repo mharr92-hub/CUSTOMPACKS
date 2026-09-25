@@ -163,7 +163,8 @@
       "users": "Usuarios",
       "settings": "Configuración",
       "signOut": "Salir",
-      "viewSite": "Ver sitio"
+      "viewSite": "Ver sitio",
+      "files": "Archivos"
     },
     "roles": {
       "admin": "Administrador",
@@ -369,6 +370,52 @@
       "invalid": "Valor no válido para este tipo.",
       "boolTrue": "Sí",
       "boolFalse": "No"
+    },
+    "artwork": {
+      "metaTitle": "Solicitud {id}",
+      "title": "Solicitud {number}",
+      "noAccess": "Solo el equipo asignado a esta solicitud y admin pueden abrir y revisar sus archivos.",
+      "noFiles": "Sin archivos todavía.",
+      "open": "Ver",
+      "download": "Descargar",
+      "clientUpload": "Subido por el cliente",
+      "staffUpload": "Subido por el equipo",
+      "noteFor": "Nota sobre {point}",
+      "notePlaceholder": "Qué corregir (opcional)",
+      "comments": "Comentarios para el cliente",
+      "save": "Guardar revisión",
+      "saved": "Revisión guardada.",
+      "to": {
+        "in_review": "Pasar a revisión",
+        "observed": "Pedir correcciones",
+        "approved_for_proof": "Aprobar para proof",
+        "released": "Liberar a fábrica"
+      },
+      "uploadProof": "Subir proof",
+      "proofHint": "PDF o imagen de la prueba digital. Al subirlo, el cliente lo ve en su enlace y puede aprobarlo.",
+      "approvedBy": "Aprobado por {name} el {date} (IP {ip}).",
+      "errors": {
+        "forbidden": "No tienes permiso para revisar este archivo.",
+        "transition": "Ese cambio de estado no está permitido.",
+        "checklist": "Para aprobar, todos los puntos del checklist tienen que estar en Correcto o No aplica.",
+        "observations": "Marca al menos un punto con observación o escribe un comentario.",
+        "generic": "No se pudo guardar. Inténtalo de nuevo."
+      }
+    },
+    "files": {
+      "title": "Archivos por vencer",
+      "intro": "El arte se conserva según artwork_retention_months (desde la última actividad de la solicitud). Un proceso diario marca lo vencido; nada se borra hasta que lo confirmes aquí.",
+      "none": "No hay archivos marcados.",
+      "select": "Elegir",
+      "selectFile": "Elegir {name}",
+      "request": "Solicitud",
+      "file": "Archivo",
+      "size": "Tamaño",
+      "flaggedAt": "Marcado el",
+      "warning": "Borrar elimina el archivo del almacenamiento. Queda el registro de la versión, quién la aprobó y cuándo se borró.",
+      "confirm": "Borrar los archivos elegidos",
+      "deleted": "Se borraron {n} archivos.",
+      "empty": "Elige al menos un archivo."
     }
   },
   "catalog": {
@@ -843,7 +890,6 @@
       "intro": "El arte es el archivo con tu diseño. Si no lo tienes todavía, puedes enviar la solicitud igual.",
       "choice": "Arte de la pieza",
       "noPrint": "Esta pieza no lleva impresión: no necesita arte.",
-      "uploadSoon": "Tras enviar la solicitud podrás subir los archivos desde tu enlace de seguimiento.",
       "checklistTitle": "Checklist para tu arte",
       "references": "Referencias",
       "referencesHint": "Muestras de la galería, fotos o enlaces que se parezcan a lo que quieres.",
@@ -854,7 +900,8 @@
       "links": "Enlaces",
       "linkPlaceholder": "https://…",
       "addLink": "Agregar enlace",
-      "removeLink": "Quitar enlace"
+      "removeLink": "Quitar enlace",
+      "uploadLater": "Si ahora no lo tienes a mano, envía la solicitud igual: podrás subirlo después desde tu enlace de seguimiento."
     },
     "contact": {
       "title": "¿A quién le enviamos la cotización?",
@@ -1205,6 +1252,11 @@
         "observed": "Observado",
         "na": "No aplica"
       }
-    }
+    },
+    "open": "Ver",
+    "observed": "Puntos a corregir",
+    "approveNotice": "Al aprobar registramos la fecha, la hora, tu nombre y tu conexión.",
+    "sectionTitle": "Arte y proofs",
+    "sectionIntro": "Sube aquí tu arte o una versión corregida. Revisamos cada archivo con el checklist de preprensa y te avisamos."
   }
 }
