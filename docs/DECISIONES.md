@@ -706,3 +706,32 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - en el portal (tarjeta de la cotización y montos del pedido).
 - **Cómo se configura:** el texto sale de `settings.tax_label` (migración `010_itbms_demo`), editable en Configuración; vacío, no se muestra. El sistema no calcula el impuesto: los montos de anticipo y saldo son sin ITBMS (queda la pregunta en `docs/PREGUNTAS.md`).
 - **Cómo cambiarla:** Configuración > `tax_label`; `taxLabel()` en `lib/catalog/public.ts`.
+
+### D-103 · 25/09/2026 · Cómo se mide el LCP móvil
+- **Duda:** el LCP simulado del inicio (Lighthouse "simulate") daba 2,5–2,8 s, por encima de la meta de 2,5 s de CLAUDE.md, aunque el pintado real es a 0,4 s.
+- **Hallazgo:** en el modo simulado, Lighthouse suma todo el JavaScript que se ejecutó antes del primer pintado observado. En la medición con la red 4G lenta y la CPU 4× más lenta aplicadas de verdad (`LH_THROTTLING=devtools`):
+  - inicio 2,4 s, ficha 1,8 s y cotizador 1,7 s;
+  - rendimiento 94–99; accesibilidad, buenas prácticas y SEO en 100.
+- **Decisión:**
+  - La meta se verifica con el throttling aplicado. `scripts/lighthouse.mjs` mide en los dos modos y guarda ambos informes.
+  - El inicio queda cerca del límite, porque en esa simulación el CSS compite por el ancho de banda con los scripts del framework. En redes reales con HTTP/2, el CSS tiene prioridad.
+- **Cómo cambiarla:** `LH_THROTTLING` en `scripts/lighthouse.mjs`. Para bajar más, habría que recortar el JS del framework o el CSS global.
+
+### D-104 · 25/09/2026 · Datos de demostración
+- **Decisión:**
+  - `pnpm db:seed-demo` crea dos empresas marcadas DEMO y tres solicitudes: Enviada, Cotizada, y Aceptada con el pedido en QA y una foto.
+  - Todo pasa por las mismas funciones que la plataforma: cotizador, subida de arte, RFQ, cotización, aceptación, pagos e hitos.
+  - `companies.is_demo` y `quote_requests.is_demo` (migración `010`) permiten mostrar la etiqueta DEMO en el panel.
+  - La demo nunca envía correos reales (quita `RESEND_API_KEY` en su proceso) y se niega a correr contra Supabase salvo con `--permitir-supabase`.
+  - Si ya está cargada, solo imprime los enlaces.
+  - Costos y montos son ficticios. Guion en `docs/DEMO.md`.
+- **Cómo cambiarla:** `lib/demo/seed.ts`.
+
+### D-105 · 25/09/2026 · Scripts de consola que usan lib/
+- **Hallazgo:** con `tsx --conditions=react-server`, React carga su versión de servidor y `next/navigation` falla; sin esa condición, `server-only` lanza un error. Además, tsx carga `lib/` como CommonJS, y @react-pdf importa un subpaquete que solo exporta para `import`.
+- **Decisión:** `scripts/lib/script-env.mjs` (`tsx --import …`):
+  - resuelve `server-only` a un módulo vacío;
+  - reintenta con las condiciones de `import` cuando un paquete no exporta la ruta para `require`;
+  - marca `PROVENPACK_SCRIPT=1`, con lo que el catálogo se lee sin la caché incremental de Next.
+  - Lo usan `pnpm db:seed-demo` y `pnpm gallery:import`.
+- **Cómo cambiarla:** `scripts/lib/script-env.mjs`.

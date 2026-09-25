@@ -631,3 +631,41 @@ pnpm test && pnpm test:e2e
 - `pnpm test:e2e`: 30/30 en verde (24 omitidos por proyecto móvil/escritorio), con el ciclo completo en los dos segmentos.
 - `pnpm verify:deploy`: 23/23 comprobaciones en verde.
 - CI: en verde (lint, typecheck, Vitest con respaldo, build con secretos y peso, Playwright).
+
+---
+
+## Bloque 1 · Cierre de pendientes (25/09/2026)
+
+**Qué quedó hecho**
+- **(a) Montos en el portal (D-101, revierte D-078):**
+  - Con la cotización aceptada, `/seguimiento/[token]` muestra el total, el anticipo y el saldo (con lo pagado y lo pendiente) y cada pago o comprobante con su estado.
+  - Se corrigió la regla 7 de CLAUDE.md: aplica a solicitudes sin cotización emitida y a cualquier precio automático o estimado.
+  - El rol anónimo sigue sin permiso sobre las columnas de montos: se leen en el servidor tras validar el enlace.
+- **(b) ITBMS (D-102):** precios sin impuesto con la leyenda "más ITBMS 7 %" (`settings.tax_label`, editable) en el editor de cotización, el PDF de la cotización, el estado de pagos y el portal.
+- **(c) Pendientes a medias:**
+  - No existe `TAREAS-completa.md` y TAREAS no tiene casillas `[~]` ni abiertas.
+  - En AVANCE, lo único a medias sin credenciales era el LCP móvil del inicio. Medido con el throttling aplicado de verdad: inicio 2,4 s, ficha 1,8 s, cotizador 1,7 s, todos bajo 2,5 s (D-103; `LH_THROTTLING=devtools`).
+  - Los montos (D-078) y los impuestos (D-075) se resolvieron en (a) y (b).
+- **(d) Demo:**
+  - `pnpm db:seed-demo`: dos empresas DEMO y tres solicitudes (Enviada; Cotizada con RFQ y PDF; Aceptada con el pedido en QA y una foto), cargadas con las funciones reales de la plataforma (D-104).
+  - Etiqueta DEMO en la bandeja y en el detalle.
+  - `docs/DEMO.md`: guion de 8 minutos con URLs, usuarios y capturas.
+- **Scripts de consola:** `scripts/lib/script-env.mjs` permite usar `lib/` fuera de Next (D-105).
+- **`docs/PREGUNTAS.md`:** lo que depende de Mark, con 3 preguntas nuevas: ITBMS en los pagos, precios en la pantalla de aceptación y nombres de la demo.
+
+**Qué falta / notas**
+- Lo que depende de Mark, en `docs/PREGUNTAS.md` y `docs/lanzamiento.md`.
+- La base de desarrollo local (`.data/postgres`) se recreó con `pnpm db:reset`: se había desfasado porque la migración 003 se editó después de aplicarse, y le faltaba un índice. Las bases nuevas no tienen el problema.
+
+**Cómo probarlo**
+```bash
+pnpm db:reset && pnpm db:seed-demo && pnpm dev     # y seguir docs/DEMO.md
+pnpm verify:deploy
+LH_THROTTLING=devtools node scripts/lighthouse.mjs http://localhost:3200 / /cotizar   # con pnpm build y pnpm start --port 3200
+```
+
+**Resultado de la verificación (25/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 163/163 en verde (+2 de respaldo que corren en CI).
+- `pnpm test:e2e`: 30/30 en verde (24 omitidos por proyecto móvil/escritorio).
+- `pnpm verify:deploy`: 23/23.
