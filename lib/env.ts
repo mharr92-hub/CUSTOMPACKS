@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { DEV_AUTH_SECRET } from "@/lib/auth/local-session";
+import { authSecret } from "@/lib/auth/local-session";
 
 /** Postgres embebido que levanta `pnpm dev` / `pnpm db:start` cuando no hay DATABASE_URL. */
 export const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:54322/postgres";
@@ -35,7 +35,8 @@ export type ServerEnv = {
   dbPoolMax: number;
   supabase: { url: string; anonKey: string; serviceRoleKey: string } | null;
   storageLocalDir: string;
-  authSecret: string;
+  /** null en producción sin AUTH_SECRET válido (ver lib/auth/local-session.ts). */
+  authSecret: string | null;
   adminEmail: string | undefined;
   resendApiKey: string | undefined;
   mailFrom: string;
@@ -61,7 +62,7 @@ export function getServerEnv(): ServerEnv {
     dbPoolMax: raw.DB_POOL_MAX,
     supabase,
     storageLocalDir: raw.STORAGE_LOCAL_DIR ?? ".data/storage",
-    authSecret: raw.AUTH_SECRET ?? DEV_AUTH_SECRET,
+    authSecret: authSecret(),
     adminEmail: raw.ADMIN_EMAIL?.toLowerCase(),
     resendApiKey: raw.RESEND_API_KEY,
     mailFrom: raw.MAIL_FROM ?? "ProvenPack <no-reply@provenpack.com>",
