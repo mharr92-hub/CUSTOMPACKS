@@ -10,6 +10,10 @@ async function pickCard(page: Page, name: string | RegExp) {
   await page.locator("label", { has: page.getByRole("radio", { name: pattern }) }).first().click();
 }
 
+async function toggleChip(page: Page, name: string) {
+  await page.locator("label", { has: page.getByRole("checkbox", { name: new RegExp(`^${name}`) }) }).first().click();
+}
+
 async function recordMilestone(admin: Page, label: string, fill?: () => Promise<void>) {
   const form = admin.getByTestId("milestone-form");
   await form.getByLabel("Hito").selectOption({ label });
@@ -20,23 +24,25 @@ async function recordMilestone(admin: Page, label: string, fill?: () => Promise<
 test.describe("E8 · Pedidos", () => {
   test.skip(({ isMobile }) => isMobile, "El panel se prueba en escritorio.");
 
-  test("pedido completo de anticipo a cerrado con hitos, fotos y saldo; el cliente ve la foto de QA en menos de un minuto", async ({ page, browser }) => {
+  test("pedido completo (alimentos) de anticipo a cerrado con hitos, fotos y saldo; el cliente ve la foto de QA en menos de un minuto", async ({ page, browser }) => {
     test.setTimeout(240_000);
-    // Solicitud sin impresión (no necesita proof) que llega a cotización aceptada.
-    await page.goto("/cotizar?tipo=CJ-06");
-    await pickCard(page, "Comercio");
-    await page.getByLabel("Producto", { exact: true }).fill("Cajas para jabones");
-    await page.getByLabel("Peso aproximado por unidad").fill("200");
-    await page.getByLabel("Largo", { exact: true }).fill("12");
-    await page.getByLabel("Ancho", { exact: true }).fill("8");
-    await page.getByLabel("Alto", { exact: true }).fill("5");
+    // Segmento alimentos, sin impresión (no necesita proof), hasta la cotización
+    // aceptada. El recorrido completo (journey) cubre comercio con impresión.
+    await page.goto("/cotizar");
+    await pickCard(page, "Restaurante o alimentos");
+    await page.getByLabel("Producto", { exact: true }).fill("Hamburguesas para llevar");
+    await page.getByLabel("Peso aproximado por unidad").fill("350");
+    await toggleChip(page, "Caliente");
+    await toggleChip(page, "Grasa");
     await next(page);
+    await pickCard(page, "Clamshell para hamburguesa");
     await next(page);
     await pickCard(page, "Tamaño estándar");
-    await page.locator("label", { has: page.getByRole("radio", { name: /^S\d/ }) }).first().click();
+    await pickCard(page, /^S3: 13 × 13 × 8 cm$/);
     await next(page);
-    await pickCard(page, "Cartón microcorrugado (flauta E o B)");
-    await pickCard(page, "Medio");
+    await pickCard(page, "Papel antigrasa o con barrera");
+    await pickCard(page, "Ligero");
+    await toggleChip(page, "Resistente a grasa");
     await next(page);
     await pickCard(page, "Sin impresión");
     await next(page);
@@ -44,7 +50,7 @@ test.describe("E8 · Pedidos", () => {
     await page.locator("#items\\.0\\.frequency").selectOption("once");
     await next(page);
     await page.getByRole("button", { name: "Agregar enlace" }).click();
-    await page.getByLabel("Enlaces 1").fill("https://example.com/jabones");
+    await page.getByLabel("Enlaces 1").fill("https://example.com/hamburguesas");
     await next(page);
     await page.getByLabel("Tu nombre").fill("Marta Quintero");
     await page.getByLabel("Correo").fill("marta@example.com");
