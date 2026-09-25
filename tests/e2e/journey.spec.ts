@@ -1,4 +1,5 @@
-import { devices, expect, test, type Page } from "@playwright/test";
+import path from "node:path";
+import { devices, expect, test, type Locator, type Page } from "@playwright/test";
 import { loginAsAdmin, makePdf, PNG_1PX } from "./helpers";
 
 /*
@@ -15,6 +16,19 @@ async function next(page: Page) {
 async function pickCard(page: Page, name: string | RegExp) {
   const pattern = typeof name === "string" ? new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) : name;
   await page.locator("label", { has: page.getByRole("radio", { name: pattern }) }).first().click();
+}
+
+/**
+ * Capturas para docs/manual-equipo.md: solo con MANUAL_SHOTS_DIR definido
+ * (`MANUAL_SHOTS_DIR=docs/manual pnpm test:e2e tests/e2e/journey.spec.ts`).
+ */
+async function shot(target: Page | Locator, name: string) {
+  const dir = process.env.MANUAL_SHOTS_DIR;
+  if (!dir) return;
+  // Sin el indicador de desarrollo de Next.js en las capturas.
+  const page = "page" in target && typeof target.page === "function" ? target.page() : (target as Page);
+  await page.evaluate(() => document.querySelectorAll("nextjs-portal").forEach((el) => el.remove()));
+  await target.screenshot({ path: path.resolve(dir, `${name}.png`) });
 }
 
 async function recordMilestone(admin: Page, label: string, fill?: () => Promise<void>) {
@@ -78,7 +92,17 @@ test.describe("E9 · recorrido completo", () => {
     expect(requestId).not.toBe("");
 
     // 2. Equipo: revisión del arte con checklist y proof.
+    if (process.env.MANUAL_SHOTS_DIR) {
+      await admin.goto("/admin/ingresar");
+      await shot(admin, "01-ingreso");
+    }
     await loginAsAdmin(admin, `/admin/solicitudes/${requestId}`);
+    if (process.env.MANUAL_SHOTS_DIR) {
+      await admin.goto("/admin/solicitudes");
+      await shot(admin, "02-bandeja");
+      await admin.goto(`/admin/solicitudes/${requestId}`);
+    }
+    await shot(admin, "03-solicitud");
     await admin.getByTestId("status-select").selectOption({ label: "En revisión" });
     await admin.getByRole("button", { name: "Aplicar" }).click();
     await expect(admin.getByTestId("admin-request-status")).toHaveText("En revisión");
@@ -88,6 +112,7 @@ test.describe("E9 · recorrido completo", () => {
     for (const point of ["Formato", "Sobre el troquel", "Color (CMYK o Pantone)", "Resolución (300 dpi)", "Sangrado y área segura", "Tipografías en curvas", "Troquel en capa aparte", "Nombre del archivo"]) {
       await art.getByRole("radiogroup", { name: point }).getByText("Correcto").click();
     }
+    await shot(art, "04-arte-checklist");
     await art.getByRole("button", { name: "Aprobar para proof" }).click();
     await expect(art.getByTestId("artwork-status")).toHaveText("Aprobado para proof");
     await admin.getByLabel("Subir proof").setInputFiles({ name: "proof-cafe.pdf", mimeType: "application/pdf", buffer: makePdf() });
@@ -99,6 +124,7 @@ test.describe("E9 · recorrido completo", () => {
     await proof.getByLabel("Tu nombre completo").fill("Lucía Batista");
     await proof.getByRole("button", { name: "Aprobar proof" }).click();
     await expect(proof.getByTestId("proof-approved")).toContainText("por Lucía Batista");
+    await shot(proof, "05-cliente-proof");
 
     // 4. Equipo: libera a fábrica, RFQ, costo y cotización.
     await admin.reload();
@@ -112,12 +138,16 @@ test.describe("E9 · recorrido completo", () => {
     await admin.getByTestId("rfq-cost").first().fill("0,38");
     await admin.getByRole("button", { name: "Guardar respuesta" }).click();
     await expect(admin.getByTestId("rfq").first()).toContainText("Respuesta registrada");
+    await shot(admin.getByTestId("rfq-panel"), "06-rfq");
     await admin.getByRole("button", { name: "Preparar cotización" }).click();
+    await expect(admin.getByTestId("quote-editor")).toBeVisible();
+    await shot(admin.getByTestId("quote-editor"), "07-cotizacion");
     await admin.getByTestId("quote-editor").getByRole("button", { name: "Emitir y enviar al cliente" }).click();
     await expect(admin.getByTestId("admin-request-status")).toHaveText("Cotizada");
 
     // 5. Cliente: acepta y paga el anticipo subiendo el comprobante.
     await client.goto(trackingUrl);
+    await shot(client.getByTestId("client-quote"), "08-cliente-cotizacion");
     await client.getByTestId("client-quote").getByRole("button", { name: "Aceptar cotización" }).click();
     await expect(client.getByTestId("client-quote").getByTestId("quote-accepted")).toBeVisible();
     const order = client.getByTestId("client-order");
@@ -132,6 +162,7 @@ test.describe("E9 · recorrido completo", () => {
     await admin.reload();
     await admin.getByTestId("request-order-link").click();
     await admin.waitForURL(/\/admin\/pedidos\/[0-9a-f-]{36}$/);
+    await shot(admin.getByTestId("payments-panel"), "09-pedido-comprobante");
     await admin.getByTestId("review-receipt").getByRole("button", { name: "Confirmar" }).click();
     await expect(admin.getByTestId("order-status")).toHaveText("Anticipo recibido");
     await expect(admin.getByTestId("order-estimated")).not.toHaveText("por confirmar");
@@ -140,12 +171,14 @@ test.describe("E9 · recorrido completo", () => {
     await recordMilestone(admin, "QA en planta", async () => {
       const radios = admin.getByTestId("qa-checklist").getByRole("radio", { name: "Correcto" });
       for (let i = 0; i < (await radios.count()); i++) await radios.nth(i).check();
+      await shot(admin.getByTestId("milestone-form"), "10-qa-checklist");
     });
     await expect(admin.getByTestId("order-status")).toHaveText("QA en planta");
     const qa = admin.getByTestId("milestone-qa_completed");
     await qa.getByText("Subir fotos, video o PDF").click();
     await qa.getByLabel("Evidencias").setInputFiles({ name: "qa-cafe.png", mimeType: "image/png", buffer: PNG_1PX });
     await expect(qa.getByTestId("evidence-list").getByRole("img")).toBeVisible({ timeout: 20_000 });
+    await shot(admin.getByTestId("order-timeline"), "11-linea-de-tiempo");
     await recordMilestone(admin, "Embarcado", async () => {
       await admin.getByTestId("milestone-form").getByLabel("Transporte").fill("Terrestre Panamá–Chiriquí");
       await admin.getByTestId("milestone-form").getByLabel("Guía o número de rastreo").fill("CHQ-2026-0042");
@@ -157,6 +190,7 @@ test.describe("E9 · recorrido completo", () => {
     // 7. Cliente: ve la foto de QA y paga el saldo.
     await client.reload();
     await expect(client.getByTestId("client-milestone-qa_completed").getByRole("img")).toBeVisible();
+    await shot(client, "12-cliente-pedido");
     await expect(order).toContainText("Rastreo: CHQ-2026-0042");
     await client.getByLabel("Subir comprobante de pago").setInputFiles({ name: "saldo.pdf", mimeType: "application/pdf", buffer: makePdf() });
     await expect(client.getByText("Recibimos tu comprobante.")).toBeVisible({ timeout: 20_000 });
@@ -181,7 +215,9 @@ test.describe("E9 · recorrido completo", () => {
     // 10. Equipo: el pedido aparece en la lista y la solicitud en los reportes; el CSV baja listo.
     await admin.goto("/admin/pedidos");
     await expect(admin.getByTestId("orders")).toContainText(orderNumber);
+    await shot(admin, "13-pedidos");
     await admin.goto("/admin/reportes");
+    await shot(admin, "14-reportes");
     const pipeline = admin.getByTestId("report-pipeline");
     await expect(pipeline.getByRole("row", { name: /Aceptada/ })).not.toContainText(/Aceptada\s*0$/);
     const csvHref = (await pipeline.getByRole("link", { name: "Descargar CSV" }).getAttribute("href")) ?? "";
@@ -189,10 +225,24 @@ test.describe("E9 · recorrido completo", () => {
     expect(csv.status()).toBe(200);
     expect(csv.headers()["content-type"]).toContain("text/csv");
     const text = (await csv.body()).toString("utf8");
-    expect(text.startsWith("﻿Estado,Solicitudes\r\n")).toBe(true);
+    expect(text.startsWith("\uFEFFEstado,Solicitudes\r\n")).toBe(true);
     expect(text).toMatch(/\r\nAceptada,[1-9]\d*\r\n/);
     // Sin sesión, el CSV no se entrega.
     expect((await client.request.get(csvHref)).status()).toBe(401);
+
+    // Otras pantallas del panel para el manual.
+    if (process.env.MANUAL_SHOTS_DIR) {
+      for (const [route, name] of [
+        ["/admin/plantillas", "15-plantillas"],
+        ["/admin/usuarios", "16-usuarios"],
+        ["/admin/catalogo", "17-catalogo"],
+        ["/admin/configuracion", "18-configuracion"],
+        ["/admin/archivos", "19-archivos"],
+      ] as const) {
+        await admin.goto(route);
+        await shot(admin, name);
+      }
+    }
 
     await clientContext.close();
     await staffContext.close();
