@@ -570,3 +570,73 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - Recordatorio de saldo por WhatsApp a los 2 y 5 días de la entrega, mientras el saldo no esté confirmado, una vez por día.
   - Ambos corren en `lib/jobs.ts`, a lo sumo cada hora, con el uso del panel o con el cron diario.
 - **Cómo cambiarla:** `balanceReminders` y `npsSurveys` en `lib/orders/index.ts`; días en `lib/notify/schedule.ts`.
+
+### D-085 · 24/09/2026 · Qué miden los reportes
+- **Decisión:**
+  - **Período:** por fecha de envío de la solicitud; por defecto, los últimos 90 días. "Pedidos por vencer" muestra siempre la situación de hoy: pedidos abiertos que vencen en 14 días o ya atrasados.
+  - **Tiempos por etapa:**
+    - de la solicitud, en horas de reloj entre las fechas de cada estado;
+    - del pedido, en días entre hitos.
+    - Se muestran mediana y promedio. El SLA de la bandeja sigue en horas hábiles (D-058).
+  - **Conversión por segmento:** cotizadas sobre solicitudes, aceptadas sobre cotizadas y aceptadas sobre solicitudes.
+  - **Tipos y materiales:** los 15 más pedidos, con las piezas que terminaron aceptadas.
+  - **Canal:** `utm_source` y `utm_medium` si vinieron en la visita; si no, lo que respondió el cliente en "¿Cómo nos conociste?". Las visitas se miden en GA4, no en el panel.
+  - **CSV:** una tabla por archivo, UTF-8 con BOM, comas, CRLF, punto decimal y fechas ISO; los textos que parecen fórmulas se neutralizan. Se valida con SheetJS en las pruebas.
+- **Cómo cambiarla:** `lib/panel/reports.ts`.
+
+### D-086 · 24/09/2026 · CSP con `'unsafe-inline'` en scripts
+- **Decisión:**
+  - La CSP permite scripts propios, GA4, Meta Pixel y Turnstile. Incluye `'unsafe-inline'`, porque Next.js inserta scripts en línea.
+  - La alternativa (nonce por petición) obliga a renderizar cada página en cada visita y pierde el cache estático que sostiene el LCP (D-026).
+  - Igual quedan cerrados: incrustar el sitio en otro (`frame-ancestors`), plugins (`object-src`), cambiar `<base>` y enviar formularios a otros sitios.
+  - Las rutas `/api` no llevan esta CSP: devuelven PDF, CSV y archivos con sus propias cabeceras.
+- **Cómo cambiarla:** `contentSecurityPolicy()` en `next.config.ts`.
+
+### D-087 · 24/09/2026 · Límite de intentos
+- **Decisión:**
+  - Ventana fija por acción en la base (`009_security`), con el identificador (IP, correo) guardado como hash. Los topes están en `docs/seguridad.md` (A04).
+  - Si la base falla, se deja pasar y se registra, para no perder solicitudes.
+  - La IP sale de `x-real-ip`, que fija Vercel.
+  - En e2e los topes se multiplican por 20 (`RATE_LIMIT_FACTOR`), porque toda la suite sale de una IP y un mismo correo de admin.
+  - Las ventanas de más de un día se borran cada día.
+- **Cómo cambiarla:** `RATE_RULES` en `lib/rate-limit.ts`.
+
+### D-088 · 24/09/2026 · Captcha invisible opcional
+- **Decisión:**
+  - Turnstile de Cloudflare (gratuito) se activa solo si están sus dos claves. Protege el envío de la solicitud.
+  - Se carga al llegar al resumen, no antes, para no pesar en el resto del cotizador.
+  - Con las claves puestas, un token ausente o rechazado bloquea el envío. Si Cloudflare no responde, se deja pasar y se registra (el límite de intentos sigue activo).
+- **Cómo cambiarla:** `lib/captcha.ts` y `components/wizard/turnstile.tsx`.
+
+### D-089 · 24/09/2026 · `AUTH_SECRET` obligatorio en producción
+- **Hallazgo:** sin Supabase y sin `AUTH_SECRET`, la sesión local y los enlaces de archivos se firmaban con la clave de desarrollo, que es pública en el repositorio.
+- **Decisión:** en producción, sin `AUTH_SECRET` de 32 caracteres o más, no se firma ni se acepta ningún token: el panel no deja entrar y el error queda en el log. Fuera de producción sigue la clave de desarrollo.
+- **Cómo cambiarla:** `authSecret()` en `lib/auth/local-session.ts`.
+
+### D-090 · 24/09/2026 · Respaldos
+- **Decisión:**
+  - `pg_dump` diario en GitHub Actions: se cifra con GPG y se guarda 14 días como artefacto. Se activa al definir los secretos, así que no requiere servicios de pago.
+  - El script sirve también a mano (`scripts/backup.mjs`).
+  - Los archivos de Storage se respaldan aparte (`docs/respaldos.md`).
+  - La prueba de ida y vuelta corre en CI, donde se instala el cliente de PostgreSQL 17. En CI es obligatoria; en una máquina sin `pg_dump` se omite.
+- **Cómo cambiarla:** `.github/workflows/backup.yml`.
+
+### D-091 · 24/09/2026 · Sentry sin SDK
+- **Decisión:**
+  - Con `NEXT_PUBLIC_SENTRY_DSN`, `lib/sentry.ts` envía a Sentry los errores del servidor (`log.error` e `instrumentation.ts`) y los del navegador.
+  - Los del navegador pasan por `/api/errores`, así la CSP no abre otro dominio.
+  - Antes de enviar se borran tokens de enlaces, correos y contraseñas de URLs.
+  - Se evitó el SDK para no sumar peso al sitio (el cotizador pesa 214 kB gzip; el límite es 250).
+- **Cómo cambiarla:** instalar `@sentry/nextjs` si se quieren trazas de rendimiento o repetición de sesiones.
+
+### D-092 · 24/09/2026 · Qué corre en CI y qué se mide en local
+- **Decisión:**
+  - **En CI:** lint, typecheck y Vitest (con la prueba de respaldo); build de producción con revisión de secretos y peso del JS del cotizador (menos de 250 kB gzip); y Playwright en móvil y escritorio, con un reintento.
+  - **Lighthouse** se mide en local con `scripts/lighthouse.mjs` sobre `next start`, no en CI: los runners compartidos dan puntajes variables y un umbral duro daría fallas falsas.
+  - Última medición en móvil: inicio 96, ficha 99 y cotizador 99; accesibilidad, buenas prácticas y SEO en 100.
+- **Cómo cambiarla:** `.github/workflows/ci.yml`.
+
+### D-093 · 24/09/2026 · Rutas de archivos con tokens que empiezan con "-" o "_"
+- **Hallazgo:** los tokens base64url del borrador y los prefijos de archivo pueden empezar con "-" o "_", y el validador de rutas los rechazaba. Cerca del 3 % de los borradores no podía subir arte, y 1 de cada 32 subidas fallaba al azar. Probablemente es la falla que no se pudo reproducir en E8.
+- **Decisión:** cada segmento de la ruta puede empezar con letra, número, "-" o "_", nunca con "."; siguen prohibidos ".." y los segmentos vacíos. Los prefijos de archivo nuevos son hexadecimales.
+- **Cómo cambiarla:** `SAFE_PATH` en `lib/storage/index.ts`.

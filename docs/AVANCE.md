@@ -13,7 +13,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E6 — Panel interno | ✅ Hecho | 24/09/2026 |
 | E7 — RFQ y cotización | ✅ Hecho | 24/09/2026 |
 | E8 — Pedidos y seguimiento | ✅ Hecho | 24/09/2026 |
-| E9 — Calidad y seguridad | ⏳ Pendiente | — |
+| E9 — Calidad y seguridad | ✅ Hecho | 24/09/2026 |
 | E10 — Lanzamiento | ⏳ Pendiente | — |
 
 ---
@@ -517,3 +517,67 @@ pnpm test:e2e     # pedido completo con foto de QA visible para el cliente
   - El cliente ve la foto de QA en su enlace segundos después de subirla (la prueba exige menos de un minuto).
   - Sube el comprobante del saldo, el equipo lo confirma y el pedido se cierra.
   - El portal no muestra ningún monto; el estado de pagos se descarga en PDF.
+
+
+---
+
+## E9 — Calidad y seguridad
+
+**Qué quedó hecho**
+- **Recorrido completo en Playwright** (`tests/e2e/journey.spec.ts`), con el cliente en celular y el equipo en escritorio:
+  - Solicitud con impresión y arte, con vista previa del PDF.
+  - Revisión con checklist, proof y aprobación del cliente.
+  - RFQ, cotización y aceptación.
+  - Anticipo por comprobante, producción, QA con foto, embarque y entrega.
+  - Saldo, pedido cerrado y encuesta.
+  - El pedido aparece en la lista y en los reportes, con su CSV.
+- **Seguridad (OWASP Top 10)**, con el detalle en `docs/seguridad.md`:
+  - Prueba de RLS sobre las 35 tablas: el público no lee nada fuera del catálogo y un enlace solo abre su solicitud.
+  - Límite de intentos en todos los formularios públicos y en el ingreso al panel (migración `009_security`, D-087).
+  - Captcha invisible Turnstile opcional (D-088).
+  - Content-Security-Policy y cabeceras nuevas (D-086).
+  - `scripts/check-client-secrets.mjs` revisa que el build público no lleve secretos.
+  - Dependabot.
+- **Tres problemas reales encontrados y corregidos:**
+  - `AUTH_SECRET` obligatorio en producción: sin él se podía falsificar una sesión del panel (D-089).
+  - pdf.js actualizado por una vulnerabilidad alta (GHSA-hq66-cqwq-w95j).
+  - Subidas que fallaban cuando un token empezaba con "-" o "_" (D-093). Era la falla que no se pudo reproducir en E8.
+- **Rendimiento:**
+  - Lighthouse móvil: inicio 96, ficha 99 y cotizador 99; accesibilidad, buenas prácticas y SEO en 100, con la CSP activa (D-092).
+  - JS del cotizador: 214 kB gzip, bajo el límite de 250 (`scripts/bundle-size.mjs`, revisado en CI).
+- **Accesibilidad:** axe (WCAG 2.1 AA) sin problemas críticos ni serios en las 13 páginas públicas y en cada paso del cotizador, incluso con los errores a la vista, en móvil y escritorio.
+- **Respaldos:**
+  - `scripts/backup.mjs` y un flujo diario de GitHub Actions cifrado con GPG, que se activa con dos secretos (D-090, `docs/respaldos.md`).
+  - Prueba de respaldo y restauración de ida y vuelta, obligatoria en CI.
+- **Sentry opcional** sin SDK: errores del servidor y del navegador, con tokens y correos borrados (D-091).
+- **Reportes `/admin/reportes` (D-085):**
+  - Tablas: conversión por segmento, solicitudes por estado, tiempos de la solicitud y del pedido, motivos de pérdida, tipos y materiales más pedidos, pedidos por vencer y solicitudes por canal.
+  - Filtro por período.
+  - CSV por tabla, listo para Google Sheets.
+- **CI:** además de lint, typecheck y Vitest, ahora hay un job de build (secretos y peso del cotizador) y otro de Playwright en móvil y escritorio.
+
+**Qué falta / notas**
+- Lighthouse no corre en CI, por la variación de los runners compartidos; se mide en local (D-092).
+- El CSV se verificó leyéndolo con SheetJS y con su formato. Abrirlo en Google Sheets queda para la prueba de Mark en E10.
+- Pendientes para el despliegue (E10), en la tabla final de `docs/seguridad.md`:
+  - definir `AUTH_SECRET` y `CRON_SECRET`;
+  - activar los respaldos con sus secretos;
+  - opcionalmente, Turnstile y Sentry.
+- Quedan 3 avisos de `pnpm audit` en dependencias de desarrollo de Lighthouse, que no llegan al sitio.
+
+**Cómo probarlo**
+```bash
+pnpm test                                   # 160 pruebas (2 necesitan pg_dump 17 y corren en CI)
+pnpm test:e2e                               # incluye axe + CSP y el recorrido completo
+pnpm build && node scripts/check-client-secrets.mjs
+node scripts/dev.mjs start --port 3200 &    # luego:
+node scripts/bundle-size.mjs http://localhost:3200 /cotizar
+node scripts/lighthouse.mjs http://localhost:3200 / /catalogo/cajas/plegadiza-con-tapa /cotizar
+```
+
+**Resultado de la verificación (24/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 158/158 en verde en local (+2 de respaldo que corren en CI).
+- `pnpm test:e2e`: 30/30 en verde (24 omitidos por proyecto móvil/escritorio).
+- CI (lint, typecheck, Vitest con respaldo, build con secretos y peso, Playwright): en verde, incluida la prueba de respaldo y restauración, obligatoria en CI.
+- `pnpm audit --prod`: sin vulnerabilidades.

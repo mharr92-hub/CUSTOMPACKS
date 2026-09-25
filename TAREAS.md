@@ -162,12 +162,12 @@ Aceptación: pedido completo de anticipo a cerrado con hitos, fotos y saldo; el 
 
 ## E9 — Calidad y seguridad · esfuerzo: medium · semana 9
 
-- [ ] Playwright: recorrido completo cliente + staff (solicitud → RFQ → cotización → aceptación → pedido → cerrado).
-- [ ] Revisión OWASP Top 10: RLS en todas las tablas (test que intenta leer datos ajenos y falla), rate limit en formularios, captcha invisible (Turnstile por variable de entorno, opcional), validación de tipo de archivo, cabeceras de seguridad, sin secretos en cliente.
-- [ ] Rendimiento: Lighthouse móvil ≥ 90 en inicio, ficha y paso 1 del wizard; bundle del wizard < 250 kB gz.
-- [ ] Accesibilidad: axe sin errores críticos en las páginas públicas y el wizard.
-- [ ] Respaldos: script y doc para `pg_dump` diario; Sentry opcional conectado.
-- [ ] `/admin/reportes`: pipeline por estado, tiempos por etapa, conversión, top tipos y materiales, motivos de pérdida, pedidos por vencer, tráfico por canal; exportación CSV.
+- [x] Playwright: recorrido completo cliente + staff (solicitud → RFQ → cotización → aceptación → pedido → cerrado).
+- [x] Revisión OWASP Top 10: RLS en todas las tablas (test que intenta leer datos ajenos y falla), rate limit en formularios, captcha invisible (Turnstile por variable de entorno, opcional), validación de tipo de archivo, cabeceras de seguridad, sin secretos en cliente.
+- [x] Rendimiento: Lighthouse móvil ≥ 90 en inicio, ficha y paso 1 del wizard; bundle del wizard < 250 kB gz.
+- [x] Accesibilidad: axe sin errores críticos en las páginas públicas y el wizard.
+- [x] Respaldos: script y doc para `pg_dump` diario; Sentry opcional conectado.
+- [x] `/admin/reportes`: pipeline por estado, tiempos por etapa, conversión, top tipos y materiales, motivos de pérdida, pedidos por vencer, tráfico por canal; exportación CSV.
 
 Aceptación: todos los tests en verde en CI; informe de seguridad en `docs/seguridad.md`; CSV de reportes abre en Google Sheets sin retoques.
 
