@@ -3,6 +3,7 @@
 // local (aplicando migraciones y seed) y luego corre `next dev|build|start`. Al salir detiene
 // la base si la arrancó este proceso.
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { ROOT, connect, isPortOpen, loadEnvFiles, migrate, reset, seed, startEmbedded } from "./lib/pg-local.mjs";
@@ -18,6 +19,12 @@ const extraArgs = process.argv.slice(3);
 const LOCAL_PORT = Number(process.env.LOCAL_DB_PORT ?? 54322);
 const LOCAL_DIR = path.resolve(ROOT, process.env.LOCAL_DB_DIR ?? ".data/postgres");
 const RESET = process.env.LOCAL_DB_RESET === "1";
+
+if (RESET) {
+  // La caché de datos de Next guarda consultas de la base anterior (ids distintos).
+  const distDir = path.resolve(ROOT, process.env.NEXT_DIST_DIR || ".next");
+  for (const dir of ["cache/fetch-cache", "dev/cache/fetch-cache"]) fs.rmSync(path.join(distDir, dir), { recursive: true, force: true });
+}
 
 let pg = null;
 if (!process.env.DATABASE_URL) {
