@@ -60,6 +60,8 @@ test.describe("E9 · recorrido completo", () => {
     await pickCard(client, "Tengo el arte");
     await client.getByLabel("Archivos de arte").setInputFiles({ name: "logo-cafe.pdf", mimeType: "application/pdf", buffer: makePdf() });
     await expect(client.getByRole("list", { name: "Archivos subidos" }).getByRole("listitem").filter({ hasText: "logo-cafe.pdf" })).toBeVisible();
+    // La vista previa (pdf.js) dibuja la primera página.
+    await expect(client.getByRole("img", { name: "Vista previa de logo-cafe.pdf" })).toBeVisible({ timeout: 20_000 });
     await next(client);
     await client.getByLabel("Tu nombre").fill("Lucía Batista");
     await client.getByLabel("Correo").fill("lucia@example.com");

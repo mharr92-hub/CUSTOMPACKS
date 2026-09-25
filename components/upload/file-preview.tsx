@@ -44,7 +44,8 @@ function PdfFirstPage({ url, name, className }: { url: string; name: string; cla
       try {
         const pdfjs = await import("pdfjs-dist");
         pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
-        const doc = await pdfjs.getDocument({ url }).promise;
+        const task = pdfjs.getDocument({ url });
+        const doc = await task.promise;
         const page = await doc.getPage(1);
         const base = page.getViewport({ scale: 1 });
         const scale = Math.min(2, 320 / base.width);
@@ -55,7 +56,7 @@ function PdfFirstPage({ url, name, className }: { url: string; name: string; cla
         canvas.height = Math.floor(viewport.height);
         await page.render({ canvas, viewport }).promise;
         if (!cancelled) setState("ready");
-        await doc.destroy();
+        await task.destroy();
       } catch {
         if (!cancelled) setState("error");
       }
