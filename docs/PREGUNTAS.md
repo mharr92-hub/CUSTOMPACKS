@@ -32,3 +32,22 @@ Lo que el sistema necesita de Mark y no se puede decidir desde el código. Cada 
 | 16 | Textos de las 15 plantillas de mensajes PROVISIONAL | Redactados con el tono del PRD | Panel → Plantillas |
 | 17 | Cuentas: dominio, Supabase, Vercel, Resend, WhatsApp, GA4, Meta Pixel, correo de la fábrica | Modo local o simulado para cada una | Variables de entorno (`docs/deploy.md`) |
 | 18 | Quiénes cotizan y hacen seguimiento (roles y número de personas) | Roles Ventas, Operaciones y QA y Solo lectura | Panel → Usuarios |
+
+## De la auditoría (25/09/2026)
+
+Estas respuestas definen cómo se corrigen algunos hallazgos de `docs/AUDITORIA.md`. Las tareas de `TAREAS-mejoras.md` que dependen de ellas usan mientras tanto la opción más conservadora.
+
+19. **Pagos en varias partes** (DAT-02, REG-02).
+    - ¿El anticipo o el saldo se pueden pagar en varias transferencias?
+    - ¿Se acepta una diferencia pequeña por comisiones bancarias? ¿De cuánto?
+    - Hoy cualquier pago confirmado cuenta como completo. Mientras no respondas, la corrección exigirá que la suma de los pagos confirmados cubra el monto, sin tolerancia.
+20. **Planes de pago para producción** (sección 8 de la auditoría).
+    - Vercel Hobby no permite uso comercial, y Supabase Free se queda sin espacio para archivos en semanas.
+    - Estimado: unos USD 45 al mes con 100 solicitudes (Supabase Pro + Vercel Pro), y unos USD 65 con 500, sumando Resend Pro. Son precios de 2025: hay que verificarlos.
+    - ¿Apruebas contratar esos planes cuando se lance? El sistema no contrata nada por su cuenta.
+21. **Retención de archivos** (REN, DAT-04).
+    - Hoy el arte se guarda 24 meses y las fotos de QA no se borran nunca.
+    - ¿Cuánto tiempo hay que guardar las evidencias de QA y los comprobantes de pago?
+22. **Datos personales, Ley 81** (DAT-03, SEG-07).
+    - ¿Quién atiende las solicitudes de acceso y eliminación?
+    - ¿Qué datos hay que conservar aunque el cliente pida borrarlos (facturas o pedidos, por obligación contable)? ¿Durante cuánto tiempo?

@@ -15,6 +15,8 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E8 — Pedidos y seguimiento | ✅ Hecho | 24/09/2026 |
 | E9 — Calidad y seguridad | ✅ Hecho | 24/09/2026 |
 | E10 — Lanzamiento | ✅ Hecho (falta lo que depende de Mark: docs/lanzamiento.md) | 25/09/2026 |
+| Bloque 1 · Cierre de pendientes | ✅ Hecho | 25/09/2026 |
+| Bloque 2 · Auditoría completa | ✅ Hecho (docs/AUDITORIA.md) | 25/09/2026 |
 
 ---
 
@@ -669,3 +671,37 @@ LH_THROTTLING=devtools node scripts/lighthouse.mjs http://localhost:3200 / /coti
 - `pnpm test`: 163/163 en verde (+2 de respaldo que corren en CI).
 - `pnpm test:e2e`: 30/30 en verde (24 omitidos por proyecto móvil/escritorio).
 - `pnpm verify:deploy`: 23/23.
+
+---
+
+## Bloque 2 · Auditoría completa (25/09/2026)
+
+**Qué quedó hecho**
+- **`docs/AUDITORIA.md`:**
+  - el cumplimiento de las 21 secciones del PRD, con una tabla por sección (requisito, estado, evidencia y brecha);
+  - la revisión técnica en 8 dimensiones, con hallazgos numerados por severidad (SEG, DAT, REG, UX, PAN, REN, COD, FUT).
+- **Resultado:**
+  - PRD: 382 requisitos. 199 cumplidos, 132 parciales, 34 hechos distinto, 17 no hechos.
+  - Hallazgos: 125 (3 críticos, 14 altos, 75 medios, 33 bajos) y 1 refutado.
+- **Método:** 46 agentes. Los 30 hallazgos propuestos como críticos o altos pasaron por una verificación adversarial.
+- **Mediciones propias:**
+  - Tiempo de completado del cotizador en un celular emulado: 56 s con una pieza y 1 min 40 s con dos, a ritmo de persona ágil. Prueba `tests/e2e/wizard-timing.spec.ts`, que solo corre con `MEASURE_WIZARD=1`.
+  - Lighthouse en los dos modos.
+  - Peso del JavaScript: cotizador 215 kB y inicio 144 kB (gzip).
+  - Conteos de código y pruebas; `pnpm audit`.
+- **Crítico (DAT-01 = REN-01 = COD-01):** transacciones anidadas en `getClientOrder` y `createQuoteDraft` se bloquean con `DB_POOL_MAX=1`.
+  - No es de seguridad, así que no se corrigió en este bloque (la consigna solo permitía corregir críticos de seguridad).
+  - Se agregó un aviso bloqueante en `docs/deploy.md`.
+  - La corrección es la primera tarea de `TAREAS-mejoras.md`.
+- **Seguridad:** no quedó ningún crítico tras la verificación, así que no hubo cambios de código.
+
+**Qué falta / notas**
+- Los hallazgos medios y bajos no se verificaron uno por uno (muestreo: 3 de 3 confirmados).
+- Los costos de infraestructura son estimaciones con precios públicos conocidos hasta 2025: hay que verificarlos antes de contratar.
+
+**Cómo probarlo**
+```bash
+MEASURE_WIZARD=1 pnpm test:e2e tests/e2e/wizard-timing.spec.ts --project=mobile   # escribe .data/wizard-timing.json
+WIZARD_PACE=machine MEASURE_WIZARD=1 pnpm test:e2e tests/e2e/wizard-timing.spec.ts --project=mobile
+node scripts/bundle-size.mjs http://localhost:3200 /cotizar 250   # con pnpm build y pnpm start -p 3200
+```
