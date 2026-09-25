@@ -26,7 +26,7 @@ const fmtInt = (n: number) => new Intl.NumberFormat("es-PA").format(n);
  * de CLAUDE.md: nunca un precio en pantalla). Aquí se descarga, se elige la
  * cantidad de cada pieza y se acepta con un clic, o se piden cambios.
  */
-export function ClientQuote({ token, quote, contactName }: { token: string; quote: PortalQuote; contactName: string }) {
+export function ClientQuote({ token, quote, contactName, taxLabel }: { token: string; quote: PortalQuote; contactName: string; taxLabel: string }) {
   const t = useTranslations("tracking.quote");
   const router = useRouter();
   const [selection, setSelection] = useState<Record<string, number>>(() =>
@@ -91,6 +91,7 @@ export function ClientQuote({ token, quote, contactName }: { token: string; quot
         {t("title")}
       </h2>
       <p className="mt-1">{t("ready", { number: quote.number })}</p>
+      {taxLabel ? <p className="mt-1 text-sm text-muted-foreground">{t("taxNote", { label: taxLabel })}</p> : null}
       <Button asChild variant="outline" className="mt-3">
         <a href={pdfHref} target="_blank" rel="noopener">
           <FileTextIcon className="size-4" />

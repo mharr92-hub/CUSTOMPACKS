@@ -156,7 +156,9 @@ test.describe("E9 · recorrido completo", () => {
     await client.getByLabel("Subir comprobante de pago").setInputFiles({ name: "anticipo.pdf", mimeType: "application/pdf", buffer: makePdf() });
     await expect(client.getByText("Recibimos tu comprobante.")).toBeVisible({ timeout: 20_000 });
     await expect(client.getByTestId("client-payment-deposit")).toContainText("Comprobante en revisión");
-    await expect(client.locator("body")).not.toContainText("$");
+    // Montos del pedido con la cotización aceptada (D-101); ningún precio automático antes.
+    await expect(client.getByTestId("client-payment-deposit")).toContainText(/USD\s[\d,]+\.\d{2}/);
+    await expect(client.getByTestId("client-payment-list")).toContainText("Comprobante en revisión");
 
     // 6. Equipo: confirma el anticipo y lleva el pedido por sus hitos.
     await admin.reload();

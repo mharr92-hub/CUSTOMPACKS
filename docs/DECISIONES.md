@@ -491,7 +491,7 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
 - **Decisión:** la solicitud pasa a "Aceptada", el equipo recibe el aviso y, en la misma transacción, se llama a `onQuoteAccepted`, el gancho donde E8 crea el pedido.
 - **Cómo cambiarla:** `lib/orders/hooks.ts`.
 
-### D-075 · 24/09/2026 · Impuestos en la cotización
+### D-075 · 24/09/2026 · Impuestos en la cotización (resuelta por D-102)
 - **Duda:** el PRD no dice si los precios incluyen impuestos (ITBMS).
 - **Decisión:** la cotización no menciona impuestos: indica la moneda (USD) y las condiciones del PRD. Queda como pregunta para Mark en E10.
 - **Cómo cambiarla:** `messages/es.json` > `quotePdf`.
@@ -512,7 +512,7 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - Si el hito se registra con la fecha de hoy, guarda la hora real; si se registra con una fecha pasada, queda al mediodía de Panamá.
 - **Cómo cambiarla:** `MANUAL` y `STATUS_AFTER` en `lib/orders/index.ts`; checklist en `lib/orders/qa.ts`.
 
-### D-078 · 24/09/2026 · Montos del pedido solo en el PDF "Estado de pagos"
+### D-078 · 24/09/2026 · Montos del pedido solo en el PDF "Estado de pagos" (revertida por D-101)
 - **Conflicto:** TAREAS pide mostrar en `/seguimiento/[token]` los "montos y estado de pagos", pero CLAUDE.md prohíbe mostrar precios en el portal. Prevalece CLAUDE.md.
 - **Decisión:**
   - El portal muestra el estado de cada pago (Pendiente, Comprobante en revisión, Confirmado, Rechazado) y los porcentajes de la condición 50/50, sin montos.
@@ -687,3 +687,22 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - cabeceras, SEO, acceso, enlaces inventados y crons.
   - Lo que depende de servicios reales (correo, dominio, Auth de Supabase, GA4) queda en la parte C del checklist de `docs/deploy.md`.
 - **Cómo cambiarla:** `scripts/verify-deploy.mjs`.
+
+### D-101 · 25/09/2026 · Montos del pedido en el portal (revierte D-078)
+- **Decisión de Mark:** la regla 7 de CLAUDE.md aplica solo a solicitudes sin cotización emitida y a cualquier precio automático o estimado. Se corrigió su texto.
+- **Qué cambia:**
+  - En `/seguimiento/[token]`, un pedido con cotización aceptada muestra el total, el anticipo y el saldo (con lo pagado y lo pendiente) y la lista de pagos y comprobantes con su estado y monto.
+  - Antes de emitir la cotización, el portal y la web siguen sin mostrar precios. La pantalla de aceptación de la cotización sigue remitiendo al PDF (D-068).
+  - Los montos se leen en el servidor con la clave de servicio, después de validar el enlace. El rol anónimo sigue sin permiso sobre las columnas de montos (defensa en profundidad; las pruebas lo verifican).
+  - El PDF "Estado de pagos" se mantiene.
+- **Cómo cambiarla:** `getClientOrder` en `lib/orders/index.ts` y `components/portal/client-order.tsx`.
+
+### D-102 · 25/09/2026 · Precios sin ITBMS con leyenda editable
+- **Decisión de Mark:** los precios se cotizan sin impuesto, con la leyenda "más ITBMS 7 %".
+- **Dónde aparece:**
+  - en el editor de cotización del panel;
+  - en el PDF de la cotización (condiciones y encabezado del subtotal);
+  - en el PDF "Estado de pagos";
+  - en el portal (tarjeta de la cotización y montos del pedido).
+- **Cómo se configura:** el texto sale de `settings.tax_label` (migración `010_itbms_demo`), editable en Configuración; vacío, no se muestra. El sistema no calcula el impuesto: los montos de anticipo y saldo son sin ITBMS (queda la pregunta en `docs/PREGUNTAS.md`).
+- **Cómo cambiarla:** Configuración > `tax_label`; `taxLabel()` en `lib/catalog/public.ts`.

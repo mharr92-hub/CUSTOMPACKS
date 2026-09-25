@@ -85,7 +85,7 @@ Se editan en **Panel → Configuración** (admin). Al guardar un valor, deja de 
 
 Otras preguntas abiertas (PRD §20 y `docs/DECISIONES.md`):
 
-- **Impuestos:** ¿los precios incluyen ITBMS? Hoy la cotización no los menciona (D-075).
+- **Impuestos:** resuelto. Precios sin ITBMS con la leyenda "más ITBMS 7 %", editable en Configuración > `tax_label` (D-102). Queda una duda en `docs/PREGUNTAS.md`.
 - **RFQ:** formato exacto que prefiere la fábrica. Se ajusta en `config/rfq-format.ts`, sin tocar lo demás.
 - **Plazo de entrega:** si incluye tránsito, aduana y entrega local; lugar de entrega estándar.
 - **Condiciones de los términos:** tolerancias de cantidad y color; política de muestras físicas; diseño de arte como servicio y su tarifa.
@@ -142,5 +142,5 @@ Falta hacerlo con clientes reales. Lista para marcar en producción:
 - [ ] **Comercio:** solicitud real → RFQ enviado a la fábrica → respuesta registrada → cotización emitida → aceptada por el cliente → anticipo → producción → QA con fotos → embarque → entrega → saldo → cerrado.
 - [ ] **Alimentos:** el mismo recorrido con una pieza de contacto con alimentos (atributos alimentarios elegidos en el cotizador).
 - [ ] En ninguno de los dos se usó una hoja de cálculo ni se volvió a escribir un dato: la ficha, el RFQ, la cotización y el pedido salieron de la solicitud.
-- [ ] El cliente no vio ningún precio en pantalla: solo en el PDF de la cotización y en el estado de pagos.
+- [ ] El cliente no vio ningún precio antes de la cotización; con la cotización aceptada vio los montos de su pedido y el estado de cada pago.
 - [ ] Los avisos llegaron: correos automáticos y WhatsApp enviados desde el panel.

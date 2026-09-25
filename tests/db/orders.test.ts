@@ -159,7 +159,16 @@ describe("pedido al aceptar la cotización", () => {
 
     const client = await orders.getClientOrder(o.accessToken);
     expect(client?.status).toBe("pending_deposit");
-    expect(JSON.stringify(client)).not.toMatch(/amount|total|price|subtotal/i);
+    // Con la cotización aceptada, el portal lleva los montos del pedido (D-101).
+    expect(client?.amounts).toEqual({
+      currency: "USD",
+      total: Number(row!.total_amount),
+      deposit: Number(row!.deposit_amount),
+      balance: Number(row!.balance_amount),
+      paidDeposit: 0,
+      paidBalance: 0,
+    });
+    expect(client?.paymentList).toEqual([]);
     expect(client?.payments).toEqual({ deposit: "none", balance: "none" });
   });
 });
@@ -275,7 +284,14 @@ describe("hitos, pagos y cierre", () => {
     ]);
     const clientClosed = await orders.getClientOrder(o.accessToken);
     expect(clientClosed?.payments).toEqual({ deposit: "confirmed", balance: "confirmed" });
-    expect(JSON.stringify(clientClosed)).not.toMatch(/amount|total|price|subtotal/i);
+    expect(clientClosed?.amounts.paidDeposit).toBeCloseTo(shipped!.depositAmount, 2);
+    expect(clientClosed?.amounts.paidBalance).toBeCloseTo(shipped!.balanceAmount, 2);
+    expect(clientClosed?.paymentList.map((p) => [p.kind, p.status, p.uploadedByClient])).toEqual([
+      ["deposit", "confirmed", false],
+      ["balance", "confirmed", true],
+    ]);
+    // Los montos no quedan expuestos al rol anónimo: se leen en el servidor tras validar el enlace.
+    await expect(asActor({ kind: "anon", accessToken: o.accessToken }, (tx) => tx`select amount from public.payments`)).rejects.toThrow(/permission denied/);
 
     // Encuesta NPS: 0 a 10, una por pedido.
     expect(await orders.submitSurvey(o.accessToken, { score: 11, comment: "", ip: null })).toEqual({ ok: false, error: "score" });

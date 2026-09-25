@@ -8,10 +8,10 @@ import { formatMoney, formatUnitPrice } from "@/lib/quotes/pricing";
 import type { OrderDetail } from "./index";
 
 /**
- * Estado de pagos del pedido (PDF): total, anticipo y saldo con lo pagado.
- * Es donde el cliente ve los montos (el portal no los muestra, D-078).
+ * Estado de pagos del pedido (PDF): total, anticipo y saldo con lo pagado,
+ * con la leyenda de impuestos (D-102).
  */
-function StatementDocument({ order }: { order: OrderDetail }) {
+function StatementDocument({ order, taxLabel }: { order: OrderDetail; taxLabel: string }) {
   const t = serverT("statementPdf");
   const fmtInt = (n: number) => new Intl.NumberFormat("es-PA").format(n);
   const confirmed = order.payments.filter((p) => p.status === "confirmed");
@@ -51,6 +51,7 @@ function StatementDocument({ order }: { order: OrderDetail }) {
             label={t("balance", { pct: 100 - order.depositPct })}
             value={`${formatMoney(order.balanceAmount, order.currency)} · ${t("paid")} ${formatMoney(paid("balance"), order.currency)} · ${t("pending")} ${formatMoney(Math.max(0, order.balanceAmount - paid("balance")), order.currency)}`}
           />
+          {taxLabel ? <Text style={{ marginTop: 4 }}>{t("tax", { label: taxLabel })}</Text> : null}
         </View>
         <View style={pdf.note}>
           <Text style={pdf.blockTitle}>{t("payments")}</Text>
@@ -72,7 +73,7 @@ function StatementDocument({ order }: { order: OrderDetail }) {
   );
 }
 
-export async function renderStatementPdf(order: OrderDetail): Promise<Buffer> {
+export async function renderStatementPdf(order: OrderDetail, taxLabel: string): Promise<Buffer> {
   registerPdfFonts();
-  return renderToBuffer(<StatementDocument order={order} />);
+  return renderToBuffer(<StatementDocument order={order} taxLabel={taxLabel} />);
 }

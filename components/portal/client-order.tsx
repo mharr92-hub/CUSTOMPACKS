@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { ClientOrder as ClientOrderData } from "@/lib/orders";
+import { formatMoney } from "@/lib/quotes/pricing";
 import { cn } from "@/lib/utils";
 import { whatsappLink } from "@/lib/whatsapp";
 
@@ -15,15 +16,16 @@ const day = (d: string) => formatDate(`${d}T17:00:00Z`);
 const PAYMENT_TONE = { none: "bg-muted", pending: "bg-signal-yellow/20", confirmed: "bg-signal-green/15", rejected: "bg-signal-red/15" } as const;
 
 /**
- * Pedido visto por el cliente (PRD §10): etapas con fotos y QA, estado de los
- * pagos sin montos (van en el PDF, D-078), documentos, comprobante, "Pedir de
- * nuevo" y encuesta.
+ * Pedido visto por el cliente (PRD §10): etapas con fotos y QA, montos de la
+ * cotización aceptada y estado de cada pago (D-101), documentos, comprobante,
+ * "Pedir de nuevo" y encuesta.
  */
-export async function ClientOrder({ order, token, specHref, maxMb }: { order: ClientOrderData; token: string; specHref: string; maxMb: number }) {
+export async function ClientOrder({ order, token, specHref, maxMb, taxLabel }: { order: ClientOrderData; token: string; specHref: string; maxMb: number; taxLabel: string }) {
   const t = await getTranslations("tracking.order");
   const due = order.eta ?? order.estimatedDeliveryDate;
   const open = order.status !== "closed";
   const needsPayment = open && (order.payments.deposit !== "confirmed" || (order.status === "delivered" && order.payments.balance !== "confirmed"));
+  const money = (n: number) => formatMoney(n, order.amounts.currency);
 
   return (
     <section aria-labelledby="order-title" className="mt-6 space-y-6 rounded-lg border-2 border-forest p-5" data-testid="client-order">
@@ -76,14 +78,48 @@ export async function ClientOrder({ order, token, specHref, maxMb }: { order: Cl
       <div>
         <h3 className="font-bold">{t("paymentsTitle")}</h3>
         <p className="mt-1 text-sm text-muted-foreground">{t("paymentsIntro", { deposit: order.depositPct, balance: 100 - order.depositPct })}</p>
+        <p className="mt-3 flex flex-wrap items-baseline gap-x-2" data-testid="client-order-total">
+          <span className="text-sm font-semibold">{t("total")}</span>
+          <span className="tabular text-lg font-bold">{money(order.amounts.total)}</span>
+          {taxLabel ? <span className="text-sm text-muted-foreground">{taxLabel}</span> : null}
+        </p>
         <dl className="mt-3 grid gap-2 sm:grid-cols-2">
-          {(["deposit", "balance"] as const).map((kind) => (
-            <div key={kind} className={cn("rounded-md px-3 py-2", PAYMENT_TONE[order.payments[kind]])} data-testid={`client-payment-${kind}`}>
-              <dt className="text-sm font-semibold">{t(kind)}</dt>
-              <dd>{t(`paymentStatuses.${order.payments[kind]}`)}</dd>
-            </div>
-          ))}
+          {(["deposit", "balance"] as const).map((kind) => {
+            const amount = kind === "deposit" ? order.amounts.deposit : order.amounts.balance;
+            const paidAmount = kind === "deposit" ? order.amounts.paidDeposit : order.amounts.paidBalance;
+            const pct = kind === "deposit" ? order.depositPct : 100 - order.depositPct;
+            return (
+              <div key={kind} className={cn("rounded-md px-3 py-2", PAYMENT_TONE[order.payments[kind]])} data-testid={`client-payment-${kind}`}>
+                <dt className="text-sm font-semibold">{t(`${kind}Pct`, { pct })}</dt>
+                <dd className="tabular text-lg font-bold">{money(amount)}</dd>
+                <dd>{t(`paymentStatuses.${order.payments[kind]}`)}</dd>
+                {paidAmount > 0 && paidAmount < amount ? (
+                  <dd className="text-sm text-muted-foreground">{t("paidPending", { paid: money(paidAmount), pending: money(Math.max(0, amount - paidAmount)) })}</dd>
+                ) : null}
+              </div>
+            );
+          })}
         </dl>
+        {taxLabel ? <p className="mt-2 text-xs text-muted-foreground">{t("taxNote", { label: taxLabel })}</p> : null}
+        {order.paymentList.length > 0 ? (
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold">{t("paymentHistory")}</h4>
+            <ul className="mt-1 divide-y divide-border text-sm" data-testid="client-payment-list">
+              {order.paymentList.map((p) => (
+                <li key={p.id} className="flex flex-wrap justify-between gap-x-3 py-1.5">
+                  <span>
+                    {t(p.kind)} · {p.paidOn ? day(p.paidOn) : formatDateTime(p.createdAt)}
+                    {p.uploadedByClient ? ` · ${t("receiptByYou")}` : ""}
+                  </span>
+                  <span className="tabular">
+                    {p.amount !== null ? `${money(p.amount)} · ` : ""}
+                    {t(`paymentStatuses.${p.status}`)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {needsPayment ? (
           <div className="mt-4 space-y-4">
             <div>

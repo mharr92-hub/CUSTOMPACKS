@@ -1775,7 +1775,8 @@
         "status": "Esta cotización ya no se puede aceptar.",
         "body": "Escribe qué quieres cambiar.",
         "generic": "No pudimos registrar tu respuesta. Inténtalo de nuevo o escríbenos por WhatsApp."
-      }
+      },
+      "taxNote": "Precios {label}."
     },
     "order": {
       "title": "Tu pedido {number}",
@@ -1816,7 +1817,7 @@
       "video": "Ver video",
       "file": "Ver archivo",
       "paymentsTitle": "Pagos",
-      "paymentsIntro": "Los montos están en el estado de pagos. Pagas {deposit} % al aprobar y {balance} % al recibir.",
+      "paymentsIntro": "Pagas {deposit} % al aprobar la cotización y {balance} % al recibir tu pedido.",
       "deposit": "Anticipo",
       "balance": "Saldo",
       "paymentStatuses": {
@@ -1846,7 +1847,14 @@
       "surveyFailed": "No se pudo enviar. Inténtalo de nuevo.",
       "paymentHelp": "Hola {brand}, quiero los datos para pagar el pedido {number}.",
       "whatsapp": "Escribir por WhatsApp",
-      "deliveredOn": "Entregado el {date}"
+      "deliveredOn": "Entregado el {date}",
+      "total": "Total del pedido",
+      "depositPct": "Anticipo ({pct} %)",
+      "balancePct": "Saldo ({pct} %)",
+      "paidPending": "Pagado {paid} · Pendiente {pending}",
+      "taxNote": "Montos {label}, según tu cotización aceptada.",
+      "paymentHistory": "Pagos y comprobantes",
+      "receiptByYou": "comprobante que subiste"
     }
   },
   "pdf": {
@@ -2052,7 +2060,9 @@
     "notes": "Notas",
     "accept": "Para aceptar o pedir cambios, entra a tu enlace de seguimiento: {link}",
     "footer": "{brand} · {number}",
-    "piece": "Pieza {n}: {name}"
+    "piece": "Pieza {n}: {name}",
+    "tax": "Precios {label}.",
+    "subtotalTax": "Subtotal ({label})"
   },
   "statementPdf": {
     "title": "Estado de pagos",
@@ -2076,6 +2086,7 @@
       "deposit": "Anticipo",
       "balance": "Saldo"
     },
-    "footer": "{brand} · {number}"
+    "footer": "{brand} · {number}",
+    "tax": "Montos {label}."
   }
 }

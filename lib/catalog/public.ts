@@ -165,6 +165,12 @@ export function publicSetting<T>(catalog: PublicCatalog, key: string, fallback: 
   return value === undefined || value === null ? fallback : (value as T);
 }
 
+/** Leyenda de impuestos junto a precios y montos (settings.tax_label, p. ej. "más ITBMS 7 %"). */
+export function taxLabel(catalog: PublicCatalog): string {
+  const value = publicSetting(catalog, "tax_label", "");
+  return typeof value === "string" ? value.trim() : "";
+}
+
 /** Límites de subida de arte (settings): MB por archivo y archivos por pieza (PRD §9). */
 export function uploadSettings(catalog: PublicCatalog): { maxMb: number; maxFiles: number } {
   return { maxMb: publicSetting(catalog, "max_file_mb", 100), maxFiles: publicSetting(catalog, "max_files_per_item", 10) };

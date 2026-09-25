@@ -8,7 +8,7 @@ import { AssignControl, MissingDataControl, NoteForm, StatusControl } from "@/co
 import { QuotePanel, RfqPanel } from "@/components/panel/rfq-quote";
 import { listRequestArtwork } from "@/lib/artwork/staff";
 import { EDITOR_ROLES, requireStaff } from "@/lib/auth";
-import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
+import { getPublicCatalog, taxLabel, uploadSettings } from "@/lib/catalog/public";
 import { getServerEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
 import { listRequestNotifications } from "@/lib/notify";
@@ -276,6 +276,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
               items={panelItems}
               canEdit={canEdit}
               canPrepare={["rfq_sent", "quoted", "expired"].includes(request.status) && (rfqs.some((r) => r.respondedAt) || quotes.length > 0)}
+              taxLabel={taxLabel(catalog)}
               quotes={quotes.map((q) => ({
                 id: q.id,
                 number: q.number,

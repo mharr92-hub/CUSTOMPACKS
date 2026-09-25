@@ -6,7 +6,7 @@ Revisión de la plataforma contra el OWASP Top 10 (2021), al 24/09/2026. Para ca
 
 - **RLS en todas las tablas (35 de 35).**
   - El público no lee ninguna fila fuera del catálogo activo y de los ajustes públicos.
-  - Con el enlace de seguimiento, el cliente ve solo su solicitud, sin costos, precios ni montos.
+  - Con el enlace de seguimiento, el cliente ve solo su solicitud. Nunca ve costos ni márgenes; los montos de su pedido aparecen solo con la cotización aceptada (D-101).
   - Pruebas: `tests/db/security.test.ts` y las de cada bloque.
 - **Tres problemas reales encontrados y corregidos en esta revisión:**
   1. **Clave de sesiones en producción.** Si se desplegaba sin Supabase y sin `AUTH_SECRET`, las sesiones del panel se firmaban con la clave de desarrollo, que está en el repositorio, y cualquiera podía falsificar una sesión de admin. Ahora, en producción sin `AUTH_SECRET` de 32 caracteres o más, no se firma ni se acepta ningún token. Prueba: `tests/unit/auth-secret.test.ts`.
@@ -64,7 +64,7 @@ Revisión de la plataforma contra el OWASP Top 10 (2021), al 24/09/2026. Para ca
 
 ### A04 · Diseño inseguro
 
-- **Precios:** el portal nunca muestra precios ni montos (regla del proyecto). Están en los PDF que emite el equipo, y la base lo refuerza con permisos por columna.
+- **Precios:** ningún precio automático ni estimado. Antes de emitir la cotización, el portal no muestra precios. Con la cotización aceptada, muestra los montos del pedido: los lee el servidor tras validar el enlace, y el rol anónimo sigue sin permiso sobre esas columnas (D-101).
 - **Límite de intentos por ventana** (migración `009_security`):
 
   | Acción | Tope |

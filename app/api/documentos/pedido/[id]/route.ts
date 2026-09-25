@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getCurrentUser, isStaffRole } from "@/lib/auth";
 import { getOrder, getOrderForToken } from "@/lib/orders";
+import { getPublicCatalog, taxLabel } from "@/lib/catalog/public";
 import { renderStatementPdf } from "@/lib/orders/statement-pdf";
 
 export const runtime = "nodejs";
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/document
     if (user?.isActive && isStaffRole(user.role)) order = await getOrder(user, id);
   }
   if (!order) return new Response("No encontrado", { status: 404 });
-  const pdf = await renderStatementPdf(order);
+  const pdf = await renderStatementPdf(order, taxLabel(await getPublicCatalog()));
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",

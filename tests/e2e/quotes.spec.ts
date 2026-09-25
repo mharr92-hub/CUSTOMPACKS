@@ -89,6 +89,8 @@ test.describe("E7 · RFQ y cotización", () => {
     // (0,45 + 90/3000) / (1 − 0,35) = 0,7385
     await editor.getByLabel(/^Flete total 1/).fill("90");
     await expect(editor.getByTestId("quote-unit-price")).toContainText("0.7385");
+    // Precios sin impuesto con la leyenda de Configuración (D-102).
+    await expect(editor.getByTestId("quote-tax-label").first()).toHaveText("más ITBMS 7 %");
     await editor.getByRole("button", { name: "Emitir y enviar al cliente" }).click();
     await expect(admin.getByTestId("quote-status").first()).toHaveText("Enviada");
     await expect(admin.getByTestId("admin-request-status")).toHaveText("Cotizada");

@@ -1,6 +1,6 @@
 import "server-only";
 import { actorFor, EDITOR_ROLES, type CurrentUser } from "@/lib/auth";
-import { getPublicCatalog, publicSetting, quoteConditions } from "@/lib/catalog/public";
+import { getPublicCatalog, publicSetting, quoteConditions, taxLabel } from "@/lib/catalog/public";
 import { serviceActor, withActor } from "@/lib/db/actor";
 import type { Tx } from "@/lib/db/client";
 import { formatDate } from "@/lib/format";
@@ -271,6 +271,7 @@ export async function issueQuote(user: CurrentUser, quoteId: string): Promise<Qu
     })),
     notes: q.notes,
     trackingLink: absoluteUrl(`/seguimiento/${token?.access_token ?? ""}`),
+    taxLabel: taxLabel(await getPublicCatalog()),
   });
   const path = `requests/${quote.request_id}/quotes/${q.number}.pdf`;
   await putObject("documents", path, pdfBuffer, "application/pdf");

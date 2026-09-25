@@ -13,7 +13,7 @@ import { listPortalArtwork } from "@/lib/artwork/client-portal";
 import { formatDateTime } from "@/lib/format";
 import { getClientOrder } from "@/lib/orders";
 import { getClientQuote } from "@/lib/quotes";
-import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
+import { getPublicCatalog, taxLabel, uploadSettings } from "@/lib/catalog/public";
 import { specPdfPath } from "@/lib/quote/links";
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
 import { getRequestByToken } from "@/lib/quote/tracking";
@@ -77,11 +77,12 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
       </section>
 
       {request.status === "data_pending" ? <PendingReply token={token} list={request.pendingList} /> : null}
-      {order ? <ClientOrder order={order} token={token} specHref={specPdfPath(request.id, token)} maxMb={uploadSettings(catalog).maxMb} /> : null}
+      {order ? <ClientOrder order={order} token={token} specHref={specPdfPath(request.id, token)} maxMb={uploadSettings(catalog).maxMb} taxLabel={taxLabel(catalog)} /> : null}
       {quote ? (
         <ClientQuote
           token={token}
           contactName={request.contactName}
+          taxLabel={taxLabel(catalog)}
           quote={{
             id: quote.id,
             number: quote.number,

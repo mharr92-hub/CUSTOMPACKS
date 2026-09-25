@@ -125,7 +125,7 @@ Al aceptar, el pedido se crea solo. En la solicitud aparece el botón **Pedido P
   - el pedido pasa a **Anticipo recibido**;
   - el cliente recibe la confirmación;
   - se calcula la **entrega estimada**: el plazo corre desde lo último entre el anticipo y el proof aprobado.
-- **Estado de pagos (PDF):** el documento con montos que se envía al cliente cuando lo pide. En su enlace el cliente solo ve el estado de cada pago, sin montos.
+- **Estado de pagos (PDF):** el documento con todos los montos y los pagos confirmados. El cliente también ve en su enlace el total, el anticipo, el saldo y el estado de cada pago.
 
 ### Hitos
 
@@ -154,7 +154,7 @@ En **Registrar hito** solo aparece el siguiente paso válido.
 
 - Estado y entrega estimada.
 - Cada etapa, con fotos y el resultado de QA.
-- Estado de los pagos, sin montos.
+- Total, anticipo y saldo del pedido, "más ITBMS 7 %", y el estado de cada pago.
 - Cómo pagar (texto de Configuración) y un botón para subir el comprobante.
 - Cotización, ficha técnica y estado de pagos en PDF.
 - **Pedir de nuevo:** abre el cotizador con las mismas piezas.
@@ -210,7 +210,7 @@ En **Registrar hito** solo aparece el siguiente paso válido.
 
 - **No puedo abrir el arte de una solicitud.** Solo lo abren la persona asignada y admin. Pulsa **Tomarla yo** o pide que te la asignen.
 - **No me deja pasar a producción.** Falta el anticipo confirmado, o el proof aprobado de alguna pieza impresa. El aviso amarillo del pedido dice cuál.
-- **El cliente dice que no ve precios.** Es correcto: los precios van solo en el PDF de la cotización y los montos, en el estado de pagos. Pídele que descargue el PDF desde su enlace.
+- **El cliente dice que no ve precios.** Antes de aceptar, los precios están solo en el PDF de la cotización: pídele que lo descargue desde su enlace. Después de aceptar, su enlace muestra los montos del pedido.
 - **El cliente perdió su enlace.** Está en el correo de confirmación de su solicitud. También se lo puedes reenviar desde **Notificaciones** con **Abrir WhatsApp** en cualquier aviso.
 - **Un aviso de WhatsApp no salió.** Los WhatsApp no salen solos: ábrelo desde **Notificaciones** y márcalo como enviado.
 - **"Demasiados intentos" o "Pediste varios enlaces seguidos".** Es un tope de seguridad. Espera 15 minutos.

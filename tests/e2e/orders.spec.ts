@@ -123,9 +123,12 @@ test.describe("E8 · Pedidos", () => {
     const photoSrc = (await clientQa.getByRole("img").getAttribute("src")) ?? "";
     const photo = await page.request.get(photoSrc);
     expect(photo.status()).toBe(200);
-    // El portal no muestra montos.
-    await expect(page.getByTestId("client-order")).not.toContainText("$");
+    // Con la cotización aceptada, el portal muestra los montos y la leyenda de impuesto (D-101, D-102).
+    await expect(page.getByTestId("client-order-total")).toContainText(/USD\s[\d,]+\.\d{2}/);
+    await expect(page.getByTestId("client-order-total")).toContainText("más ITBMS 7 %");
+    await expect(page.getByTestId("client-payment-deposit")).toContainText(/USD\s[\d,]+\.\d{2}/);
     await expect(page.getByTestId("client-payment-deposit")).toContainText("Confirmado");
+    await expect(page.getByTestId("client-payment-list")).toContainText("Confirmado");
 
     // Embarque, entrega; el cliente sube el comprobante del saldo y el equipo lo confirma.
     await recordMilestone(admin, "Embarcado", async () => {

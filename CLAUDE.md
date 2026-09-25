@@ -10,7 +10,7 @@ Fuente de verdad: `docs/PRD.md` (21 secciones). Cola de trabajo: `TAREAS.md`. De
 4. Al terminar un bloque, corre sus criterios de aceptación (tests + verificación manual descrita) antes de pasar al siguiente. Si algo falla, arréglalo dentro del mismo bloque.
 5. Nunca pagues, compres ni crees servicios de pago (dominios, certificados, planes, proyectos de pago en Supabase o Vercel). Si falta una credencial, deja el código listo con variables de entorno documentadas en `.env.example` y un modo local o simulado que funcione sin ella.
 6. No inventes datos de negocio. Los valores de catálogo, precios, plazos o certificaciones que no estén en el PRD se cargan como `is_provisional = true` y se muestran con la etiqueta "PROVISIONAL" en el panel interno, nunca como hechos en la web pública.
-7. Nunca muestres un precio al cliente, ni estimado, ni rango, en ninguna pantalla pública ni en el portal. El precio solo existe en el panel interno y en la cotización PDF que emite el equipo.
+7. Nunca muestres al cliente un precio automático o estimado, ni un rango, en ninguna pantalla. Mientras una solicitud no tenga una cotización emitida por el equipo, ni la web pública ni el portal muestran precios. La cotización PDF que emite el equipo lleva los precios; cuando el cliente la acepta, su portal (`/seguimiento/[token]`) muestra los montos del pedido: total, anticipo, saldo y el estado de cada pago.
 8. El nombre del dueño se escribe "Mark Marcel Harrick Atie", sin "Ing." ni ningún título, en todo documento, plantilla o firma.
 
 ## Stack fijo

@@ -21,7 +21,7 @@ import type { ReorderSource } from "./reorder";
 /**
  * Pedidos (PRD §6, §10, §11, §14): se crean al aceptar la cotización, avanzan
  * por hitos con evidencias y checklist de QA, registran anticipo y saldo, y el
- * cliente los sigue desde su enlace (sin montos en pantalla, D-078).
+ * cliente los sigue desde su enlace, con los montos de su cotización aceptada (D-101).
  */
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -752,13 +752,22 @@ export type ClientOrder = {
   deliveredAt: Date | null;
   milestones: { id: string; type: MilestoneType; occurredAt: Date; notes: string | null; evidence: (Evidence & { url: string })[]; qa: { label: string; expected: string; result: string | null }[] | null }[];
   payments: { deposit: PaymentStatus | "none"; balance: PaymentStatus | "none" };
+  /** Montos de la cotización aceptada (D-101): se leen en el servidor tras validar el enlace. */
+  amounts: { currency: string; total: number; deposit: number; balance: number; paidDeposit: number; paidBalance: number };
+  /** Cada pago o comprobante, con su monto si ya está confirmado. */
+  paymentList: { id: string; kind: PaymentKind; status: PaymentStatus; amount: number | null; paidOn: string | null; createdAt: Date; uploadedByClient: boolean }[];
   surveyDone: boolean;
   quoteId: string;
   depositPct: number;
   paymentInstructions: string;
 };
 
-/** Pedido visto por el cliente: sin montos (van en el PDF de estado de pagos). */
+/**
+ * Pedido visto por el cliente con su enlace: etapas, evidencias, montos de la
+ * cotización aceptada y estado de cada pago (D-101). El rol anónimo sigue sin
+ * permiso sobre las columnas de montos: se leen con la clave de servicio
+ * después de validar el enlace.
+ */
 export async function getClientOrder(accessToken: string): Promise<ClientOrder | null> {
   const row = await clientOrderRow(accessToken);
   if (!row) return null;
@@ -775,10 +784,20 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
       if (list.some((p) => p.status === "pending")) return "pending";
       return list.length ? "rejected" : "none";
     };
-    const extra = await withActor(serviceActor, (s) => s<{ quote_id: string; deposit_pct: number; survey: boolean; instructions: unknown }[]>`
+    const extra = await withActor(serviceActor, (s) => s<
+      { quote_id: string; deposit_pct: number; survey: boolean; instructions: unknown; currency: string; total_amount: string; deposit_amount: string; balance_amount: string }[]
+    >`
       select o.quote_id, o.deposit_pct, exists (select 1 from public.surveys v where v.order_id = o.id) as survey,
-             (select value from public.settings where key = 'payment_instructions') as instructions
+             (select value from public.settings where key = 'payment_instructions') as instructions,
+             o.currency, o.total_amount, o.deposit_amount, o.balance_amount
         from public.orders o where o.id = ${row.id}`);
+    const paymentRows = await withActor(serviceActor, (s) => s<
+      { id: string; kind: PaymentKind; status: PaymentStatus; amount: string | null; paid_on: string | null; created_at: Date; uploaded_by_client: boolean }[]
+    >`
+      select id, kind, status, amount, to_char(paid_on, 'YYYY-MM-DD') as paid_on, created_at, uploaded_by_client
+        from public.payments where order_id = ${row.id} order by created_at`);
+    const paid = (kind: PaymentKind) =>
+      paymentRows.filter((p) => p.kind === kind && p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
     return {
       id: row.id,
       number: row.number,
@@ -799,6 +818,23 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
         })),
       ),
       payments: { deposit: status("deposit"), balance: status("balance") },
+      amounts: {
+        currency: extra[0]?.currency ?? "USD",
+        total: Number(extra[0]?.total_amount ?? 0),
+        deposit: Number(extra[0]?.deposit_amount ?? 0),
+        balance: Number(extra[0]?.balance_amount ?? 0),
+        paidDeposit: round2(paid("deposit")),
+        paidBalance: round2(paid("balance")),
+      },
+      paymentList: paymentRows.map((p) => ({
+        id: p.id,
+        kind: p.kind,
+        status: p.status,
+        amount: p.status === "confirmed" && p.amount !== null ? Number(p.amount) : null,
+        paidOn: p.paid_on,
+        createdAt: p.created_at,
+        uploadedByClient: p.uploaded_by_client,
+      })),
       surveyDone: Boolean(extra[0]?.survey),
       quoteId: extra[0]?.quote_id ?? "",
       depositPct: extra[0]?.deposit_pct ?? 0,

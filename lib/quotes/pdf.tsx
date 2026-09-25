@@ -9,8 +9,8 @@ import { formatMoney, formatUnitPrice } from "./pricing";
 
 /**
  * Cotización formal en PDF (PRD §11): precios por cantidad, vigencia,
- * condiciones 50/50, plazo y notas. Es el único documento con precios que
- * recibe el cliente (nunca se muestran en pantalla).
+ * condiciones 50/50, plazo y notas. Precios sin impuesto, con la leyenda de
+ * `settings.tax_label` (D-102).
  */
 export type QuotePdfInput = {
   number: string;
@@ -23,6 +23,8 @@ export type QuotePdfInput = {
   items: { position: number; spec: ItemSpec; lines: { quantity: number; unitPrice: number; subtotal: number; leadTimeDays: number }[] }[];
   notes: string | null;
   trackingLink: string;
+  /** Leyenda de impuestos, p. ej. "más ITBMS 7 %" (vacía: no se muestra). */
+  taxLabel: string;
 };
 
 function QuoteDocument({ input }: { input: QuotePdfInput }) {
@@ -63,7 +65,7 @@ function QuoteDocument({ input }: { input: QuotePdfInput }) {
                 <View style={pdf.th}>
                   <Text style={pdf.cell}>{t("quantity")}</Text>
                   <Text style={pdf.cellRight}>{t("unitPrice")}</Text>
-                  <Text style={pdf.cellRight}>{t("subtotal")}</Text>
+                  <Text style={pdf.cellRight}>{input.taxLabel ? t("subtotalTax", { label: input.taxLabel }) : t("subtotal")}</Text>
                   <Text style={pdf.cellRight}>{t("leadTime")}</Text>
                 </View>
                 {item.lines.map((line) => (
@@ -82,6 +84,7 @@ function QuoteDocument({ input }: { input: QuotePdfInput }) {
           <Text style={pdf.blockTitle}>{t("conditionsTitle")}</Text>
           <Text>{t("payment", { deposit: input.depositPct, balance: 100 - input.depositPct })}</Text>
           <Text>{t("currency", { currency: input.currency })}</Text>
+          {input.taxLabel ? <Text>{t("tax", { label: input.taxLabel })}</Text> : null}
           <Text>{t("validity", { date: formatPdfDate(input.validUntil) })}</Text>
           <Text>{t("leadTimeRule", { city: input.client.city ?? ts("none") })}</Text>
           {input.items.some((i) => i.lines.length > 1) ? <Text>{t("options")}</Text> : null}

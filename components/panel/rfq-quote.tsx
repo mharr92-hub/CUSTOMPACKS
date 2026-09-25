@@ -213,7 +213,22 @@ function RfqResponseForm({ requestId, rfq, items }: { requestId: string; rfq: Pa
 // ---------------------------------------------------------------------------
 // Cotización
 // ---------------------------------------------------------------------------
-export function QuotePanel({ requestId, items, quotes, canEdit, canPrepare }: { requestId: string; items: PanelItem[]; quotes: PanelQuote[]; canEdit: boolean; canPrepare: boolean }) {
+export function QuotePanel({
+  requestId,
+  items,
+  quotes,
+  canEdit,
+  canPrepare,
+  taxLabel,
+}: {
+  requestId: string;
+  items: PanelItem[];
+  quotes: PanelQuote[];
+  canEdit: boolean;
+  canPrepare: boolean;
+  /** Leyenda de impuestos (settings.tax_label). */
+  taxLabel: string;
+}) {
   const t = useTranslations("admin.quote");
   const { error, busy, run } = useRun("admin.quote");
   const draft = quotes.find((q) => q.status === "draft");
@@ -232,7 +247,7 @@ export function QuotePanel({ requestId, items, quotes, canEdit, canPrepare }: { 
           {error}
         </p>
       ) : null}
-      {draft && canEdit ? <QuoteEditor requestId={requestId} quote={draft} items={items} /> : null}
+      {draft && canEdit ? <QuoteEditor requestId={requestId} quote={draft} items={items} taxLabel={taxLabel} /> : null}
       {quotes.filter((q) => q.status !== "draft").length ? (
         <div>
           <p className="text-sm font-semibold">{t("versions")}</p>
@@ -273,7 +288,7 @@ export function QuotePanel({ requestId, items, quotes, canEdit, canPrepare }: { 
 
 type EditLine = { itemId: string; position: number; quantity: number; unitCost: string; freightTotal: string; marginPct: string; leadTimeDays: string };
 
-function QuoteEditor({ requestId, quote, items }: { requestId: string; quote: PanelQuote; items: PanelItem[] }) {
+function QuoteEditor({ requestId, quote, items, taxLabel }: { requestId: string; quote: PanelQuote; items: PanelItem[]; taxLabel: string }) {
   const t = useTranslations("admin.quote");
   const { error, busy, run } = useRun("admin.quote");
   const [lines, setLines] = useState<EditLine[]>(
@@ -333,6 +348,11 @@ function QuoteEditor({ requestId, quote, items }: { requestId: string; quote: Pa
                   <dt className="text-muted-foreground">{t("subtotal")}</dt>
                   <dd className="tabular font-semibold">{price ? formatMoney(price.subtotal, quote.currency) : "—"}</dd>
                 </div>
+                {taxLabel ? (
+                  <div className="text-muted-foreground" data-testid="quote-tax-label">
+                    {taxLabel}
+                  </div>
+                ) : null}
               </dl>
             </fieldset>
           );
