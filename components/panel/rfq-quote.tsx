@@ -291,53 +291,52 @@ function QuoteEditor({ requestId, quote, items }: { requestId: string; quote: Pa
   const [notes, setNotes] = useState(quote.notes ?? "");
   const payload = () => ({ lines, validUntil, notes });
   const set = (i: number, patch: Partial<EditLine>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
-  const cell = "h-8 w-full min-w-20 rounded-md border border-input bg-background px-2 text-right text-sm";
+  const cell = "h-9 w-full rounded-md border border-input bg-background px-2 text-right text-sm font-normal";
   return (
     <div className="space-y-3 rounded-md border-2 border-dashed border-forest/40 p-3" data-testid="quote-editor">
       <p className="font-semibold">{t("draftOf", { number: quote.number })}</p>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm">
-          <thead className="text-left text-xs text-muted-foreground">
-            <tr>
-              <th className="p-1">{t("piece")}</th>
-              <th className="p-1 text-right">{t("quantity")}</th>
-              <th className="p-1 text-right">{t("unitCost")}</th>
-              <th className="p-1 text-right">{t("freight")}</th>
-              <th className="p-1 text-right">{t("margin")}</th>
-              <th className="p-1 text-right">{t("unitPrice")}</th>
-              <th className="p-1 text-right">{t("subtotal")}</th>
-              <th className="p-1 text-right">{t("leadTime")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((l, i) => {
-              const price = priceLine({ quantity: l.quantity, unitCost: parseMoney(l.unitCost) ?? 0, freightTotal: parseMoney(l.freightTotal) ?? -1, marginPct: parseMoney(l.marginPct) ?? -1 });
-              const item = items.find((it) => it.id === l.itemId);
-              return (
-                <tr key={`${l.itemId}:${l.quantity}`} className="border-t border-border" data-testid="quote-line">
-                  <td className="p-1">{`${l.position}. ${item?.label ?? ""}`}</td>
-                  <td className="tabular p-1 text-right">{fmtInt(l.quantity)}</td>
-                  <td className="p-1">
-                    <input aria-label={`${t("unitCost")} ${l.position} · ${fmtInt(l.quantity)}`} inputMode="decimal" className={cell} value={l.unitCost} onChange={(e) => set(i, { unitCost: e.target.value })} />
-                  </td>
-                  <td className="p-1">
-                    <input aria-label={`${t("freight")} ${l.position} · ${fmtInt(l.quantity)}`} inputMode="decimal" className={cell} value={l.freightTotal} onChange={(e) => set(i, { freightTotal: e.target.value })} />
-                  </td>
-                  <td className="p-1">
-                    <input aria-label={`${t("margin")} ${l.position} · ${fmtInt(l.quantity)}`} inputMode="decimal" className={cell} value={l.marginPct} onChange={(e) => set(i, { marginPct: e.target.value })} />
-                  </td>
-                  <td className="tabular p-1 text-right font-medium" data-testid="quote-unit-price">
+      {/* Una tarjeta por línea (pieza × cantidad): cabe en la columna del detalle sin desplazamiento lateral. */}
+      <div className="space-y-3">
+        {lines.map((l, i) => {
+          const price = priceLine({ quantity: l.quantity, unitCost: parseMoney(l.unitCost) ?? 0, freightTotal: parseMoney(l.freightTotal) ?? -1, marginPct: parseMoney(l.marginPct) ?? -1 });
+          const item = items.find((it) => it.id === l.itemId);
+          const suffix = `${l.position} · ${fmtInt(l.quantity)}`;
+          return (
+            <fieldset key={`${l.itemId}:${l.quantity}`} className="rounded-md border border-border p-3" data-testid="quote-line">
+              <legend className="px-1 text-sm font-semibold">{t("lineTitle", { position: l.position, name: item?.label ?? "", quantity: fmtInt(l.quantity) })}</legend>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <label className="grid gap-1 text-xs font-medium">
+                  {t("unitCost")}
+                  <input aria-label={`${t("unitCost")} ${suffix}`} inputMode="decimal" className={cell} value={l.unitCost} onChange={(e) => set(i, { unitCost: e.target.value })} />
+                </label>
+                <label className="grid gap-1 text-xs font-medium">
+                  {t("freight")}
+                  <input aria-label={`${t("freight")} ${suffix}`} inputMode="decimal" className={cell} value={l.freightTotal} onChange={(e) => set(i, { freightTotal: e.target.value })} />
+                </label>
+                <label className="grid gap-1 text-xs font-medium">
+                  {t("margin")}
+                  <input aria-label={`${t("margin")} ${suffix}`} inputMode="decimal" className={cell} value={l.marginPct} onChange={(e) => set(i, { marginPct: e.target.value })} />
+                </label>
+                <label className="grid gap-1 text-xs font-medium">
+                  {t("leadTime")}
+                  <input aria-label={`${t("leadTime")} ${suffix}`} inputMode="numeric" className={cell} value={l.leadTimeDays} onChange={(e) => set(i, { leadTimeDays: e.target.value })} />
+                </label>
+              </div>
+              <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                <div className="flex gap-2">
+                  <dt className="text-muted-foreground">{t("unitPrice")}</dt>
+                  <dd className="tabular font-semibold" data-testid="quote-unit-price">
                     {price ? formatUnitPrice(price.unitPrice, quote.currency) : "—"}
-                  </td>
-                  <td className="tabular p-1 text-right">{price ? formatMoney(price.subtotal, quote.currency) : "—"}</td>
-                  <td className="p-1">
-                    <input aria-label={`${t("leadTime")} ${l.position} · ${fmtInt(l.quantity)}`} inputMode="numeric" className={cell} value={l.leadTimeDays} onChange={(e) => set(i, { leadTimeDays: e.target.value })} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-muted-foreground">{t("subtotal")}</dt>
+                  <dd className="tabular font-semibold">{price ? formatMoney(price.subtotal, quote.currency) : "—"}</dd>
+                </div>
+              </dl>
+            </fieldset>
+          );
+        })}
       </div>
       <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
         <label className="grid gap-1 text-xs font-medium">

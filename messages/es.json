@@ -865,7 +865,8 @@
         "lines": "Revisa las líneas: costo mayor que 0, flete de 0 o más, margen entre 0 y 94 %, plazo en días.",
         "valid_until": "La vigencia no puede ser anterior a hoy.",
         "generic": "No se pudo completar. Inténtalo de nuevo."
-      }
+      },
+      "lineTitle": "{position}. {name} · {quantity} unidades"
     },
     "order": {
       "metaTitle": "Pedido {number}",

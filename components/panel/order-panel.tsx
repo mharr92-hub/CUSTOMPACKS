@@ -326,7 +326,7 @@ function ReviewReceipt({ orderId, payment, suggested, today }: { orderId: string
   const [paidOn, setPaidOn] = useState(today);
   return (
     <div className="mt-2 space-y-2 rounded-md bg-muted/50 p-3" data-testid="review-receipt">
-      <div className="grid gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2">
         <label className="grid gap-1 text-xs font-medium">
           {t("amount")}
           <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
@@ -375,7 +375,7 @@ function RecordPaymentForm({ orderId, defaultKind, suggested, today }: { orderId
       }}
     >
       <p className="text-sm font-semibold">{t("recordPayment")}</p>
-      <div className="grid gap-2 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <label className="grid gap-1 text-xs font-medium">
           {t("kind")}
           <select
