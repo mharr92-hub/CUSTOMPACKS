@@ -127,11 +127,11 @@ Aceptación: cada transición de estado genera la notificación correcta y visib
 
 Objetivo: bandeja, detalle, asignación, notas, roles y auditoría (§11).
 
-- [ ] `/admin` protegido por rol; login por enlace mágico; menú: Bandeja, Pedidos, Catálogo, Plantillas, Reportes, Usuarios, Configuración.
-- [ ] Bandeja: tabla con filtros (estado, segmento, fecha, cantidad, asignado, semáforo), orden por SLA vencido primero, contador de horas hábiles, asignación manual o "siguiente en turno".
-- [ ] Detalle: ficha técnica por pieza, previsualización de arte y referencias, datos del cliente, historial de estados, notas internas, registro de contactos (nota manual con canal), botón "Pedir datos faltantes" que arma la plantilla con la lista exacta de campos faltantes.
-- [ ] Cambio de estado con validación de la máquina de §14; motivo obligatorio en Rechazada (lista cerrada).
-- [ ] Usuarios: invitar por correo, cambiar rol, desactivar. Auditoría: tabla `audit_log` con quién, qué, cuándo, antes/después.
+- [x] `/admin` protegido por rol; login por enlace mágico; menú: Bandeja, Pedidos, Catálogo, Plantillas, Reportes, Usuarios, Configuración.
+- [x] Bandeja: tabla con filtros (estado, segmento, fecha, cantidad, asignado, semáforo), orden por SLA vencido primero, contador de horas hábiles, asignación manual o "siguiente en turno".
+- [x] Detalle: ficha técnica por pieza, previsualización de arte y referencias, datos del cliente, historial de estados, notas internas, registro de contactos (nota manual con canal), botón "Pedir datos faltantes" que arma la plantilla con la lista exacta de campos faltantes.
+- [x] Cambio de estado con validación de la máquina de §14; motivo obligatorio en Rechazada (lista cerrada).
+- [x] Usuarios: invitar por correo, cambiar rol, desactivar. Auditoría: tabla `audit_log` con quién, qué, cuándo, antes/después.
 
 Aceptación: un vendedor toma una solicitud, pide datos faltantes, recibe respuesta y la pasa a "RFQ enviado" sin salir del panel; el viewer no puede editar nada (test).
 

@@ -10,7 +10,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E3 — Cotizador | ✅ Hecho | 24/09/2026 |
 | E4 — Arte y referencias | ✅ Hecho | 24/09/2026 |
 | E5 — Notificaciones | ✅ Hecho (crons de E7/E8 pendientes) | 24/09/2026 |
-| E6 — Panel interno | ⏳ Pendiente | — |
+| E6 — Panel interno | ✅ Hecho | 24/09/2026 |
 | E7 — RFQ y cotización | ⏳ Pendiente | — |
 | E8 — Pedidos y seguimiento | ⏳ Pendiente | — |
 | E9 — Calidad y seguridad | ⏳ Pendiente | — |
@@ -359,3 +359,46 @@ curl http://localhost:3000/api/cron/notifications
 - `pnpm test`: 112/112 en verde.
 - `pnpm test:e2e`: 21/21 en verde (19 omitidos por proyecto móvil/escritorio).
 - Cada transición disponible hoy genera su notificación, que se ve en la solicitud. Sin credenciales todo queda "Simulado" y se ve en consola.
+
+## E6 — Panel interno
+
+**Qué quedó hecho**
+- **Menú por rol:** Bandeja (portada del panel), Pedidos, Catálogo, Plantillas, Reportes, Usuarios, Archivos y Configuración (D-066). El login sigue siendo por enlace mágico.
+- **Bandeja `/admin/solicitudes`:**
+  - Filtros: estado, segmento, semáforo, asignada a, fechas, cantidad mínima y máxima, y búsqueda por número, empresa o contacto.
+  - Orden por urgencia con SLA en horas hábiles (D-060).
+  - "Tomar" y "Siguiente en turno" en las solicitudes sin asignar (D-061).
+- **Detalle `/admin/solicitudes/[id]`:**
+  - Datos del cliente y ficha técnica por pieza.
+  - Referencias: fotos con URL firmada, enlaces y muestras.
+  - Arte y proofs con la revisión de E4.
+  - Historial unificado: estados con su motivo, asignaciones, notas, contactos, respuestas del cliente, avisos y arte.
+  - Notas internas y registro de contactos por canal (WhatsApp, correo, llamada).
+  - Notificaciones.
+  - Asignación y cambio de estado validado por la máquina de §14, con el motivo de pérdida obligatorio en Rechazada (D-063).
+  - "Pedir datos faltantes": lista armada desde el semáforo y editable, con la vista previa del mensaje (D-062).
+- **Portal del cliente:** en Datos pendientes, caja "Nos faltan datos" con la lista y respuesta desde el enlace, que queda en el historial y avisa al equipo.
+- **Usuarios `/admin/usuarios`:** invitar por correo con rol, cambiar rol y desactivar, con sus salvaguardas (D-065).
+- **Auditoría:** `audit_log` con quién, qué, cuándo y los valores antes/después, en `/admin/auditoria` (D-064).
+- **Permisos:**
+  - El viewer lee todo y no ve controles de edición.
+  - Toda acción exige rol editor en el servidor.
+  - RLS lo vuelve a comprobar en la base.
+
+**Qué falta / notas**
+- Pedidos se llena en E8 y los reportes completos llegan en E9 (D-066).
+- La edición de los datos técnicos de una pieza desde el panel no está en el alcance de E6. Lo que responde el cliente queda en el historial y se usa en el RFQ (E7).
+
+**Cómo probarlo**
+```bash
+pnpm dev          # enviar una solicitud en /cotizar → /admin (Bandeja) → detalle
+pnpm test         # permisos del viewer, flujo completo, turno, rechazo, usuarios, auditoría
+pnpm test:e2e     # vendedor: tomar → pedir datos → respuesta del cliente → RFQ enviado; viewer sin edición
+```
+
+**Resultado de la verificación (24/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 118/118 en verde.
+- `pnpm test:e2e`: 23/23 en verde (21 omitidos por proyecto móvil/escritorio). Incluye el criterio de aceptación:
+  - Un vendedor toma la solicitud, pide datos faltantes, recibe la respuesta del cliente desde su enlace y la pasa a "RFQ enviado" sin salir del panel.
+  - El viewer no puede editar nada, verificado en la interfaz, en el servidor y en la base.

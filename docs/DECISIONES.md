@@ -382,3 +382,56 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - E7 y E8 los disparan con `enqueueNotification` al crear esas tablas.
   - "Cotización enviada" ya se encola al pasar la solicitud a "Cotizada", pero no sale hasta que E7 aporte el número, la vigencia y el plazo.
 - **Cómo cambiarla:** en E7 y E8.
+
+### D-060 · 24/09/2026 · Orden y alcance de la bandeja
+- **Decisión:**
+  - Por defecto la bandeja muestra las solicitudes abiertas: Enviada, En revisión, Datos pendientes, RFQ enviado y Cotizada.
+  - Orden por urgencia:
+    1. SLA vencido.
+    2. Rojo, amarillo, verde.
+    3. La más atrasada respecto de su SLA.
+    4. La más antigua.
+  - El SLA se cuenta en horas hábiles (D-058).
+  - Se calculan hasta 500 solicitudes por filtro, suficiente para el volumen del MVP.
+- **Cómo cambiarla:** `listInbox` en `lib/panel/requests.ts`.
+
+### D-061 · 24/09/2026 · Asignación
+- **Decisión:** una solicitud se puede tomar ("Tomar" / "Tomarla yo"), asignar a una persona de ventas, operaciones o admin, o pasar al "Siguiente en turno".
+  - El turno se reparte entre las personas de ventas activas, empezando por la que lleva más tiempo sin recibir una. Si no hay nadie de ventas, la recibe quien la pide.
+  - Cada asignación queda en el historial.
+- **Cómo cambiarla:** `assignRequest` en `lib/panel/requests.ts`.
+
+### D-062 · 24/09/2026 · Pedir datos faltantes y respuesta del cliente
+- **Decisión:**
+  - Se piden datos desde Enviada o En revisión. La lista viene armada con lo que marca el semáforo, en palabras del cliente, y se puede editar.
+  - Esa lista es el motivo del paso a "Datos pendientes" y llega tal cual al cliente por correo y WhatsApp.
+  - En su enlace, el cliente ve "Nos faltan datos" con la lista y responde ahí (o sube archivos en la sección de arte). La respuesta queda en el historial y avisa al equipo con una plantilla nueva, PROVISIONAL.
+  - Con los datos completos, el equipo pasa la solicitud a En revisión.
+- **Cómo cambiarla:** `requestMissingData` y `clientReply`.
+
+### D-063 · 24/09/2026 · Motivos de los cambios de estado
+- **Decisión:**
+  - Cada cambio de estado puede llevar un motivo o nota, que queda en el historial interno.
+  - El cliente solo ve el de "Datos pendientes", porque es la lista de lo que falta.
+  - Rechazada exige un motivo de pérdida de la lista cerrada de §14, con detalle opcional.
+- **Cómo cambiarla:** `changeRequestStatus` en `lib/panel/requests.ts`.
+
+### D-064 · 24/09/2026 · Auditoría
+- **Decisión:**
+  - `audit_log` registra altas, cambios y bajas de solicitudes, piezas, empresas, arte, perfiles, configuración, plantillas y todas las tablas del catálogo: quién, cuándo y, en los cambios, solo los campos modificados con su valor antes y después.
+  - No copia tokens de acceso ni la ficha congelada.
+  - No se auditan los borradores (autoguardado), las notificaciones ni las actividades, que ya son un registro.
+  - Solo admin la consulta, en `/admin/auditoria` (enlace desde Usuarios).
+- **Cómo cambiarla:** `supabase/migrations/006_panel.sql`.
+
+### D-065 · 24/09/2026 · Usuarios del equipo
+- **Decisión:**
+  - Admin invita por correo con un rol (Administrador, Ventas, Operaciones y QA, Solo lectura): con Supabase, invitación de Supabase Auth; en local, el enlace de acceso simulado.
+  - Admin cambia roles y desactiva cuentas. Nadie cambia su propio rol ni se desactiva, y siempre queda un administrador activo (trigger de E1).
+- **Cómo cambiarla:** `lib/panel/users.ts`.
+
+### D-066 · 24/09/2026 · Menú completo desde E6
+- **Decisión:** el menú ya tiene Bandeja, Pedidos, Catálogo, Plantillas, Reportes, Usuarios y Configuración (más Archivos, solo admin).
+  - Pedidos muestra que todavía no hay pedidos; se llena en E8.
+  - Reportes muestra el pipeline de solicitudes por estado; E9 suma tiempos, conversión y CSV.
+- **Cómo cambiarla:** `config/admin-nav.ts`.
