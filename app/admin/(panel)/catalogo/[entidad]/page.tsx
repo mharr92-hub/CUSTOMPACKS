@@ -126,7 +126,7 @@ export default async function EntityListPage(props: PageProps<"/admin/catalogo/[
                     {row.photo_url ? (
                       <Image src={row.photo_url} alt="" width={40} height={40} unoptimized className="size-10 object-cover" />
                     ) : (
-                      <CodePlaceholder code={row.code} variant={placeholderVariant ?? ((row.size_family as "box" | "bag" | "food_box" | undefined) ?? "box")} />
+                      <CodePlaceholder code={row.code} showCode={false} variant={placeholderVariant ?? ((row.size_family as "box" | "bag" | "food_box" | undefined) ?? "box")} />
                     )}
                   </div>
                 </TableCell>
