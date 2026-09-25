@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import type { CompatRule } from "@/lib/compat";
 import { anonActor, withActor } from "@/lib/db/actor";
+import { DEFAULT_LEAD_TIME, type LeadTimeSettings } from "@/lib/leadtime";
 import type { ProductCondition, Segment, SizeFamily } from "./entities";
 
 /**
@@ -162,4 +163,16 @@ export const getPublicCatalog = unstable_cache(loadCatalog, ["public-catalog-v1"
 export function publicSetting<T>(catalog: PublicCatalog, key: string, fallback: T): T {
   const value = catalog.settings[key];
   return value === undefined || value === null ? fallback : (value as T);
+}
+
+/** Condiciones comerciales vigentes (settings): plazo por cantidad y anticipo. */
+export function quoteConditions(catalog: PublicCatalog): { leadTime: LeadTimeSettings; depositPct: number } {
+  return {
+    leadTime: {
+      thresholdUnits: publicSetting(catalog, "lead_time_threshold_units", DEFAULT_LEAD_TIME.thresholdUnits),
+      smallDays: publicSetting(catalog, "lead_time_days_small", DEFAULT_LEAD_TIME.smallDays),
+      standardDays: publicSetting(catalog, "lead_time_days_standard", DEFAULT_LEAD_TIME.standardDays),
+    },
+    depositPct: publicSetting(catalog, "deposit_pct", 50),
+  };
 }

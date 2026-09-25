@@ -75,12 +75,19 @@ describe("semáforo de completitud (lib/traffic-light.ts)", () => {
     expect(trafficLight([complete])).toEqual({ light: "green", missing: [] });
   });
 
-  it("rojo si falta cantidad, tipo o arte con impresión", () => {
+  it("rojo si falta cantidad, tipo o el arte que dijo tener cuando hay impresión", () => {
     expect(trafficLight([{ ...complete, quantityCount: 0 }]).light).toBe("red");
     expect(trafficLight([{ ...complete, hasType: false }]).light).toBe("red");
-    const noArt = trafficLight([{ ...complete, artworkFileCount: 0, artworkChoice: "no_artwork_yet" }]);
-    expect(noArt.light).toBe("red");
-    expect(noArt.missing).toContainEqual({ item: 1, field: "artwork", severity: "red" });
+    const noFile = trafficLight([{ ...complete, artworkFileCount: 0, artworkChoice: "has_artwork" }]);
+    expect(noFile.light).toBe("red");
+    expect(noFile.missing).toContainEqual({ item: 1, field: "artwork", severity: "red" });
+    expect(trafficLight([{ ...complete, artworkFileCount: 0, artworkChoice: null }]).light).toBe("red");
+  });
+
+  it("amarillo si declaró que aún no tiene arte (PRD §9, cliente sin arte)", () => {
+    const pending = trafficLight([{ ...complete, artworkFileCount: 0, artworkChoice: "no_artwork_yet" }]);
+    expect(pending.light).toBe("yellow");
+    expect(pending.missing).toEqual([{ item: 1, field: "artwork_pending", severity: "yellow" }]);
   });
 
   it("sin impresión no hace falta arte", () => {

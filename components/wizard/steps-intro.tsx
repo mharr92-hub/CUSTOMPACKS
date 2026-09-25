@@ -3,13 +3,14 @@
 import { useTranslations } from "next-intl";
 import { ShoppingBagIcon, SparklesIcon, UtensilsIcon } from "lucide-react";
 import { CONDITIONS } from "@/lib/catalog/entities";
+import { setSegment } from "@/lib/quote/flow";
 import { PRODUCT_USES, type WizardSegment } from "@/lib/quote/types";
 import { useWizard } from "./context";
 import { CheckChips, Fieldset, OptionCard, TextField, toggleIn } from "./fields";
 
 export function StepSegment({ onPicked }: { onPicked: () => void }) {
   const t = useTranslations("wizard.segment");
-  const { state, update, errors } = useWizard();
+  const { state, catalog, update, errors } = useWizard();
   const options: { value: WizardSegment; icon: typeof ShoppingBagIcon; title: string; body: string }[] = [
     { value: "commercial", icon: ShoppingBagIcon, title: t("commercialTitle"), body: t("commercialBody") },
     { value: "food", icon: UtensilsIcon, title: t("foodTitle"), body: t("foodBody") },
@@ -25,7 +26,7 @@ export function StepSegment({ onPicked }: { onPicked: () => void }) {
             name="segment"
             value={value}
             checked={state.segment === value}
-            onChange={() => update((s) => ({ ...s, segment: value }))}
+            onChange={() => update((s) => setSegment(s, value, catalog))}
             onActivate={onPicked}
             media={
               <span className="flex h-full min-h-16 items-center justify-center bg-kraft-light">
@@ -69,7 +70,7 @@ export function StepProduct() {
         maxLength={500}
       />
       <div>
-        <div className="flex items-end gap-2">
+        <div className="flex items-start gap-2">
           <div className="flex-1">
             <TextField
               id="product.weight"
@@ -78,11 +79,13 @@ export function StepProduct() {
               onChange={(weight) => set({ weight })}
               inputMode="decimal"
               optional
+              hint={t("weightHint")}
               error={errors["product.weight"]}
               maxLength={12}
             />
           </div>
-          <div className="w-24 pb-[1px]">
+          {/* alineado con el campo (debajo de la etiqueta), no con la ayuda ni el error */}
+          <div className="w-24 pt-[26px]">
             <label htmlFor="product.weightUnit" className="sr-only">
               {t("unit")}
             </label>
@@ -97,7 +100,6 @@ export function StepProduct() {
             </select>
           </div>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">{t("weightHint")}</p>
       </div>
       <Fieldset id="product.dims" legend={t("dims")} hint={t("dimsHint")} error={errors["product.dims"]} optional>
         <div className="grid grid-cols-3 gap-2">

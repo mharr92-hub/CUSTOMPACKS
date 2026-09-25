@@ -18,6 +18,10 @@ export type WizardContextValue = {
   today: string;
   update: (fn: (s: FlowState) => FlowState) => void;
   updateItem: (fn: (item: ItemDraft) => ItemDraft, index?: number) => void;
+  /** Token del borrador en el servidor (null hasta el primer guardado). */
+  draftToken: string | null;
+  /** Guarda lo pendiente y devuelve el token (null si no se pudo). */
+  ensureSaved: () => Promise<string | null>;
 };
 
 export const WizardContext = createContext<WizardContextValue | null>(null);

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { actorFor, getCurrentUser, isStaffRole } from "@/lib/auth";
-import { getPublicCatalog, publicSetting } from "@/lib/catalog/public";
+import { getPublicCatalog, quoteConditions } from "@/lib/catalog/public";
 import { log } from "@/lib/log";
 import { renderSpecSheetPdf } from "@/lib/pdf/spec-sheet";
 import { getRequestByToken, getRequestForUser, type TrackingRequest } from "@/lib/quote/tracking";
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/pdf/fich
 
   try {
     const catalog = await getPublicCatalog();
-    const pdf = await renderSpecSheetPdf(data, publicSetting(catalog, "deposit_pct", 50));
+    const pdf = await renderSpecSheetPdf(data, quoteConditions(catalog));
     return new Response(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",

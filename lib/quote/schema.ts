@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { CONDITIONS } from "@/lib/catalog/entities";
+import { UTM_KEYS } from "./utm";
 import { ARTWORK_CHOICES, FREQUENCIES, LEAD_SOURCES, PRINT_COVERAGES, PRINT_FACES, PRODUCT_USES, WIZARD_VERSION, type WizardState } from "./types";
 
 /**
@@ -79,7 +80,8 @@ export const wizardStateSchema = z.object({
     comments: text(2000),
     consent: z.boolean().default(false),
   }),
-  utm: z.record(z.string().max(40), z.string().max(200)).default({}),
+  // solo las claves de campaña conocidas: el resto se descarta
+  utm: z.object(Object.fromEntries(UTM_KEYS.map((k) => [k, z.string().max(200).optional()]))).default({}),
   referrer: text(500),
   startedAt: z.string().max(40),
 });

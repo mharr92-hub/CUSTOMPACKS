@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useTranslations } from "next-intl";
 import { CheckIcon } from "lucide-react";
 import type { ErrorKey } from "@/lib/quote/validate";
@@ -123,20 +124,39 @@ export function OptionCard({
   badge?: React.ReactNode;
   media?: React.ReactNode;
   className?: string;
-  /** Se llama al elegir la tarjeta aunque ya estuviera marcada (avanzar en pasos de una sola opción). */
+  /**
+   * Se llama al tocar o hacer clic en la tarjeta, aunque ya estuviera marcada
+   * (avanzar en pasos de una sola opción). Con teclado no: las flechas solo
+   * cambian la opción y se avanza con "Continuar" (WCAG 3.2.2).
+   */
   onActivate?: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  /** Momento del último toque o clic sobre la tarjeta. */
+  const pointerAt = useRef(Number.NEGATIVE_INFINITY);
+  const byPointer = () => performance.now() - pointerAt.current < 1000;
   return (
     <label
-      onClick={checked && onActivate ? () => onActivate() : undefined}
+      onPointerDown={onActivate ? () => (pointerAt.current = performance.now()) : undefined}
+      onClick={
+        onActivate
+          ? (e) => {
+              // El clic que el navegador reenvía al input no cuenta dos veces.
+              if (e.target === inputRef.current || !checked) return;
+              if (byPointer()) onActivate();
+              pointerAt.current = Number.NEGATIVE_INFINITY;
+            }
+          : undefined
+      }
       className={cn(
-        "relative flex cursor-pointer gap-3 rounded-lg border-2 border-border bg-paper p-3.5 transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/40",
+        "relative flex cursor-pointer gap-3 rounded-lg border-2 border-border bg-paper p-3.5 transition-colors has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-forest",
         checked && "border-forest bg-forest/[0.04]",
         disabled ? "cursor-not-allowed opacity-55" : "hover:border-forest/50",
         className,
       )}
     >
       <input
+        ref={inputRef}
         type={type}
         name={name}
         value={value}
@@ -144,7 +164,10 @@ export function OptionCard({
         disabled={disabled}
         onChange={(e) => {
           onChange(e.target.checked);
-          if (e.target.checked) onActivate?.();
+          if (e.target.checked && onActivate && byPointer()) {
+            pointerAt.current = Number.NEGATIVE_INFINITY;
+            onActivate();
+          }
         }}
         className="sr-only"
       />
@@ -194,7 +217,7 @@ export function CheckChips<T extends string>({
           <label
             key={o.value}
             className={cn(
-              "inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3.5 py-1.5 text-sm transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/40",
+              "inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3.5 py-1.5 text-sm transition-colors has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-forest",
               checked ? "border-forest bg-forest text-paper" : "border-border bg-paper hover:border-forest/50",
             )}
           >

@@ -16,6 +16,7 @@ export type ErrorKey =
   | "cmInvalid"
   | "typeRequired"
   | "typeInvalid"
+  | "typeSegment"
   | "sizeModeRequired"
   | "standardSizeRequired"
   | "paperRequired"
@@ -153,11 +154,17 @@ export function validateProduct(state: WizardState): StepErrors {
   return e;
 }
 
-export function validateItemType(item: ItemDraft, ctx: ValidationContext): StepErrors {
+/** true si el tipo sirve para el segmento elegido ("No estoy seguro" admite todos). */
+export function typeFitsSegment(segments: readonly string[], segment: WizardState["segment"]): boolean {
+  return !segment || segment === "unsure" || segments.includes(segment);
+}
+
+export function validateItemType(item: ItemDraft, ctx: ValidationContext, segment: WizardState["segment"] = null): StepErrors {
   if (item.needsAdvice) return {};
   if (!item.productTypeId) return { type: "typeRequired" };
   const type = ctx.catalog.productTypes.find((t) => t.id === item.productTypeId);
   if (!type) return { type: "typeInvalid" };
+  if (!typeFitsSegment(type.segments, segment)) return { type: "typeSegment" };
   return {};
 }
 
@@ -196,8 +203,16 @@ export function validateItemMaterial(item: ItemDraft, segment: WizardState["segm
       e.caliber = "caliberNotAllowed";
     }
   }
-  if (segment === "food" && item.foodIds.length === 0) e.food = "foodRequired";
+  if (needsFoodAttributes(item, segment, ctx.catalog) && item.foodIds.length === 0) e.food = "foodRequired";
   return e;
+}
+
+/** Aptitud alimentaria obligatoria: segmento alimentario o tipo exclusivo de alimentos. */
+export function needsFoodAttributes(item: ItemDraft, segment: WizardState["segment"], catalog: PublicCatalog): boolean {
+  if (item.needsAdvice) return false;
+  if (segment === "food") return true;
+  const type = catalog.productTypes.find((t) => t.id === item.productTypeId);
+  return Boolean(type && type.segments.length === 1 && type.segments[0] === "food");
 }
 
 export function validateItemPrint(item: ItemDraft, ctx: ValidationContext): StepErrors {
@@ -268,7 +283,7 @@ export function validateStep(state: WizardState, step: StepId, ctx: ValidationCo
     case 1:
       return validateProduct(state);
     case 2:
-      return item ? validateItemType(item, ctx) : { type: "typeRequired" };
+      return item ? validateItemType(item, ctx, state.segment) : { type: "typeRequired" };
     case 3:
       return item ? validateItemSize(item, ctx) : {};
     case 4:

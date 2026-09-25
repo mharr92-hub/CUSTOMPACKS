@@ -149,6 +149,15 @@ export function emptyItem(key: string = newItemKey()): ItemDraft {
   };
 }
 
+export function emptyContact(): ContactInfo {
+  return { company: "", ruc: "", name: "", position: "", whatsapp: "", email: "", city: "", address: "", source: "", comments: "", consent: false };
+}
+
+/** true si la persona ya escribió algún dato de contacto. */
+export function hasContactData(c: ContactInfo): boolean {
+  return [c.company, c.ruc, c.name, c.position, c.whatsapp, c.email, c.city, c.address, c.comments].some((v) => v.trim() !== "");
+}
+
 export function initialWizardState(now: Date = new Date()): WizardState {
   return {
     version: WIZARD_VERSION,
@@ -169,19 +178,7 @@ export function initialWizardState(now: Date = new Date()): WizardState {
     },
     items: [emptyItem("p1")],
     desiredDate: "",
-    contact: {
-      company: "",
-      ruc: "",
-      name: "",
-      position: "",
-      whatsapp: "",
-      email: "",
-      city: "",
-      address: "",
-      source: "",
-      comments: "",
-      consent: false,
-    },
+    contact: emptyContact(),
     utm: {},
     referrer: "",
     startedAt: now.toISOString(),

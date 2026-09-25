@@ -1,8 +1,8 @@
 import "server-only";
-import { withActor } from "@/lib/db/actor";
+import { serviceActor, withActor } from "@/lib/db/actor";
 import { randomToken } from "@/lib/tokens";
 import { parseWizardState } from "./schema";
-import type { WizardState } from "./types";
+import { emptyContact, type WizardState } from "./types";
 
 /**
  * Borradores del cotizador en quote_drafts. Se leen y escriben como `anon` con
@@ -28,12 +28,23 @@ export async function loadDraft(token: string): Promise<DraftRecord | null> {
 }
 
 /**
+ * Datos de contacto que se guardan en el servidor: solo con el consentimiento
+ * del paso 8 marcado (Ley 81 de 2019). Antes quedan únicamente en el
+ * dispositivo de la persona (localStorage).
+ */
+export function stateForServer(state: WizardState): WizardState {
+  if (state.contact.consent) return state;
+  return { ...state, contact: { ...emptyContact(), source: state.contact.source } };
+}
+
+/**
  * Crea o actualiza un borrador. Sin token (o con uno vencido o inexistente)
  * crea uno nuevo. Un borrador ya enviado no se modifica ni se reemplaza.
  */
 export type SaveDraftResult = { status: "saved" | "created"; token: string } | { status: "submitted"; token: string };
 
-export async function saveDraft(token: string | null, state: WizardState): Promise<SaveDraftResult> {
+export async function saveDraft(token: string | null, input: WizardState): Promise<SaveDraftResult> {
+  const state = stateForServer(input);
   const email = state.contact.email.trim() || null;
   const whatsapp = state.contact.whatsapp.trim() || null;
   if (token && isDraftToken(token)) {
@@ -53,4 +64,37 @@ export async function saveDraft(token: string | null, state: WizardState): Promi
     insert into public.quote_drafts (token, payload, step, contact_email, contact_whatsapp)
     values (${fresh}, ${tx.json(state as never)}, ${state.step}, ${email}, ${whatsapp})`);
   return { status: "created", token: fresh };
+}
+
+/** Máximo de correos "Guardar y seguir después" por borrador en 24 h. */
+export const RESUME_EMAILS_PER_DAY = 3;
+
+/**
+ * Reserva un envío del enlace de reanudación (atómico): false si el borrador no
+ * existe, ya se envió o agotó el cupo del día. Evita usar el cotizador como
+ * relé de correos de la marca.
+ */
+export async function claimResumeEmail(token: string): Promise<boolean> {
+  if (!isDraftToken(token)) return false;
+  const rows = await withActor({ kind: "anon", accessToken: token }, (tx) => tx`
+    update public.quote_drafts
+       set resume_sent_count = case when resume_window_at is null or resume_window_at < now() - interval '24 hours' then 1 else resume_sent_count + 1 end,
+           resume_window_at = case when resume_window_at is null or resume_window_at < now() - interval '24 hours' then now() else resume_window_at end
+     where token = ${token}
+       and submitted_request_id is null
+       and (resume_window_at is null or resume_window_at < now() - interval '24 hours' or resume_sent_count < ${RESUME_EMAILS_PER_DAY})
+     returning id`);
+  return rows.length > 0;
+}
+
+/**
+ * Borra los borradores vencidos que nunca se enviaron (cron diario). Devuelve
+ * sus tokens para limpiar también los archivos subidos a esos borradores.
+ */
+export async function purgeExpiredDrafts(): Promise<string[]> {
+  const rows = await withActor(serviceActor, (tx) => tx<{ token: string }[]>`
+    delete from public.quote_drafts
+     where expires_at < now() and submitted_request_id is null
+     returning token`);
+  return rows.map((r) => r.token);
 }

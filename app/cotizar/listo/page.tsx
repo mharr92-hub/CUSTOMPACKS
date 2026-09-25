@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { CheckCircle2Icon, FileTextIcon } from "lucide-react";
+import { AnalyticsScripts } from "@/components/analytics-scripts";
 import { WhatsAppIcon } from "@/components/site/whatsapp-fab";
 import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
 import { getPublicCatalog, publicSetting } from "@/lib/catalog/public";
-import { specPdfPath, trackingPath } from "@/lib/quote/links";
+import { CONFIRMATION_COOKIE, specPdfPath, trackingPath } from "@/lib/quote/links";
 import { getRequestByToken } from "@/lib/quote/tracking";
 import { whatsappLink } from "@/lib/whatsapp";
 
@@ -18,11 +19,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle"), robots: { index: false, follow: false } };
 }
 
-/** Confirmación con número y "qué sigue" (PRD §8 paso 9). */
-export default async function ConfirmationPage(props: PageProps<"/cotizar/listo/[token]">) {
-  const { token } = await props.params;
-  const request = await getRequestByToken(token);
-  if (!request) notFound();
+/**
+ * Confirmación con número y "qué sigue" (PRD §8 paso 9). El token llega en una
+ * cookie httpOnly (no en la URL, que ven GA4 y el Pixel). Sin cookie, al cotizador.
+ */
+export default async function ConfirmationPage() {
+  const token = (await cookies()).get(CONFIRMATION_COOKIE)?.value ?? "";
+  const request = token ? await getRequestByToken(token) : null;
+  if (!request) redirect("/cotizar");
   const t = await getTranslations("confirmation");
   const catalog = await getPublicCatalog();
   const deposit = publicSetting(catalog, "deposit_pct", 50);
@@ -52,7 +56,8 @@ export default async function ConfirmationPage(props: PageProps<"/cotizar/listo/
 
       <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Button asChild size="lg" className="h-12">
-          <Link href={trackingPath(token)}>{t("tracking")}</Link>
+          {/* Enlace normal (no navegación del lado del cliente): la analítica no ve el cambio de ruta con el token. */}
+          <a href={trackingPath(token)}>{t("tracking")}</a>
         </Button>
         <Button asChild size="lg" variant="outline" className="h-12">
           <a href={specPdfPath(request.id, token)} target="_blank" rel="noopener">
@@ -68,6 +73,7 @@ export default async function ConfirmationPage(props: PageProps<"/cotizar/listo/
         </Button>
       </div>
       <p className="mt-3 text-sm text-muted-foreground">{t("trackingHint")}</p>
+      <AnalyticsScripts />
     </div>
   );
 }

@@ -66,10 +66,10 @@ test.describe("E3 · cotizador", () => {
     await pickCard(page, "Solo logo");
     await page.getByRole("button", { name: "Agregar otra pieza" }).click();
 
-    // Pieza 2 · bolsa kraft (sirve para comercio y alimentos)
+    // Pieza 2 · bolsa kraft de tienda (tipo comercial que también sirve para alimentos)
     await expect(page.getByText("Pieza 2 de 2")).toBeVisible();
     await expectStep(page, "Tipo de empaque");
-    await pickCard(page, "Bolsa para delivery");
+    await pickCard(page, "Bolsa kraft con asa plana");
     await next(page);
     await pickCard(page, "Según mi producto");
     await next(page);
@@ -116,6 +116,8 @@ test.describe("E3 · cotizador", () => {
 
     await expect(page.getByRole("heading", { name: "Recibimos tu solicitud" })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("request-number")).toHaveText(/^S-\d{4}-\d{5}$/);
+    // El token de seguimiento nunca va en la URL que ven GA4 y el Pixel (D-032).
+    await expect(page).toHaveURL(/\/cotizar\/listo$/);
     expect(Date.now() - started).toBeLessThan(5 * 60 * 1000);
 
     // Seguimiento y ficha PDF
@@ -144,6 +146,99 @@ test.describe("E3 · cotizador", () => {
     await expect(page.getByRole("radio", { name: /Papel antigrasa/ })).toBeEnabled();
   });
 
+  test("comercio completo en el celular: «No sé, sugiéranme», otra pieza con Pantone y envío", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "Recorrido comercial en móvil");
+    await page.goto("/cotizar");
+    await pickCard(page, "Comercio");
+    await expectStep(page, "Qué vas a empacar");
+    await page.getByLabel("Producto", { exact: true }).fill("Kits de cosmética");
+    await next(page);
+
+    // Pieza 1 a sugerencia del equipo; desde ahí mismo se agrega otra pieza.
+    await expectStep(page, "Tipo de empaque");
+    await expect(page.getByRole("radio", { name: /Clamshell para hamburguesa/ })).toHaveCount(0);
+    await pickCard(page, "No sé, sugiéranme");
+    await page.getByRole("button", { name: "Agregar otra pieza" }).click();
+    await expect(page.getByText("Pieza 2 de 2")).toBeVisible();
+
+    await pickCard(page, /^Mailer de envío/);
+    await next(page);
+    await pickCard(page, "Tamaño estándar");
+    await page.locator("label", { has: page.getByRole("radio", { name: /^S\d/ }) }).first().click();
+    await next(page);
+    await pickCard(page, "Cartón microcorrugado (flauta E o B)");
+    await pickCard(page, "Medio");
+    await next(page);
+    await pickCard(page, "Pantone especial");
+    await page.getByLabel("Códigos Pantone").fill("186 C");
+    await pickCard(page, "Por fuera");
+    await pickCard(page, "Solo logo");
+    await next(page);
+
+    await expectStep(page, "Cantidad y fecha");
+    await page.locator("#items\\.0\\.quantities\\.0").fill("1000");
+    await page.locator("#items\\.0\\.frequency").selectOption("once");
+    await page.locator("#items\\.1\\.quantities\\.0").fill("2 500");
+    await page.locator("#items\\.1\\.frequency").selectOption("quarterly");
+    await next(page);
+    await expectStep(page, "Arte y referencias");
+    await pickCard(page, "Necesito que lo diseñen");
+    await next(page);
+    await expectStep(page, "Contacto y entrega");
+    await page.getByLabel("Tu nombre").fill("Luis Gómez");
+    await page.getByLabel("Correo").fill("luis@example.com");
+    await page.getByLabel("Ciudad").fill("David");
+    await page.getByLabel("Dirección de entrega").fill("Av. Obaldía");
+    await page.getByRole("checkbox", { name: /Acepto que/ }).check();
+    await next(page);
+    await expectStep(page, "Resumen");
+    await expect(page.getByRole("heading", { name: /Pieza 1: No sé, sugiéranme/ })).toBeVisible();
+    await page.getByRole("button", { name: /Enviar solicitud/ }).click();
+    await expect(page.getByTestId("request-number")).toHaveText(/^S-\d{4}-\d{5}$/, { timeout: 20_000 });
+    await page.getByRole("link", { name: "Seguir mi solicitud" }).click();
+    await expect(page.getByTestId("request-status")).toHaveText("Recibida");
+  });
+
+  test("con teclado, las flechas del paso de segmento eligen sin saltar de paso (WCAG 3.2.2)", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Basta con escritorio");
+    await page.goto("/cotizar");
+    await expectStep(page, "Segmento");
+    await page.getByRole("radio", { name: /^Comercio/ }).focus();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("radio", { name: /^Restaurante o alimentos/ })).toBeChecked();
+    await expectStep(page, "Segmento");
+    await next(page);
+    await expectStep(page, "Qué vas a empacar");
+    // Los errores de un paso no aparecen en el siguiente.
+    await expect(page.getByRole("alert").filter({ hasText: "Revisa lo marcado" })).toHaveCount(0);
+  });
+
+  test("«Cotizar esta pieza» se suma al borrador en curso en vez de reemplazarlo", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Basta con escritorio");
+    await page.goto("/cotizar");
+    await pickCard(page, "Comercio");
+    await page.getByLabel("Producto", { exact: true }).fill("Velas aromáticas");
+    await next(page);
+    await pickCard(page, "Caja plegadiza con tapa");
+    await next(page);
+    await expectStep(page, "Tamaño");
+    // Espera el primer guardado en el servidor (el borrador ya tiene token).
+    await page.waitForFunction(() => Boolean(JSON.parse(localStorage.getItem("provenpack:cotizador") ?? "{}").token), null, { timeout: 10_000 });
+
+    await page.goto("/cotizar?tipo=BL-02");
+    await expect(page.getByText("Sumamos Bolsa kraft con asa retorcida a tu solicitud en curso como pieza 2.")).toBeVisible();
+    await expect(page.getByText("Pieza 2 de 2")).toBeVisible();
+    await expect(page.getByRole("radio", { name: /Bolsa kraft con asa retorcida/ })).toBeChecked();
+    await expect(page).toHaveURL(/\/cotizar$/);
+    await page.getByRole("button", { name: "Atrás" }).click();
+    await expect(page.getByText("Pieza 1 de 2")).toBeVisible();
+    await page.getByRole("button", { name: "Atrás" }).click();
+    await page.getByRole("button", { name: "Atrás" }).click();
+    await page.getByRole("button", { name: "Atrás" }).click();
+    await expect(page.getByRole("radio", { name: /Caja plegadiza con tapa/ })).toBeChecked();
+  });
+
   test("el borrador se recupera desde otro navegador con el enlace", async ({ page, browser, isMobile }) => {
     test.skip(isMobile, "Basta con escritorio");
     await page.goto("/cotizar");
@@ -152,13 +247,21 @@ test.describe("E3 · cotizador", () => {
     await page.getByLabel("Producto", { exact: true }).fill("Camisetas de algodón");
     await next(page);
     await expectStep(page, "Tipo de empaque");
-    await expect(page).toHaveURL(/borrador=[A-Za-z0-9_-]{32,}/, { timeout: 10_000 });
-    const url = page.url();
+    // El token no queda en la barra de direcciones: se comparte con «Guardar y seguir después».
+    await expect(page).toHaveURL(/\/cotizar$/);
+    await page.getByRole("button", { name: "Guardar y seguir después" }).click();
+    const whatsapp = page.getByRole("link", { name: "Enviármelo por WhatsApp" });
+    await expect(whatsapp).toBeVisible({ timeout: 10_000 });
+    const href = decodeURIComponent((await whatsapp.getAttribute("href")) ?? "");
+    const link = href.match(/https?:\/\/\S+\/cotizar\?borrador=[A-Za-z0-9_-]{32,}/)?.[0] ?? "";
+    expect(link).not.toBe("");
 
     const other = await browser.newContext();
     const page2 = await other.newPage();
-    await page2.goto(url);
+    const target = new URL(link);
+    await page2.goto(target.pathname + target.search);
     await expectStep(page2, "Tipo de empaque");
+    await expect(page2).toHaveURL(/\/cotizar$/);
     await page2.getByRole("button", { name: "Atrás" }).click();
     await expect(page2.getByLabel("Producto", { exact: true })).toHaveValue("Camisetas de algodón");
     await other.close();

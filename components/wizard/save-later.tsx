@@ -17,7 +17,7 @@ export function SaveLater({ token, ensureSaved, defaultEmail }: { token: string 
   const t = useTranslations("wizard");
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(defaultEmail);
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "invalid" | "failed" | "limit">("idle");
   const [link, setLink] = useState<string | null>(token ? resumeLink(token) : null);
   const [copied, setCopied] = useState(false);
 
@@ -33,18 +33,22 @@ export function SaveLater({ token, ensureSaved, defaultEmail }: { token: string 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!isValidEmail(email)) {
-      setStatus("error");
+      setStatus("invalid");
       return;
     }
     setStatus("sending");
-    const saved = await ensureSaved();
-    if (!saved) {
-      setStatus("error");
-      return;
+    try {
+      const saved = await ensureSaved();
+      if (!saved) {
+        setStatus("failed");
+        return;
+      }
+      const result = await sendResumeLinkAction(saved, email);
+      setStatus(result.ok ? "sent" : result.reason);
+      track("wizard_save_later_email", { ok: result.ok });
+    } catch {
+      setStatus("failed");
     }
-    const result = await sendResumeLinkAction(saved, email);
-    setStatus(result.ok ? "sent" : "error");
-    track("wizard_save_later_email", { ok: result.ok });
   }
 
   return (
@@ -75,13 +79,13 @@ export function SaveLater({ token, ensureSaved, defaultEmail }: { token: string 
               setEmail(e.target.value);
               setStatus("idle");
             }}
-            aria-invalid={status === "error" || undefined}
-            aria-describedby={status === "error" ? "save-later-error" : undefined}
+            aria-invalid={status === "invalid" || undefined}
+            aria-describedby={status === "invalid" || status === "failed" || status === "limit" ? "save-later-error" : undefined}
             className="block w-full rounded-md border border-input px-3 py-2.5 text-base aria-invalid:border-destructive"
           />
-          {status === "error" ? (
-            <p id="save-later-error" className="text-sm text-destructive">
-              {t("errors.emailInvalid")}
+          {status === "invalid" || status === "failed" || status === "limit" ? (
+            <p id="save-later-error" role="alert" className="text-sm text-destructive">
+              {status === "invalid" ? t("errors.emailInvalid") : status === "limit" ? t("saveLaterLimit") : t("saveLaterFailed")}
             </p>
           ) : null}
           {status === "sent" ? (
@@ -90,7 +94,7 @@ export function SaveLater({ token, ensureSaved, defaultEmail }: { token: string 
             </p>
           ) : null}
           <Button type="submit" className="w-full" disabled={status === "sending"}>
-            {status === "sending" ? t("saving") : t("saveLaterSend")}
+            {status === "sending" ? t("saveLaterSending") : t("saveLaterSend")}
           </Button>
         </form>
         {link ? (

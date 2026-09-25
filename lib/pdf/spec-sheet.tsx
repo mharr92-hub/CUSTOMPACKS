@@ -2,6 +2,7 @@ import "server-only";
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { brand } from "@/config/brand";
 import { serverT } from "@/lib/i18n";
+import type { LeadTimeSettings } from "@/lib/leadtime";
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
 import type { TrackingRequest } from "@/lib/quote/tracking";
 import { registerPdfFonts } from "./fonts";
@@ -38,7 +39,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SpecSheetDocument({ request, depositPct }: { request: TrackingRequest; depositPct: number }) {
+function SpecSheetDocument({ request, conditions }: { request: TrackingRequest; conditions: SheetConditions }) {
   const t = serverT("pdf");
   const ts = serverT("spec");
   const tw = serverT("wizard");
@@ -81,7 +82,15 @@ function SpecSheetDocument({ request, depositPct }: { request: TrackingRequest; 
           </View>
         ))}
 
-        <Text style={s.conditions}>{t("conditions", { deposit: depositPct, balance: 100 - depositPct })}</Text>
+        <Text style={s.conditions}>
+          {t("conditions", {
+            deposit: conditions.depositPct,
+            balance: 100 - conditions.depositPct,
+            standard: conditions.leadTime.standardDays,
+            small: conditions.leadTime.smallDays,
+            threshold: new Intl.NumberFormat("es-PA").format(conditions.leadTime.thresholdUnits),
+          })}
+        </Text>
 
         <View style={s.footer} fixed>
           <Text>{t("footer", { brand: brand.name, site: brand.siteUrl.replace(/^https?:\/\//, "") })}</Text>
@@ -92,7 +101,10 @@ function SpecSheetDocument({ request, depositPct }: { request: TrackingRequest; 
   );
 }
 
-export async function renderSpecSheetPdf(request: TrackingRequest, depositPct: number): Promise<Buffer> {
+/** Condiciones comerciales vigentes (desde settings). */
+export type SheetConditions = { depositPct: number; leadTime: LeadTimeSettings };
+
+export async function renderSpecSheetPdf(request: TrackingRequest, conditions: SheetConditions): Promise<Buffer> {
   registerPdfFonts();
-  return renderToBuffer(<SpecSheetDocument request={request} depositPct={depositPct} />);
+  return renderToBuffer(<SpecSheetDocument request={request} conditions={conditions} />);
 }

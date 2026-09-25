@@ -1,13 +1,13 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { brand } from "@/config/brand";
 import { serverT } from "@/lib/i18n";
 import { log } from "@/lib/log";
-import { sendEmail } from "@/lib/mail";
-import { isDraftToken, loadDraft, saveDraft } from "@/lib/quote/drafts";
-import { resumeLink } from "@/lib/quote/links";
+import { htmlParagraph, sendEmail } from "@/lib/mail";
+import { claimResumeEmail, isDraftToken, loadDraft, saveDraft } from "@/lib/quote/drafts";
+import { CONFIRMATION_COOKIE, resumeLink } from "@/lib/quote/links";
 import { parseWizardState } from "@/lib/quote/schema";
 import { submitDraft } from "@/lib/quote/submit";
 import type { StepId, WizardState } from "@/lib/quote/types";
@@ -30,32 +30,52 @@ export async function saveDraftAction(token: string | null, payload: unknown): P
   }
 }
 
-export async function loadDraftAction(token: string): Promise<{ state: WizardState; submitted: boolean } | null> {
-  const draft = await loadDraft(token);
-  return draft ? { state: draft.state, submitted: draft.submittedRequestId !== null } : null;
+export type LoadResult = { status: "ok"; state: WizardState; submitted: boolean } | { status: "missing" } | { status: "error" };
+
+export async function loadDraftAction(token: string): Promise<LoadResult> {
+  try {
+    const draft = await loadDraft(token);
+    return draft ? { status: "ok", state: draft.state, submitted: draft.submittedRequestId !== null } : { status: "missing" };
+  } catch (error) {
+    log.error("no se pudo leer el borrador", { error });
+    return { status: "error" };
+  }
 }
 
-/** "Guardar y seguir después": envía el enlace del borrador por correo. */
-export async function sendResumeLinkAction(token: string, email: string): Promise<{ ok: boolean }> {
-  if (!isDraftToken(token) || !isValidEmail(email)) return { ok: false };
-  const draft = await loadDraft(token);
-  if (!draft) return { ok: false };
-  const t = serverT("wizard");
-  const link = resumeLink(token);
-  const result = await sendEmail({
-    to: email.trim(),
-    subject: t("resumeEmailSubject", { brand: brand.name }),
-    text: t("resumeEmailText", { brand: brand.name, link }),
-    html: `<p>${t("resumeEmailText", { brand: brand.name, link: `<a href="${link}">${link}</a>` })}</p>`,
-  });
-  return { ok: result.status !== "failed" };
+export type ResumeResult = { ok: true } | { ok: false; reason: "invalid" | "limit" | "failed" };
+
+/** "Guardar y seguir después": envía el enlace del borrador por correo (máximo 3 por día y borrador). */
+export async function sendResumeLinkAction(token: string, email: string): Promise<ResumeResult> {
+  if (!isValidEmail(email)) return { ok: false, reason: "invalid" };
+  if (!isDraftToken(token)) return { ok: false, reason: "failed" };
+  try {
+    if (!(await claimResumeEmail(token))) return { ok: false, reason: "limit" };
+    const t = serverT("wizard");
+    const link = resumeLink(token);
+    const values = { brand: brand.name };
+    const result = await sendEmail({
+      to: email.trim(),
+      subject: t("resumeEmailSubject", values),
+      text: t("resumeEmailText", { ...values, link }),
+      html: htmlParagraph((v) => t("resumeEmailText", v), values, link),
+    });
+    return result.status === "failed" ? { ok: false, reason: "failed" } : { ok: true };
+  } catch (error) {
+    log.error("no se pudo enviar el enlace del borrador", { error });
+    return { ok: false, reason: "failed" };
+  }
 }
 
 export type SubmitActionResult =
-  | { ok: true; number: string; accessToken: string }
+  | { ok: true; number: string }
   | { ok: false; reason: "not_found" | "error" }
   | { ok: false; reason: "invalid"; step: StepId; item: number; errors: StepErrors };
 
+/**
+ * Envía la solicitud. El enlace de seguimiento (token de acceso) viaja en una
+ * cookie httpOnly hacia /cotizar/listo y nunca en la URL: así no llega a GA4 ni
+ * al Pixel de Meta.
+ */
 export async function submitQuoteAction(token: string): Promise<SubmitActionResult> {
   if (!isDraftToken(token)) return { ok: false, reason: "not_found" };
   const h = await headers();
@@ -63,6 +83,13 @@ export async function submitQuoteAction(token: string): Promise<SubmitActionResu
   try {
     const result = await submitDraft(token, { ip });
     if (!result.ok) return result;
+    (await cookies()).set(CONFIRMATION_COOKIE, result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/cotizar/listo",
+      maxAge: 60 * 60 * 24,
+    });
     if (!result.alreadySubmitted) {
       const { number, accessToken, specs, state } = result;
       after(async () => {
@@ -71,16 +98,16 @@ export async function submitQuoteAction(token: string): Promise<SubmitActionResu
         const t = serverT("confirmation");
         const link = absoluteUrl(`/seguimiento/${accessToken}`);
         const pieces = specs.map((s) => s.type?.name ?? "").filter(Boolean).join(", ") || number;
-        const values = { name: state.contact.name.trim(), number, pieces, link };
+        const values = { name: state.contact.name.trim(), number, pieces };
         await sendEmail({
           to: email,
           subject: t("emailSubject", { number }),
-          text: t("emailText", values),
-          html: `<p>${t("emailText", { ...values, link: `<a href="${link}">${link}</a>` })}</p>`,
+          text: t("emailText", { ...values, link }),
+          html: htmlParagraph((v) => t("emailText", v), values, link),
         });
       });
     }
-    return { ok: true, number: result.number, accessToken: result.accessToken };
+    return { ok: true, number: result.number };
   } catch (error) {
     log.error("no se pudo enviar la solicitud", { error });
     return { ok: false, reason: "error" };

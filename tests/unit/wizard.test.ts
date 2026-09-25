@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PublicCatalog } from "@/lib/catalog/public";
-import { addPiece, editPiece, goBack, goNext, removePiece, setItemPaper, setItemPrint, setItemType } from "@/lib/quote/flow";
+import { addPiece, applyPreload, editPiece, goBack, goNext, goToStep, removePiece, setItemPaper, setItemPrint, setItemType, setSegment } from "@/lib/quote/flow";
+import { optionEvents } from "@/lib/quote/option-events";
 import { itemSpecFromDraft, specRows, trafficInputFromSpec } from "@/lib/quote/spec";
 import { emptyItem, initialWizardState, type WizardState } from "@/lib/quote/types";
 import {
@@ -37,7 +38,10 @@ const catalog: PublicCatalog = {
   finishes: [],
   ecoAttributes: [],
   foodAttributes: [{ ...base, id: "f-grasa", code: "AL-02", name: "Resistente a grasa", suggestedForConditions: ["grease"] }],
-  gallery: [],
+  gallery: [
+    { ...base, id: "g-1", code: "M-001", name: "Balde rojo", photos: [], segments: ["food"], productTypeId: "t-balde", paperId: null, finishIds: [], tags: [] },
+    { ...base, id: "g-2", code: "M-002", name: "Caja kraft", photos: [], segments: ["commercial"], productTypeId: "t-caja", paperId: null, finishIds: [], tags: [] },
+  ],
   compatibilities: [{ productTypeId: "t-balde", paperId: "p-grasa", caliberId: null, allowed: true, reason: "El balde exige antigrasa." }],
   settings: {},
 };
@@ -118,6 +122,18 @@ describe("validación por paso", () => {
     expect(result).toMatchObject({ ok: false, step: 4, errors: { paper: "paperNotAllowed" } });
   });
 
+  it("el tipo tiene que servir para el segmento elegido", () => {
+    const s = { ...validState(), segment: "commercial" as const, step: 2 as const };
+    expect(validateStep(s, 2, ctx)).toEqual({ type: "typeSegment" });
+    expect(validateStep({ ...s, segment: "unsure" }, 2, ctx)).toEqual({});
+  });
+
+  it("un tipo solo alimentario exige aptitud alimentaria aunque el segmento sea «No estoy seguro»", () => {
+    const s = { ...validState(), segment: "unsure" as const };
+    s.items = [{ ...s.items[0]!, foodIds: [] }];
+    expect(validateStep(s, 4, ctx)).toEqual({ food: "foodRequired" });
+  });
+
   it("en alimentos la aptitud alimentaria es obligatoria", () => {
     const s = validState();
     s.items[0]!.foodIds = [];
@@ -186,6 +202,32 @@ describe("navegación del wizard", () => {
     expect(removePiece(s, 0).items).toHaveLength(1);
   });
 
+  it("«No sé, sugiéranme» también permite agregar otra pieza (y desde el resumen vuelve al resumen)", () => {
+    const s = validState();
+    s.items[0] = { ...s.items[0]!, needsAdvice: true, productTypeId: null };
+    const added = addPiece({ ...s, step: 2 });
+    expect(added).toMatchObject({ step: 2, current: 1 });
+    expect(added.items).toHaveLength(2);
+    const fromSummary = addPiece({ ...validState(), step: 9 }, { returnToSummary: true });
+    expect(goNext({ ...fromSummary, step: 5 }).step).toBe(9);
+  });
+
+  it("«Ir al paso» desde el resumen vuelve al resumen al continuar, en cualquier paso", () => {
+    for (const step of [0, 1, 6, 7, 8] as const) {
+      const s = goToStep({ ...validState(), step: 9 }, step);
+      expect(goNext(s).step).toBe(9);
+    }
+    const piece = goToStep({ ...validState(), step: 9 }, 3);
+    expect(goNext(piece).step).toBe(4);
+  });
+
+  it("cambiar el segmento suelta los tipos que ya no sirven", () => {
+    const s = setSegment(validState(), "commercial", catalog);
+    expect(s.segment).toBe("commercial");
+    expect(s.items[0]?.productTypeId).toBeNull();
+    expect(setSegment(validState(), "unsure", catalog).items[0]?.productTypeId).toBe("t-balde");
+  });
+
   it("cambiar tipo o papel limpia selecciones que dejan de ser válidas", () => {
     const item = { ...emptyItem("x"), paperId: "p-kraft", standardSizeId: "s-box" };
     const balde = setItemType(item, "t-balde", catalog);
@@ -194,6 +236,58 @@ describe("navegación del wizard", () => {
     expect(setItemPaper({ ...balde, caliberId: "c-lig" }, "p-grasa", catalog).caliberId).toBe("c-lig");
     const noPrint = setItemPrint({ ...balde, pantone: "186 C", faces: "both", coverage: "full" }, "pr-none", catalog);
     expect(noPrint).toMatchObject({ pantone: "", faces: null, coverage: null });
+  });
+});
+
+describe("precarga desde el catálogo o la galería (D-028)", () => {
+  it("en una solicitud nueva, el tipo va a la primera pieza y fija el segmento si es único", () => {
+    const { state, outcome } = applyPreload(initialWizardState(), { typeId: "t-balde", sampleId: null }, catalog);
+    expect(outcome).toBe("filled_piece");
+    expect(state.items).toHaveLength(1);
+    expect(state).toMatchObject({ segment: "food", step: 0 });
+    expect(state.items[0]?.productTypeId).toBe("t-balde");
+  });
+
+  it("con un borrador en curso, suma una pieza nueva sin perder nada", () => {
+    const draft = { ...validState(), step: 6 as const };
+    const { state, outcome, piece } = applyPreload(draft, { typeId: "t-caja", sampleId: null }, catalog);
+    expect(outcome).toBe("added_piece");
+    expect(piece).toBe(1);
+    expect(state.items).toHaveLength(2);
+    expect(state.items[0]).toEqual(draft.items[0]);
+    expect(state).toMatchObject({ step: 2, current: 1, product: draft.product, contact: draft.contact });
+  });
+
+  it("la muestra queda como referencia de la pieza del mismo tipo, sin duplicar", () => {
+    const draft = { ...validState(), step: 7 as const };
+    const once = applyPreload(draft, { typeId: null, sampleId: "g-1" }, catalog);
+    expect(once.outcome).toBe("added_reference");
+    expect(once.state.items).toHaveLength(1);
+    expect(once.state.items[0]?.referenceSampleIds).toEqual(["g-1"]);
+    expect(once.state.step).toBe(7);
+    const twice = applyPreload(once.state, { typeId: null, sampleId: "g-1" }, catalog);
+    expect(twice.state.items[0]?.referenceSampleIds).toEqual(["g-1"]);
+  });
+
+  it("si el tipo no sirve para el segmento elegido, el segmento pasa a «No estoy seguro»", () => {
+    const draft = { ...validState(), segment: "commercial" as const };
+    draft.items = [{ ...draft.items[0]!, productTypeId: "t-caja" }];
+    const { state } = applyPreload(draft, { typeId: "t-balde", sampleId: null }, catalog);
+    expect(state.segment).toBe("unsure");
+    expect(validateAll(state, ctx).ok).toBe(false);
+  });
+});
+
+describe("analítica de opciones", () => {
+  it("emite la opción elegida con códigos de catálogo y sin datos personales", () => {
+    const before = validState();
+    const after = { ...before, segment: "commercial" as const, contact: { ...before.contact, name: "Otra" } };
+    after.items = [{ ...before.items[0]!, paperId: "p-kraft", printOptionId: "pr-pt" }];
+    expect(optionEvents(before, after, catalog)).toEqual([
+      { step: 0, field: "segment", value: "commercial" },
+      { step: 4, field: "paperId", value: "PA-01" },
+      { step: 5, field: "printOptionId", value: "PR-PT" },
+    ]);
   });
 });
 

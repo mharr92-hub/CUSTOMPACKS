@@ -6,9 +6,9 @@ import { LightbulbIcon, PlusIcon } from "lucide-react";
 import { CodePlaceholder } from "@/components/catalog/code-placeholder";
 import { Button } from "@/components/ui/button";
 import { annotateCalibers, annotatePapers, suggestCaliberByWeight, type CompatDecision } from "@/lib/compat";
-import { setItemPaper, setItemPrint, setItemType } from "@/lib/quote/flow";
+import { MAX_PIECES, setItemPaper, setItemPrint, setItemType } from "@/lib/quote/flow";
 import { PRINT_COVERAGES, PRINT_FACES, type SizeMode } from "@/lib/quote/types";
-import { parseWeightGrams } from "@/lib/quote/validate";
+import { needsFoodAttributes, parseWeightGrams, typeFitsSegment } from "@/lib/quote/validate";
 import { cn } from "@/lib/utils";
 import { useCurrentItem, useWizard } from "./context";
 import { CheckChips, Fieldset, OptionCard, SuggestedBadge, TextField, toggleIn } from "./fields";
@@ -24,17 +24,40 @@ function Thumb({ photoUrl, code, variant }: { photoUrl: string | null; code: str
   );
 }
 
+/** Foto de una opción técnica (papel, calibre, tamaño, impresión) si el catálogo la tiene. */
+function OptionPhoto({ photoUrl }: { photoUrl: string | null }) {
+  if (!photoUrl) return null;
+  // eslint-disable-next-line @next/next/no-img-element -- miniatura pequeña; las fotos ya son optimizadas por el CDN
+  return <img src={photoUrl} alt="" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />;
+}
+
+/** "Agregar otra pieza" (paso 5, o paso 2 cuando la pieza queda a sugerencia del equipo). */
+function AddPieceBlock({ onAddPiece }: { onAddPiece: () => void }) {
+  const t = useTranslations("wizard.print");
+  const { state } = useWizard();
+  if (state.items.length >= MAX_PIECES) return null;
+  return (
+    <div className="rounded-lg border-2 border-dashed border-forest/40 p-4">
+      <p className="text-sm text-muted-foreground">{t("addPieceHint")}</p>
+      <Button type="button" variant="outline" className="mt-3" onClick={onAddPiece}>
+        <PlusIcon className="size-4" />
+        {t("addPiece")}
+      </Button>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Paso 2 · Tipo de empaque
 // ---------------------------------------------------------------------------
-export function StepType() {
+export function StepType({ onAddPiece }: { onAddPiece: () => void }) {
   const t = useTranslations("wizard.type");
   const { state, catalog, updateItem, errors } = useWizard();
   const item = useCurrentItem();
   const segment = state.segment;
   // Primero los tipos propios del segmento elegido (p. ej. empaque de comida para un restaurante).
   const types = catalog.productTypes
-    .filter((ty) => segment === "unsure" || !segment || ty.segments.includes(segment))
+    .filter((ty) => typeFitsSegment(ty.segments, segment))
     .map((ty, i) => ({ ty, rank: segment && ty.segments.length === 1 && ty.segments[0] === segment ? 0 : 1, i }))
     .sort((a, b) => a.rank - b.rank || a.i - b.i)
     .map(({ ty }) => ty);
@@ -46,54 +69,57 @@ export function StepType() {
   const visible = types.filter((ty) => category === "all" || ty.categoryId === category);
 
   return (
-    <Fieldset id="type" legend={t("title")} hint={t("intro")} error={errors.type}>
-      <div role="group" aria-label={t("title")} className="mb-4 flex flex-wrap gap-2">
-        {[{ id: "all", name: t("allCategories") }, ...categories].map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            aria-pressed={category === c.id}
-            onClick={() => setCategory(c.id)}
-            className={cn(
-              "min-h-10 rounded-full border px-3.5 py-1.5 text-sm",
-              category === c.id ? "border-forest bg-forest text-paper" : "border-border bg-paper hover:border-forest/50",
-            )}
-          >
-            {c.name}
-          </button>
-        ))}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {visible.map((ty) => (
+    <div className="space-y-6">
+      <Fieldset id="type" legend={t("title")} hint={t("intro")} error={errors.type}>
+        <div role="group" aria-label={t("filterLabel")} className="mb-4 flex flex-wrap gap-2">
+          {[{ id: "all", name: t("allCategories") }, ...categories].map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              aria-pressed={category === c.id}
+              onClick={() => setCategory(c.id)}
+              className={cn(
+                "min-h-10 rounded-full border px-3.5 py-1.5 text-sm",
+                category === c.id ? "border-forest bg-forest text-paper" : "border-border bg-paper hover:border-forest/50",
+              )}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {visible.map((ty) => (
+            <OptionCard
+              key={ty.id}
+              type="radio"
+              name="productType"
+              value={ty.id}
+              checked={!item.needsAdvice && item.productTypeId === ty.id}
+              onChange={() => updateItem((it) => setItemType(it, ty.id, catalog))}
+              media={<Thumb photoUrl={ty.photoUrl} code={ty.code} variant={ty.sizeFamily} />}
+              title={ty.name}
+              body={ty.typicalUses.slice(0, 2).join(" · ")}
+            />
+          ))}
           <OptionCard
-            key={ty.id}
             type="radio"
             name="productType"
-            value={ty.id}
-            checked={!item.needsAdvice && item.productTypeId === ty.id}
-            onChange={() => updateItem((it) => setItemType(it, ty.id, catalog))}
-            media={<Thumb photoUrl={ty.photoUrl} code={ty.code} variant={ty.sizeFamily} />}
-            title={ty.name}
-            body={ty.typicalUses.slice(0, 2).join(" · ")}
+            value="advice"
+            checked={item.needsAdvice}
+            onChange={() => updateItem((it) => ({ ...it, needsAdvice: true, productTypeId: null }))}
+            media={
+              <span className="flex aspect-[4/3] items-center justify-center bg-kraft-light">
+                <LightbulbIcon aria-hidden="true" className="size-7 text-forest" strokeWidth={1.6} />
+              </span>
+            }
+            title={t("adviceTitle")}
+            body={t("adviceBody")}
+            className="border-dashed"
           />
-        ))}
-        <OptionCard
-          type="radio"
-          name="productType"
-          value="advice"
-          checked={item.needsAdvice}
-          onChange={() => updateItem((it) => ({ ...it, needsAdvice: true, productTypeId: null }))}
-          media={
-            <span className="flex aspect-[4/3] items-center justify-center bg-kraft-light">
-              <LightbulbIcon aria-hidden="true" className="size-7 text-forest" strokeWidth={1.6} />
-            </span>
-          }
-          title={t("adviceTitle")}
-          body={t("adviceBody")}
-          className="border-dashed"
-        />
-      </div>
-    </Fieldset>
+        </div>
+      </Fieldset>
+      {item.needsAdvice ? <AddPieceBlock onAddPiece={onAddPiece} /> : null}
+    </div>
   );
 }
 
@@ -145,6 +171,7 @@ export function StepSize() {
                 value={s.id}
                 checked={item.standardSizeId === s.id}
                 onChange={() => updateItem((it) => ({ ...it, standardSizeId: s.id }))}
+                media={s.photoUrl ? <OptionPhoto photoUrl={s.photoUrl} /> : undefined}
                 title={<span className="tabular">{t("sizeOption", { name: s.name, l: fmt(s.lengthCm), w: fmt(s.widthCm), h: fmt(s.heightCm) })}</span>}
                 className="p-3"
               />
@@ -201,11 +228,12 @@ export function StepMaterial() {
   const calibers = annotateCalibers(catalog.compatibilities, typeId, item.paperId, catalog.calibers);
   const weight = parseWeightGrams(state.product.weight, state.product.weightUnit);
   const suggestedCaliber = suggestCaliberByWeight(catalog.calibers, typeof weight === "number" ? weight : null);
+  const foodRequired = needsFoodAttributes(item, state.segment, catalog);
   const suggestedFood = catalog.foodAttributes.filter((f) => f.suggestedForConditions.some((c) => conditions.includes(c))).map((f) => f.id);
 
   return (
     <div className="space-y-7">
-      <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-dashed border-border bg-paper p-3.5 has-[:checked]:border-forest has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/40">
+      <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-dashed border-border bg-paper p-3.5 has-[:checked]:border-forest has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-forest">
         <input
           type="checkbox"
           checked={item.materialAdvice}
@@ -233,6 +261,7 @@ export function StepMaterial() {
                     checked={item.paperId === p.id}
                     disabled={!p.decision.allowed}
                     onChange={() => updateItem((it) => setItemPaper(it, p.id, catalog))}
+                    media={p.photoUrl ? <OptionPhoto photoUrl={p.photoUrl} /> : undefined}
                     title={p.name}
                     badge={suggested && p.decision.allowed ? <SuggestedBadge>{t("suggestedByConditions")}</SuggestedBadge> : undefined}
                     body={decisionNote(p.decision, t) ?? p.description ?? undefined}
@@ -253,6 +282,7 @@ export function StepMaterial() {
                   checked={item.caliberId === c.id}
                   disabled={!c.decision.allowed}
                   onChange={() => updateItem((it) => ({ ...it, caliberId: c.id }))}
+                  media={c.photoUrl ? <OptionPhoto photoUrl={c.photoUrl} /> : undefined}
                   title={c.name}
                   badge={suggestedCaliber?.id === c.id && c.decision.allowed ? <SuggestedBadge>{t("suggestedByWeight")}</SuggestedBadge> : undefined}
                   body={decisionNote(c.decision, t) ?? c.simpleLabel ?? undefined}
@@ -277,9 +307,9 @@ export function StepMaterial() {
       <Fieldset
         id="food"
         legend={t("food")}
-        hint={state.segment === "food" ? t("foodRequired") : undefined}
+        hint={foodRequired ? t("foodRequired") : undefined}
         error={errors.food}
-        optional={state.segment !== "food"}
+        optional={!foodRequired}
       >
         <CheckChips
           name="food"
@@ -316,6 +346,7 @@ export function StepPrint({ onAddPiece }: { onAddPiece: () => void }) {
               value={p.id}
               checked={item.printOptionId === p.id}
               onChange={() => updateItem((it) => setItemPrint(it, p.id, catalog))}
+              media={p.photoUrl ? <OptionPhoto photoUrl={p.photoUrl} /> : undefined}
               title={p.name}
               body={p.description ?? undefined}
             />
@@ -384,13 +415,7 @@ export function StepPrint({ onAddPiece }: { onAddPiece: () => void }) {
         </Fieldset>
       ) : null}
 
-      <div className="rounded-lg border-2 border-dashed border-forest/40 p-4">
-        <p className="text-sm text-muted-foreground">{t("addPieceHint")}</p>
-        <Button type="button" variant="outline" className="mt-3" onClick={onAddPiece}>
-          <PlusIcon className="size-4" />
-          {t("addPiece")}
-        </Button>
-      </div>
+      <AddPieceBlock onAddPiece={onAddPiece} />
     </div>
   );
 }

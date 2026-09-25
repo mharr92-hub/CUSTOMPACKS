@@ -49,14 +49,13 @@ export function StepQuantity() {
           <h3 id={`piece-${item.key}`} className="font-semibold">
             {pieceLabel(item, i)}
           </h3>
-          <Fieldset id={`items.${i}.quantities`} legend={t("quantityRequired")} error={errors[`items.${i}.quantities`]}>
+          <Fieldset id={`items.${i}.quantities`} legend={t("quantitiesLegend")} hint={t("quantitiesHint")} error={errors[`items.${i}.quantities`]}>
             <div className="grid grid-cols-3 gap-2">
               {[0, 1, 2].map((j) => (
                 <TextField
                   key={j}
                   id={`items.${i}.quantities.${j}`}
                   label={t("quantity", { n: j + 1 })}
-                  optional={j > 0}
                   value={item.quantities[j] ?? ""}
                   placeholder={j === 0 ? t("quantityPlaceholder") : undefined}
                   inputMode="numeric"

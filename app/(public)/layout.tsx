@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { AnalyticsScripts } from "@/components/analytics-scripts";
 import { JsonLd } from "@/components/site/json-ld";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
@@ -22,6 +23,7 @@ export default async function PublicLayout({ children }: { children: React.React
       </main>
       <SiteFooter />
       <WhatsAppFab />
+      <AnalyticsScripts />
       <JsonLd
         data={{
           "@context": "https://schema.org",

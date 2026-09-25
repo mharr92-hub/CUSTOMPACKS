@@ -151,6 +151,34 @@ export async function removeObject(bucket: BucketName, objectPath: string): Prom
   await fs.rm(localMetaPath(bucket, objectPath), { force: true });
 }
 
+/** Borra todo lo que cuelga de una carpeta (p. ej. los archivos de un borrador vencido). */
+export async function removePrefix(bucket: BucketName, prefix: string): Promise<number> {
+  assertSafePath(prefix);
+  const supabase = supabaseOrNull();
+  if (supabase) {
+    const files: string[] = [];
+    const walk = async (dir: string) => {
+      const { data } = await supabase.storage.from(bucket).list(dir, { limit: 1000 });
+      for (const entry of data ?? []) {
+        const full = `${dir}/${entry.name}`;
+        if (entry.id) files.push(full);
+        else await walk(full);
+      }
+    };
+    await walk(prefix);
+    for (let i = 0; i < files.length; i += 100) await supabase.storage.from(bucket).remove(files.slice(i, i + 100));
+    return files.length;
+  }
+  const dir = path.join(localRoot(), bucket, ...prefix.split("/"));
+  const count = await fs
+    .readdir(dir, { recursive: true, withFileTypes: true })
+    .then((entries) => entries.filter((e) => e.isFile()).length)
+    .catch(() => 0);
+  await fs.rm(dir, { recursive: true, force: true });
+  await fs.rm(path.join(localRoot(), ".meta", bucket, ...prefix.split("/")), { recursive: true, force: true });
+  return count;
+}
+
 /** URL pública (solo buckets públicos, como `catalog`). */
 export function publicUrl(bucket: BucketName, objectPath: string): string {
   assertSafePath(objectPath);

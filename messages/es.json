@@ -774,7 +774,8 @@
       "allCategories": "Todo",
       "adviceTitle": "No sé, sugiéranme",
       "adviceBody": "Un asesor te propone el tipo ideal para tu producto.",
-      "selected": "Seleccionado"
+      "selected": "Seleccionado",
+      "filterLabel": "Filtrar por categoría"
     },
     "size": {
       "title": "¿De qué tamaño?",
@@ -833,7 +834,9 @@
       "leadTimeEmpty": "Escribe una cantidad para ver el plazo estimado.",
       "earliest": "Si apruebas hoy, lo recibirías alrededor del {date}.",
       "tooSoon": "Con esa cantidad, la entrega más temprana sería el {date}. Igual envía tu solicitud: revisamos opciones contigo.",
-      "conditions": "Pagas {deposit} % al aprobar y {balance} % al recibir."
+      "conditions": "Pagas {deposit} % al aprobar y {balance} % al recibir.",
+      "quantitiesLegend": "Cantidades a cotizar",
+      "quantitiesHint": "Escribe hasta tres cantidades para comparar; la primera es obligatoria."
     },
     "artwork": {
       "title": "Arte y referencias",
@@ -895,7 +898,9 @@
       "submitting": "Enviando…",
       "submitError": "No pudimos enviar la solicitud. Revisa tu conexión e inténtalo de nuevo.",
       "fixStep": "Falta completar: {step}",
-      "goToStep": "Ir al paso"
+      "goToStep": "Ir al paso",
+      "removed": "Quitaste la pieza {n}.",
+      "undo": "Deshacer"
     },
     "segmentOptions": {
       "commercial": "Comercio",
@@ -982,10 +987,23 @@
       "whatsappInvalid": "Incluye el código de país, por ejemplo +507 6123-4567.",
       "cityRequired": "Escribe la ciudad de entrega.",
       "addressRequired": "Escribe la dirección de entrega para estimar el flete.",
-      "consentRequired": "Necesitamos tu autorización para usar tus datos en esta cotización."
+      "consentRequired": "Necesitamos tu autorización para usar tus datos en esta cotización.",
+      "typeSegment": "Este tipo no está disponible para el segmento que elegiste. Elige otro tipo o cambia el segmento en el paso 1."
     },
     "resumeEmailSubject": "Tu cotización en {brand}: sigue donde la dejaste",
-    "resumeEmailText": "Hola. Guardamos tu avance en el cotizador de {brand}. Para continuar abre este enlace: {link}. El enlace vale por 30 días."
+    "resumeEmailText": "Hola. Guardamos tu avance en el cotizador de {brand}. Para continuar abre este enlace: {link}. El enlace vale por 30 días.",
+    "saveErrorShort": "Sin guardar",
+    "saveRetry": "Reintentar",
+    "saveLaterSending": "Enviando…",
+    "saveLaterFailed": "No pudimos enviarte el correo. Inténtalo de nuevo o usa WhatsApp.",
+    "saveLaterLimit": "Ya te enviamos este enlace varias veces hoy. Usa WhatsApp o copia el enlace.",
+    "preload": {
+      "added_piece": "Sumamos {type} a tu solicitud en curso como pieza {n}.",
+      "filled_piece": "Sumamos {type} a tu solicitud en curso (pieza {n}).",
+      "added_reference": "Sumamos la muestra {sample} como referencia de la pieza {n}.",
+      "existing_piece": "{type} ya está en tu solicitud (pieza {n}).",
+      "dismiss": "Cerrar aviso"
+    }
   },
   "spec": {
     "none": "—",
@@ -1115,7 +1133,78 @@
     "delivery": "Entrega",
     "desiredDate": "Fecha deseada",
     "piece": "Pieza {n}",
-    "conditions": "Condiciones: {deposit} % de anticipo al aprobar y {balance} % contra entrega. Entrega en 45 días; 30 días en volúmenes menores.",
+    "conditions": "Condiciones: {deposit} % de anticipo al aprobar y {balance} % contra entrega. Entrega estimada en {standard} días; {small} días hasta {threshold} unidades.",
     "footer": "{brand} · {site}"
+  },
+  "upload": {
+    "choose": "Elegir archivos",
+    "limits": "Hasta {max} MB por archivo, {files} archivos por pieza.",
+    "uploading": "Subiendo… {pct} %",
+    "verifying": "Verificando el archivo…",
+    "progressLabel": "Progreso de {name}",
+    "retry": "Reintentar {name}",
+    "dismiss": "Quitar {name} de la lista",
+    "remove": "Quitar {name}",
+    "previewAlt": "Vista previa de {name}",
+    "previewLoading": "Cargando vista previa…",
+    "previewError": "No se puede mostrar {name}; el equipo lo revisa igual.",
+    "download": "Descargar",
+    "errors": {
+      "tooLarge": "{name} supera el máximo de {max} MB.",
+      "tooMany": "Puedes subir hasta {max} archivos por pieza.",
+      "badType": "{name}: formato no aceptado.",
+      "typeMismatch": "{name} no es un archivo válido de ese formato. Revisa que no esté dañado o renombrado.",
+      "network": "Se cortó la conexión al subir {name}. Reintenta.",
+      "expired": "La sesión de subida venció. Reintenta.",
+      "generic": "No pudimos subir {name}. Reintenta."
+    }
+  },
+  "artwork": {
+    "title": "Arte",
+    "artworkHint": "PDF, AI, EPS o SVG. PNG y JPG solo sirven como referencia.",
+    "referenceHint": "Fotos (JPG, PNG, WebP) o PDF de lo que te gusta.",
+    "uploadArtwork": "Archivos de arte",
+    "uploadReferences": "Fotos de referencia",
+    "uploaded": "Archivos subidos",
+    "none": "Todavía no hay archivos.",
+    "version": "Versión {n}",
+    "proof": "Proof {n}",
+    "uploadedAt": "Subido el {date}",
+    "comments": "Comentarios del equipo",
+    "newVersion": "Subir nueva versión",
+    "newVersionHint": "Si te pedimos cambios, sube aquí la versión corregida.",
+    "proofReady": "Tu proof está listo",
+    "proofReadyBody": "Revisa la prueba digital. Al aprobarla, confirmas que así se imprime tu pieza.",
+    "approveName": "Tu nombre completo",
+    "approve": "Aprobar proof",
+    "approving": "Registrando…",
+    "approved": "Proof aprobado el {date} por {name}.",
+    "approveError": "No pudimos registrar la aprobación. Inténtalo de nuevo.",
+    "approveNameRequired": "Escribe tu nombre para registrar la aprobación.",
+    "statuses": {
+      "received": "Recibido",
+      "in_review": "En revisión",
+      "observed": "Con observaciones",
+      "approved_for_proof": "Aprobado para proof",
+      "proof_sent": "Proof enviado",
+      "proof_approved": "Proof aprobado",
+      "released": "Liberado a fábrica"
+    },
+    "checklist": {
+      "title": "Checklist de preprensa",
+      "format": "Formato",
+      "dieline": "Sobre el troquel",
+      "color": "Color (CMYK o Pantone)",
+      "resolution": "Resolución (300 dpi)",
+      "bleed": "Sangrado y área segura",
+      "fonts": "Tipografías en curvas",
+      "layer": "Troquel en capa aparte",
+      "naming": "Nombre del archivo",
+      "results": {
+        "ok": "Correcto",
+        "observed": "Observado",
+        "na": "No aplica"
+      }
+    }
   }
 }

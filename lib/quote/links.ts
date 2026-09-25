@@ -12,3 +12,6 @@ export function trackingPath(accessToken: string): string {
 export function specPdfPath(requestId: string, accessToken?: string): string {
   return accessToken ? `/api/pdf/ficha/${requestId}?t=${accessToken}` : `/api/pdf/ficha/${requestId}`;
 }
+
+/** Cookie httpOnly con el token de la última solicitud enviada (página de confirmación). */
+export const CONFIRMATION_COOKIE = "pp_listo";

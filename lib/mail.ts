@@ -20,6 +20,21 @@ export type EmailResult =
   | { status: "simulated"; previewPath: string | null }
   | { status: "failed"; error: string };
 
+/** Escapa texto para meterlo en el HTML de un correo (todo lo que escribe el visitante pasa por aquí). */
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
+}
+
+/**
+ * Arma el HTML de un párrafo con valores escapados y, opcionalmente, un enlace
+ * (URL generada por el servidor) en el marcador {link}.
+ */
+export function htmlParagraph(render: (values: Record<string, string>) => string, values: Record<string, string>, link?: string): string {
+  const LINK = "\u0000link\u0000";
+  const html = escapeHtml(render(link ? { ...values, link: LINK } : values));
+  return `<p>${link ? html.replace(LINK, `<a href="${escapeHtml(link)}">${escapeHtml(link)}</a>`) : html}</p>`;
+}
+
 /**
  * Envía un correo con Resend. Sin RESEND_API_KEY no falla: lo escribe en
  * consola y guarda una vista previa HTML en .data/mail (modo simulado).

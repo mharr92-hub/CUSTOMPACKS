@@ -1,6 +1,7 @@
 import "server-only";
 import { getPublicCatalog } from "@/lib/catalog/public";
 import { serviceActor, withActor } from "@/lib/db/actor";
+import type { Tx } from "@/lib/db/client";
 import { trafficLight } from "@/lib/traffic-light";
 import { randomToken } from "@/lib/tokens";
 import { loadDraft } from "./drafts";
@@ -37,6 +38,7 @@ export async function submitDraft(token: string, meta: { ip: string | null }): P
   const traffic = trafficLight(specs.map(trafficInputFromSpec));
   const c = state.contact;
   const whatsapp = c.whatsapp.trim() ? normalizeWhatsapp(c.whatsapp) : null;
+  const email = c.email.trim().toLowerCase() || null;
   const needsAdvice = state.items.some((it) => it.needsAdvice || it.materialAdvice || it.sizeMode === "by_product");
   const accessToken = randomToken(32);
 
@@ -50,10 +52,7 @@ export async function submitDraft(token: string, meta: { ip: string | null }): P
     const numbered = await tx<{ number: string }[]>`select public.next_document_number('S') as number`;
     const number = numbered[0]?.number;
     if (!number) throw new Error("no se pudo numerar la solicitud");
-    const [company] = await tx<{ id: string }[]>`
-      insert into public.companies (trade_name, ruc, segment, city, default_address, lead_source)
-      values (${c.company.trim() || c.name.trim()}, ${c.ruc.trim() || null}, ${state.segment}, ${c.city.trim()}, ${c.address.trim()}, ${c.source || null})
-      returning id`;
+    const company = await resolveCompany(tx, { state, email, whatsapp });
     const [request] = await tx<{ id: string }[]>`
       insert into public.quote_requests (
         number, access_token, status, traffic_light, missing_fields, channel, segment, company_id, company_name, ruc,
@@ -61,8 +60,8 @@ export async function submitDraft(token: string, meta: { ip: string | null }): P
         comments, lead_source, needs_advice, utm, referrer, consent_at, consent_ip, draft_id
       ) values (
         ${number}, ${accessToken}, 'submitted', ${traffic.light}, ${traffic.missing.map((m) => `${m.item}:${m.field}`)},
-        'web', ${state.segment}, ${company?.id ?? null}, ${c.company.trim() || null}, ${c.ruc.trim() || null},
-        ${c.name.trim()}, ${c.position.trim() || null}, ${c.email.trim().toLowerCase() || null}, ${whatsapp},
+        'web', ${state.segment}, ${company}, ${c.company.trim() || null}, ${normalizeRuc(c.ruc)},
+        ${c.name.trim()}, ${c.position.trim() || null}, ${email}, ${whatsapp},
         ${c.city.trim()}, ${c.address.trim()}, ${state.desiredDate || null}, ${c.comments.trim() || null}, ${c.source || null},
         ${needsAdvice}, ${tx.json(state.utm)}, ${state.referrer || null}, now(), ${meta.ip}, ${locked.id}
       ) returning id`;
@@ -121,6 +120,49 @@ export async function submitDraft(token: string, meta: { ip: string | null }): P
   }
   if (!result.requestId || !result.number || !result.accessToken) return { ok: false, reason: "not_found" };
   return { ok: true, requestId: result.requestId, number: result.number, accessToken: result.accessToken, specs, state, alreadySubmitted: false };
+}
+
+/** RUC normalizado: sin espacios y en mayúsculas (así se compara y se guarda). */
+export function normalizeRuc(ruc: string): string | null {
+  const r = ruc.replace(/\s+/g, "").toUpperCase();
+  return r || null;
+}
+
+/**
+ * Empresa de la solicitud (Empresa 1:N solicitudes, §13): la del mismo RUC; si
+ * no hay RUC, la de una solicitud anterior del mismo correo o WhatsApp; si no
+ * existe, se crea. Sin nombre de empresa, la persona figura como su propia cuenta.
+ */
+async function resolveCompany(tx: Tx, input: { state: WizardState; email: string | null; whatsapp: string | null }): Promise<string> {
+  const c = input.state.contact;
+  const ruc = normalizeRuc(c.ruc);
+  if (ruc) {
+    const [byRuc] = await tx<{ id: string }[]>`select id from public.companies where ruc = ${ruc}`;
+    if (byRuc) return byRuc.id;
+  }
+  if (input.email || input.whatsapp) {
+    // Con un RUC nuevo solo se reutiliza una empresa que aún no tenga RUC.
+    const [previous] = await tx<{ company_id: string }[]>`
+      select r.company_id from public.quote_requests r
+        join public.companies co on co.id = r.company_id
+       where ((${input.email}::text is not null and r.contact_email = ${input.email}) or (${input.whatsapp}::text is not null and r.contact_whatsapp = ${input.whatsapp}))
+         and (${ruc}::text is null or co.ruc is null)
+       order by r.submitted_at desc
+       limit 1`;
+    if (previous) {
+      if (ruc) await tx`update public.companies set ruc = ${ruc} where id = ${previous.company_id} and ruc is null`;
+      return previous.company_id;
+    }
+  }
+  const [created] = await tx<{ id: string }[]>`
+    insert into public.companies (trade_name, ruc, segment, city, default_address, lead_source)
+    values (${c.company.trim() || c.name.trim()}, ${ruc}, ${input.state.segment}, ${c.city.trim()}, ${c.address.trim()}, ${c.source || null})
+    on conflict (ruc) where ruc is not null do nothing
+    returning id`;
+  if (created) return created.id;
+  const [raced] = await tx<{ id: string }[]>`select id from public.companies where ruc = ${ruc}`;
+  if (!raced) throw new Error("no se pudo crear la empresa");
+  return raced.id;
 }
 
 async function findRequest(id: string): Promise<{ requestId: string; number: string; accessToken: string } | null> {

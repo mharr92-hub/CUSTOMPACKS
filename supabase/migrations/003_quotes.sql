@@ -67,6 +67,8 @@ create table public.companies (
   updated_by uuid references auth.users (id) on delete set null
 );
 create index companies_trade_name_idx on public.companies (lower(trade_name));
+-- una empresa por RUC (el envío lo guarda normalizado: sin espacios y en mayúsculas)
+create unique index companies_ruc_key on public.companies (ruc) where ruc is not null;
 
 alter table public.profiles
   add constraint profiles_company_fk foreign key (company_id) references public.companies (id) on delete set null;
@@ -122,6 +124,9 @@ create table public.quote_requests (
 );
 create index quote_requests_status_idx on public.quote_requests (status, submitted_at desc);
 create index quote_requests_assigned_idx on public.quote_requests (assigned_to);
+-- para vincular una solicitud nueva a la empresa de solicitudes anteriores del mismo contacto
+create index quote_requests_contact_email_idx on public.quote_requests (contact_email) where contact_email is not null;
+create index quote_requests_contact_whatsapp_idx on public.quote_requests (contact_whatsapp) where contact_whatsapp is not null;
 
 -- Historial inmutable de estados (auditoría §13).
 create table public.quote_request_status_log (
@@ -212,6 +217,9 @@ create table public.quote_drafts (
   step integer not null default 0 check (step between 0 and 9),
   contact_email text,
   contact_whatsapp text,
+  -- cupo de correos "Guardar y seguir después" (3 cada 24 h por borrador)
+  resume_sent_count integer not null default 0,
+  resume_window_at timestamptz,
   submitted_request_id uuid references public.quote_requests (id) on delete set null,
   expires_at timestamptz not null default (now() + interval '30 days'),
   created_at timestamptz not null default now(),
