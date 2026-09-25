@@ -55,9 +55,73 @@
     "defaultMessage": "Hola {brand}, quiero información sobre empaques."
   },
   "home": {
-    "heroSupport": "Cajas, bolsas y empaque alimentario con tu marca. Cuéntanos qué necesitas y te enviamos la cotización formal en 24 horas hábiles.",
+    "metaTitle": "{brand} — Cajas, bolsas y empaque alimentario a tu medida",
+    "heroSupport": "Cajas, bolsas y empaque alimentario con tu marca, fabricados en nuestra planta en Perú y verificados por nuestro equipo antes de embarcar.",
+    "heroQuoteNote": "Cada pieza se cotiza a su medida, porque el precio depende del material, la impresión, la cantidad y el flete. Recibes la cotización formal en un máximo de 24 horas hábiles.",
     "ctaQuote": "Cotiza en 5 minutos",
-    "ctaWhatsapp": "Hablar por WhatsApp"
+    "ctaWhatsapp": "Escríbenos por WhatsApp",
+    "dieline": {
+      "label": "Plano desplegado de una caja plegadiza con sus medidas de largo, ancho y alto.",
+      "cut": "Corte",
+      "fold": "Pliegue",
+      "length": "Largo",
+      "width": "Ancho",
+      "height": "Alto"
+    },
+    "proofs": {
+      "title": "Lo que puedes comprobar",
+      "factoryTitle": "Fábrica propia",
+      "factoryBody": "Maquinaria industrial de gran escala en Perú: no hay orden demasiado grande.",
+      "qaTitle": "Verificación en planta",
+      "qaBody": "Viajamos a la fábrica a revisar tu pedido contra lo pactado, con fotos y video.",
+      "paymentTitle": "50 % y 50 %",
+      "paymentBody": "Pagas la mitad al aprobar y la otra mitad cuando recibes.",
+      "volumeTitle": "Sin cantidad mínima",
+      "volumeBody": "Pide 500 o 500.000 unidades. Tampoco hay máximo."
+    },
+    "doors": {
+      "title": "¿Qué vas a empacar?",
+      "commerceTitle": "Soy comercio",
+      "commerceBody": "Tiendas, almacenes y e-commerce: bolsas de compra, cajas de producto y cajas de envío con tu marca.",
+      "commerceCta": "Ver empaques para comercio",
+      "foodTitle": "Soy restaurante o alimentos",
+      "foodBody": "Restaurantes, cadenas, panaderías y delivery: empaque que aguanta grasa, calor y el viaje hasta la casa de tu cliente.",
+      "foodCta": "Ver empaque alimentario",
+      "examples": "Por ejemplo"
+    },
+    "featured": {
+      "title": "Del catálogo",
+      "intro": "Elige el tipo de pieza. Tamaño, material e impresión los defines en el cotizador.",
+      "cta": "Ver todo el catálogo"
+    },
+    "steps": {
+      "title": "Cómo funciona",
+      "intro": "Del primer mensaje a la entrega siempre sabes qué sigue y quién actúa.",
+      "cta": "Ver el proceso completo"
+    },
+    "gallery": {
+      "title": "La maleta de muestras",
+      "intro": "Más de 200 muestras reales de lo que fabricamos. Cada una tiene un código para que la cites por WhatsApp o la marques como referencia.",
+      "cta": "Ver la galería"
+    },
+    "clients": {
+      "title": "Marcas que ya confían",
+      "body": "Hemos producido para cadenas internacionales de comida rápida y grandes almacenes, donde cada pieza tiene que salir igual a la especificación.",
+      "cta": "Cómo trabajamos con cadenas"
+    },
+    "sustainability": {
+      "title": "Materiales amigables con el ambiente",
+      "body": "Puedes pedir papel reciclado, fibra de origen certificado, opciones compostables o sin recubrimiento plástico. Confirmamos cada atributo con la ficha técnica de la fábrica antes de cotizar.",
+      "cta": "Ver sostenibilidad"
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "cta": "Ver todas las preguntas"
+    },
+    "closing": {
+      "body": "Cuéntanos qué necesitas. En 5 minutos tienes tu solicitud lista y en un máximo de 24 horas hábiles, tu cotización formal.",
+      "cta": "Cotiza en 5 minutos"
+    }
   },
   "enums": {
     "segment": {
@@ -306,5 +370,329 @@
       "boolTrue": "Sí",
       "boolFalse": "No"
     }
+  },
+  "catalog": {
+    "title": "Catálogo",
+    "metaDescription": "Cajas plegadizas, rígidas y de envío, bolsas kraft y boutique, y empaque alimentario. Todo a tu medida y sin cantidad mínima.",
+    "intro": "Cajas, bolsas y empaque alimentario. Cada pieza se fabrica a tu medida y sin cantidad mínima.",
+    "filtersLabel": "Filtrar catálogo",
+    "categoryLabel": "Categoría",
+    "segmentLabel": "Para",
+    "all": "Todo",
+    "segments": {
+      "comercio": "Comercio",
+      "alimentos": "Alimentos"
+    },
+    "count": "{count, plural, =0 {Sin piezas} one {# pieza} other {# piezas}}",
+    "empty": "No hay piezas con estos filtros.",
+    "clearFilters": "Quitar filtros",
+    "quote": "Cotizar esta pieza",
+    "details": "Ver ficha",
+    "breadcrumb": "Ruta de navegación",
+    "otherCategories": "Otras categorías"
+  },
+  "product": {
+    "photoAlt": "{name}, foto de muestra",
+    "placeholder": "Foto de {name} por cargar",
+    "morePhotos": "Más fotos",
+    "uses": "Usos típicos",
+    "segments": "Pensada para",
+    "papers": "Papeles disponibles",
+    "calibers": "Calibres",
+    "rules": "A tener en cuenta",
+    "sizes": "Tamaños estándar",
+    "sizesNote": "Medidas interiores en centímetros (largo × ancho × alto). También hacemos tamaños a tu medida.",
+    "sizeLabel": "{name}: {l} × {w} × {h} cm",
+    "print": "Impresión",
+    "printNote": "Por fuera, por dentro o en ambas caras; solo el logo o toda la superficie.",
+    "finishes": "Acabados",
+    "food": "Aptitud alimentaria",
+    "foodNote": "La eliges al cotizar según lo que vas a empacar.",
+    "conditionsTitle": "Condiciones",
+    "noMinimum": "Sin cantidad mínima ni máxima.",
+    "leadTime": "Entrega en {standard} días; {small} días en volúmenes menores.",
+    "payment": "Pagas {deposit} % al aprobar y {balance} % al recibir.",
+    "quote": "Cotizar esta pieza",
+    "whatsapp": "Preguntar por WhatsApp",
+    "whatsappText": "Hola, quiero cotizar {name} ({code}).",
+    "related": "Otras piezas de {category}"
+  },
+  "gallery": {
+    "title": "Galería de muestras",
+    "metaDescription": "Muestras reales de cajas, bolsas y empaque alimentario con su código para citarlas en tu cotización.",
+    "intro": "Fotos de nuestra maleta con más de 200 muestras reales. Si ves algo parecido a lo que buscas, márcalo y lo agregamos como referencia a tu cotización.",
+    "filtersLabel": "Filtrar muestras",
+    "typeLabel": "Tipo",
+    "segmentLabel": "Para",
+    "all": "Todas",
+    "apply": "Aplicar",
+    "count": "{count, plural, =0 {Sin muestras} one {# muestra} other {# muestras}}",
+    "empty": "No hay muestras con estos filtros.",
+    "clearFilters": "Quitar filtros",
+    "wantThis": "Quiero algo así",
+    "wantThisLabel": "Quiero algo así: usar la muestra {code} como referencia",
+    "whatsapp": "Preguntar por la muestra",
+    "whatsappText": "Hola, me interesa algo como la muestra {code}.",
+    "photoPending": "Foto por cargar"
+  },
+  "howItWorks": {
+    "title": "Cómo funciona",
+    "metaDescription": "Del cotizador a la entrega en 8 pasos: validamos tu solicitud, cotizamos en 24 horas hábiles, verificamos en planta y entregamos en 45 días o menos.",
+    "intro": "Ocho pasos, de la primera consulta a la recompra. En cada uno sabes qué haces tú, qué hacemos nosotros y qué ves en tu enlace de seguimiento.",
+    "you": "Tú",
+    "us": "Nosotros",
+    "see": "Lo que ves",
+    "time": "Tiempo",
+    "steps": {
+      "discover": {
+        "title": "Descubres y exploras",
+        "you": "Miras el catálogo y las muestras reales de la maleta.",
+        "us": "Mantenemos fichas con fotos, usos y materiales por tipo de pieza.",
+        "see": "Fichas con el botón «Cotizar esta pieza»."
+      },
+      "configure": {
+        "title": "Configuras y envías",
+        "you": "Completas el cotizador y subes tu arte, o nos dices que aún no lo tienes.",
+        "us": "Recibimos tu solicitud con número y ficha técnica.",
+        "see": "Un resumen tipo ficha técnica, las condiciones y tu número de solicitud.",
+        "time": "5 minutos"
+      },
+      "validate": {
+        "title": "Validamos",
+        "you": "Respondes si te pedimos algún dato.",
+        "us": "Revisamos que esté completa, pedimos lo que falte y enviamos la ficha a la fábrica.",
+        "see": "El estado de tu solicitud y la lista exacta de lo que falte."
+      },
+      "quote": {
+        "title": "Cotizamos",
+        "you": "Recibes la cotización por correo y WhatsApp.",
+        "us": "Registramos el costo de fábrica y preparamos la cotización formal.",
+        "see": "Precio por cantidad, vigencia, plazo y condiciones, con un botón para aceptar.",
+        "time": "24 horas hábiles como máximo"
+      },
+      "approve": {
+        "title": "Apruebas y pagas el anticipo",
+        "you": "Apruebas la prueba digital de tu diseño y pagas el 50 %.",
+        "us": "Confirmamos el pago y liberamos la orden a la fábrica.",
+        "see": "Tu pedido con la fecha estimada de entrega."
+      },
+      "produce": {
+        "title": "Producimos y verificamos",
+        "you": "Sigues el avance desde tu enlace.",
+        "us": "Coordinamos la producción en Perú y viajamos a la planta a verificar tu pedido.",
+        "see": "Cada hito con fotos y video de la verificación."
+      },
+      "deliver": {
+        "title": "Embarcamos y entregamos",
+        "you": "Recibes, revisas y pagas el 50 % restante.",
+        "us": "Gestionamos el embarque, la aduana y la entrega.",
+        "see": "Seguimiento, fecha estimada de llegada y recordatorio del saldo.",
+        "time": "45 días; 30 en volúmenes menores"
+      },
+      "reorder": {
+        "title": "Repites cuando quieras",
+        "you": "Pides de nuevo con la misma especificación.",
+        "us": "Te contactamos cuando se acerque tu reposición.",
+        "see": "Tu historial y el botón «Pedir de nuevo»."
+      }
+    },
+    "cta": "Empezar mi cotización"
+  },
+  "sustainability": {
+    "title": "Sostenibilidad",
+    "metaDescription": "Empaques de papel y cartón con opciones de papel reciclado, fibra de origen certificado, compostables y sin plástico, respaldadas por ficha técnica.",
+    "intro": "El papel y el cartón son la base de todo lo que fabricamos. Sobre eso, puedes pedir atributos ambientales concretos para tu pieza.",
+    "attributesTitle": "Opciones que puedes pedir",
+    "commitmentTitle": "Cómo lo respaldamos",
+    "commitment": "Solo publicamos un atributo cuando la fábrica lo respalda con ficha técnica o certificado vigente. Si tu cadena o tu cliente exige un certificado específico, dínoslo en el cotizador y te confirmamos qué material lo cumple.",
+    "cta": "Cotizar con estos atributos"
+  },
+  "clients": {
+    "title": "Clientes",
+    "metaDescription": "Empaque para cadenas internacionales de comida rápida, grandes almacenes y marcas que necesitan especificación estricta y evidencia de calidad.",
+    "intro": "Hemos producido para cadenas internacionales de comida rápida y grandes almacenes. Esto es lo que esas marcas exigen y cómo lo cumplimos con cualquier cliente.",
+    "demands": {
+      "specTitle": "Especificación estricta",
+      "specBody": "Cada pieza sale con una ficha técnica formal: tipo, medidas, papel, calibre, tintas y acabados, con códigos que lee la fábrica.",
+      "proofTitle": "Nada se produce sin tu aprobación",
+      "proofBody": "Revisamos tu arte y te enviamos una prueba digital. Producimos solo cuando la apruebas.",
+      "qaTitle": "Evidencia de calidad",
+      "qaBody": "Nuestro equipo verifica el pedido en planta contra la especificación y te deja fotos y video en tu enlace de seguimiento.",
+      "docsTitle": "Documentación en un solo lugar",
+      "docsBody": "Cotización, ficha técnica y comprobantes quedan en tu enlace, sin buscarlos en chats."
+    },
+    "logosNote": "Mostramos nombres y logos de clientes solo con su autorización escrita.",
+    "cta": "Cotizar para mi marca"
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "metaDescription": "Cantidad mínima, tiempos de entrega, forma de pago, formatos de arte y más sobre cómo cotizar tus empaques.",
+    "intro": "Si tu pregunta no está aquí, escríbenos por WhatsApp.",
+    "items": {
+      "minimum": {
+        "q": "¿Hay cantidad mínima?",
+        "a": "No. Tampoco hay máximo: la fábrica trabaja con maquinaria de gran escala."
+      },
+      "leadTime": {
+        "q": "¿Cuánto tarda?",
+        "a": "45 días, o 30 días en volúmenes menores. En el cotizador ves el plazo estimado según tu cantidad."
+      },
+      "payment": {
+        "q": "¿Cómo se paga?",
+        "a": "50 % al aprobar la cotización y 50 % contra entrega, por transferencia o ACH."
+      },
+      "whatToQuote": {
+        "q": "¿Qué necesito para cotizar?",
+        "a": "Tipo de empaque, tamaño, material, cantidad, qué vas a empacar y, si lleva impresión, el arte. Si no sabes algún dato, el cotizador te ayuda o te asesoramos."
+      },
+      "whyNoPrice": {
+        "q": "¿Por qué no veo el precio en línea?",
+        "a": "Porque cada pieza se cotiza a su medida: el precio cambia con el material, la impresión, la cantidad y el flete. Así te damos el mejor precio para tu caso, en un máximo de 24 horas hábiles."
+      },
+      "formats": {
+        "q": "¿Qué formatos de arte aceptan?",
+        "a": "PDF, AI, EPS o SVG. PNG y JPG sirven solo como referencia visual."
+      },
+      "design": {
+        "q": "¿Pueden diseñar el arte?",
+        "a": "Indícalo en el cotizador con la opción «Necesito que lo diseñen» y un asesor te cuenta las opciones."
+      },
+      "samples": {
+        "q": "¿Envían muestras?",
+        "a": "Consulta con tu asesor qué muestras podemos enviarte para tu pieza."
+      },
+      "food": {
+        "q": "¿Es apto para alimentos?",
+        "a": "Sí, según el material que elijas. En el cotizador indicas si va en contacto directo con el alimento, con grasa, calor o frío."
+      },
+      "delivery": {
+        "q": "¿Dónde entregan?",
+        "a": "En Panamá, en la dirección que nos indiques. Si estás en otro país, escríbenos y lo revisamos."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contacto",
+    "metaDescription": "Escríbenos por WhatsApp o correo para cotizar tus empaques.",
+    "intro": "La forma más rápida de hablar con nosotros es WhatsApp. Si ya tienes una solicitud, incluye su número (por ejemplo, S-2026-00123).",
+    "whatsappTitle": "WhatsApp",
+    "whatsappCta": "Abrir WhatsApp",
+    "emailTitle": "Correo",
+    "quoteTitle": "¿Ya sabes lo que necesitas?",
+    "quoteBody": "El cotizador toma 5 minutos y nos da todo lo que la fábrica necesita para costear tu pieza.",
+    "quoteCta": "Cotiza en 5 minutos"
+  },
+  "about": {
+    "title": "Nosotros",
+    "metaDescription": "Empaques de papel y cartón con fábrica propia en Perú y atención directa desde Panamá.",
+    "intro": "Vendemos empaques de papel y cartón fabricados en nuestra planta en Perú, con maquinaria industrial de gran escala. Atendemos desde Panamá y viajamos a la planta para verificar cada pedido.",
+    "sloganTitle": "Por qué decimos que probamos que somos los mejores",
+    "sloganBody": "Porque no te pedimos que nos creas: te mostramos la muestra, la ficha técnica, la prueba de tu diseño y las fotos de tu pedido en planta antes de que llegue.",
+    "reasons": {
+      "factoryTitle": "Fábrica propia, sin límite de volumen",
+      "factoryBody": "Puedes pedir 500 o 500.000 unidades.",
+      "financeTitle": "Financiamos la producción",
+      "financeBody": "Solo pagas 50 % al aprobar y 50 % al recibir.",
+      "qaTitle": "Verificamos en planta",
+      "qaBody": "Recibes el producto tal cual se pactó, con evidencia.",
+      "directTitle": "Atención directa",
+      "directBody": "Hablas con quien viaja a la planta."
+    },
+    "cta": "Cotiza en 5 minutos"
+  },
+  "legal": {
+    "updated": "Última actualización: {date}",
+    "draftNote": "Documento en revisión legal antes del lanzamiento.",
+    "privacy": {
+      "title": "Política de privacidad",
+      "metaDescription": "Cómo tratamos tus datos personales conforme a la Ley 81 de 2019 de Panamá.",
+      "sections": {
+        "who": {
+          "title": "Quién trata tus datos",
+          "body": "{brand} es responsable de los datos que nos das al cotizar, escribirnos o hacer un pedido. Para cualquier consulta sobre tus datos escríbenos a {email}."
+        },
+        "what": {
+          "title": "Qué datos recogemos",
+          "body": "Datos de contacto (nombre, cargo, empresa, RUC si lo das, correo, WhatsApp, ciudad y dirección de entrega), la especificación de tu solicitud, los archivos de arte y referencias que subes, y datos técnicos de navegación (páginas visitadas y origen de la visita)."
+        },
+        "why": {
+          "title": "Para qué los usamos",
+          "body": "Para preparar tu cotización, pedir costos a la fábrica, producir y entregar tu pedido, enviarte avisos sobre tu solicitud y medir el uso del sitio para mejorarlo. No vendemos tus datos."
+        },
+        "share": {
+          "title": "Con quién los compartimos",
+          "body": "Con la fábrica, solo la especificación y el arte necesarios para producir tu pedido, y con proveedores que nos prestan servicios (alojamiento, correo y analítica) bajo obligación de confidencialidad."
+        },
+        "retention": {
+          "title": "Cuánto tiempo los guardamos",
+          "body": "Los datos de solicitudes y pedidos, mientras exista la relación comercial y lo que exija la ley. Los archivos de arte, hasta 24 meses después de tu último pedido."
+        },
+        "rights": {
+          "title": "Tus derechos",
+          "body": "Conforme a la Ley 81 de 2019 de Panamá puedes pedir acceso, rectificación, cancelación u oposición al tratamiento de tus datos, y su portabilidad. Escríbenos a {email} y te respondemos en los plazos que fija la ley."
+        },
+        "consent": {
+          "title": "Consentimiento",
+          "body": "Al enviar una solicitud aceptas este tratamiento. Puedes retirar tu consentimiento cuando quieras escribiéndonos."
+        },
+        "security": {
+          "title": "Seguridad",
+          "body": "Guardamos tus archivos en almacenamiento privado con enlaces de acceso que caducan, y solo el equipo asignado a tu solicitud puede verlos."
+        }
+      }
+    },
+    "terms": {
+      "title": "Términos y condiciones",
+      "metaDescription": "Condiciones de cotización, pago, plazos de entrega y calidad de los pedidos.",
+      "sections": {
+        "quotes": {
+          "title": "Cotizaciones",
+          "body": "Cada cotización es personal y se emite en dólares estadounidenses (USD). Tiene una vigencia de {validity} días calendario; después se recotiza, porque los costos de materia prima y flete pueden cambiar."
+        },
+        "payment": {
+          "title": "Forma de pago",
+          "body": "Pagas {deposit} % de anticipo al aceptar la cotización y {balance} % contra entrega, por transferencia o ACH, con comprobante."
+        },
+        "leadTime": {
+          "title": "Plazo de entrega",
+          "body": "La entrega es en 45 días, o en 30 días en volúmenes menores. El plazo corre desde que se cumplen las dos condiciones: anticipo confirmado y prueba de diseño aprobada. Incluye producción y tránsito hasta la dirección de entrega pactada."
+        },
+        "artwork": {
+          "title": "Arte y prueba de diseño",
+          "body": "Ningún pedido con impresión entra en producción sin que apruebes la prueba digital. Tu aprobación queda registrada con fecha y hora."
+        },
+        "changes": {
+          "title": "Cambios después de aprobar",
+          "body": "Si cambias el arte, la cantidad o el material después del anticipo, emitimos una nueva cotización y la fecha de entrega puede moverse."
+        },
+        "tolerances": {
+          "title": "Tolerancias",
+          "body": "Las tolerancias de cantidad entregada y de color en impresión son las de la ficha técnica de fábrica que acompaña tu cotización."
+        },
+        "quality": {
+          "title": "Calidad y reclamos",
+          "body": "Verificamos tu pedido en planta contra la especificación aprobada y dejamos las evidencias en tu enlace de seguimiento. Si algo no coincide con lo pactado, escríbenos con fotos del producto recibido y lo revisamos contra la especificación y las evidencias."
+        },
+        "noMinimum": {
+          "title": "Cantidades",
+          "body": "No hay cantidad mínima ni máxima. Los tamaños personalizados siempre se admiten; pueden cambiar el plazo y el precio."
+        }
+      }
+    }
+  },
+  "quoteSoon": {
+    "title": "Cotiza tu empaque",
+    "body": "Mientras terminamos el cotizador en línea, cuéntanos por WhatsApp qué necesitas y te enviamos la cotización formal.",
+    "cta": "Cotizar por WhatsApp",
+    "whatsappText": "Hola, quiero cotizar empaques."
+  },
+  "seo": {
+    "organizationDescription": "Empaques de papel y cartón a tu medida con fábrica propia en Perú: cajas, bolsas y empaque alimentario."
+  },
+  "notFound": {
+    "title": "No encontramos esta página",
+    "body": "Puede que el enlace esté mal escrito o que la pieza ya no esté en el catálogo.",
+    "catalog": "Ver el catálogo",
+    "home": "Ir al inicio"
   }
 }
