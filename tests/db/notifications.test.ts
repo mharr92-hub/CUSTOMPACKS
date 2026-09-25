@@ -10,7 +10,7 @@ const { getSql } = await import("@/lib/db/client");
 const { saveDraft } = await import("@/lib/quote/drafts");
 const { submitDraft } = await import("@/lib/quote/submit");
 const { emptyItem, initialWizardState } = await import("@/lib/quote/types");
-const { checkSlaOverdue, markWhatsappSent, processNotificationQueue } = await import("@/lib/notify");
+const { checkSlaOverdue, enqueueNotification, markWhatsappSent, processNotificationQueue } = await import("@/lib/notify");
 type CurrentUser = import("@/lib/auth").CurrentUser;
 
 beforeAll(async () => {
@@ -86,9 +86,8 @@ describe("notificaciones por evento (§12)", () => {
   });
 
   it("nunca sale un mensaje incompleto: sin datos de la cotización, «Cotización enviada» queda como fallida", async () => {
-    const sql = testSql();
     const r = await submitRequest();
-    for (const s of ["in_review", "rfq_sent", "quoted"]) await sql`update public.quote_requests set status = ${s}::public.request_status where id = ${r.requestId}`;
+    await enqueueNotification("quote_sent", r.requestId, { dedupe: `test:${r.requestId}` });
     await processNotificationQueue(200);
     const quote = (await notificationsOf(r.requestId)).find((n) => n.template_code === "quote_sent");
     expect(quote?.status).toBe("failed");

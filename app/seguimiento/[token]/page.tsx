@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { FileTextIcon } from "lucide-react";
 import { PortalArtwork, type PortalPiece } from "@/components/artwork/portal-artwork";
+import { ClientQuote } from "@/components/portal/client-quote";
 import { PendingReply } from "@/components/portal/pending-reply";
 import { WhatsAppIcon } from "@/components/site/whatsapp-fab";
 import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
 import { listPortalArtwork } from "@/lib/artwork/client-portal";
 import { formatDateTime } from "@/lib/format";
+import { getClientQuote } from "@/lib/quotes";
 import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
 import { specPdfPath } from "@/lib/quote/links";
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
@@ -33,7 +35,7 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
   const t = await getTranslations("tracking");
   const ts = await getTranslations("spec");
   const specT: SpecTranslator = (key, values) => ts(key as "none", values as never);
-  const [files, catalog] = await Promise.all([listPortalArtwork(token), getPublicCatalog()]);
+  const [files, catalog, quote] = await Promise.all([listPortalArtwork(token), getPublicCatalog(), getClientQuote(token)]);
   // Arte: piezas con impresión o con archivos ya cargados.
   const artPieces: PortalPiece[] = request.items
     .filter((item) => item.spec.artwork !== "not_applicable" || files.some((f) => f.itemId === item.id))
@@ -73,6 +75,22 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
       </section>
 
       {request.status === "data_pending" ? <PendingReply token={token} list={request.pendingList} /> : null}
+      {quote ? (
+        <ClientQuote
+          token={token}
+          contactName={request.contactName}
+          quote={{
+            id: quote.id,
+            number: quote.number,
+            status: quote.status,
+            validUntil: quote.validUntil,
+            acceptedAt: quote.acceptedAt?.toISOString() ?? null,
+            acceptedByName: quote.acceptedByName,
+            acceptedSelection: quote.acceptedSelection,
+            options: quote.options,
+          }}
+        />
+      ) : null}
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Button asChild variant="outline">

@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireStaff } from "@/lib/auth";
 import { log } from "@/lib/log";
-import { runDueJobs } from "@/lib/notify";
+import { runDueJobs } from "@/lib/jobs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin");

@@ -238,16 +238,6 @@ export async function checkSlaOverdue(now: Date = new Date()): Promise<number> {
   return queued;
 }
 
-/**
- * Procesos que corren "cuando toca": la cola en cada llamada y el SLA cada 10
- * minutos como máximo. Los llama el cron diario y, para no depender de un plan
- * pago de crons, también el uso del panel (D-054).
- */
-export async function runDueJobs(): Promise<void> {
-  if (await claimJob("sla", 10)) await checkSlaOverdue();
-  await processNotificationQueue();
-}
-
 // ---------------------------------------------------------------------------
 // Panel
 // ---------------------------------------------------------------------------

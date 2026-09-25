@@ -1,44 +1,17 @@
 import "server-only";
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Page, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { brand } from "@/config/brand";
 import { serverT } from "@/lib/i18n";
 import type { LeadTimeSettings } from "@/lib/leadtime";
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
 import type { TrackingRequest } from "@/lib/quote/tracking";
+import { pdf as s, PdfRow as Row } from "./common";
 import { registerPdfFonts } from "./fonts";
 
 /**
  * Ficha técnica de la solicitud en PDF (PRD §8 "Salida de una solicitud"):
  * marca, número, datos del cliente y la ficha de cada pieza. Sin precios.
  */
-const s = StyleSheet.create({
-  page: { fontFamily: "Inter", fontSize: 9.5, color: "#15130f", paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", borderBottomWidth: 2, borderBottomColor: "#1e4a36", paddingBottom: 10 },
-  brand: { fontSize: 16, fontWeight: 800, color: "#1e4a36" },
-  title: { fontSize: 20, fontWeight: 800, marginTop: 2 },
-  meta: { textAlign: "right", color: "#5b5448" },
-  number: { fontSize: 12, fontWeight: 800, color: "#15130f" },
-  block: { marginTop: 16 },
-  blockTitle: { fontSize: 11, fontWeight: 800, marginBottom: 6, color: "#1e4a36" },
-  row: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: "#e4ddd2", paddingVertical: 3.5 },
-  label: { width: 140, color: "#5b5448" },
-  value: { flex: 1 },
-  piece: { marginTop: 16, borderWidth: 0.75, borderColor: "#e4ddd2", borderRadius: 3 },
-  pieceHeader: { backgroundColor: "#ebdcc6", paddingVertical: 6, paddingHorizontal: 8, fontWeight: 800, fontSize: 10.5 },
-  pieceBody: { paddingHorizontal: 8, paddingBottom: 4 },
-  conditions: { marginTop: 18, padding: 8, backgroundColor: "#f3f1ed", color: "#15130f" },
-  footer: { position: "absolute", bottom: 22, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", fontSize: 8, color: "#5b5448" },
-});
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={s.row} wrap={false}>
-      <Text style={s.label}>{label}</Text>
-      <Text style={s.value}>{value}</Text>
-    </View>
-  );
-}
-
 function SpecSheetDocument({ request, conditions }: { request: TrackingRequest; conditions: SheetConditions }) {
   const t = serverT("pdf");
   const ts = serverT("spec");
@@ -82,7 +55,7 @@ function SpecSheetDocument({ request, conditions }: { request: TrackingRequest; 
           </View>
         ))}
 
-        <Text style={s.conditions}>
+        <Text style={s.note}>
           {t("conditions", {
             deposit: conditions.depositPct,
             balance: 100 - conditions.depositPct,

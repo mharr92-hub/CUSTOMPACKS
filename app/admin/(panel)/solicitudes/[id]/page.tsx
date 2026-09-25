@@ -5,14 +5,18 @@ import { getTranslations } from "next-intl/server";
 import { StaffArtwork, type StaffPiece } from "@/components/artwork/staff-artwork";
 import { RequestNotifications } from "@/components/notify/request-notifications";
 import { AssignControl, MissingDataControl, NoteForm, StatusControl } from "@/components/panel/request-actions";
+import { QuotePanel, RfqPanel } from "@/components/panel/rfq-quote";
 import { listRequestArtwork } from "@/lib/artwork/staff";
 import { EDITOR_ROLES, requireStaff } from "@/lib/auth";
 import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
+import { getServerEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
 import { listRequestNotifications } from "@/lib/notify";
 import { listTemplates } from "@/lib/notify/templates";
 import { getRequestDetail, getTimeline, listAssignableStaff, type TimelineEntry } from "@/lib/panel/requests";
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
+import { listQuotes } from "@/lib/quotes";
+import { listRfqs } from "@/lib/rfq";
 import { nextStatuses } from "@/lib/states";
 import { signedUrl } from "@/lib/storage";
 import { absoluteUrl } from "@/lib/urls";
@@ -43,13 +47,15 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
   const user = await requireStaff(undefined, `/admin/solicitudes/${id}`);
   const request = await getRequestDetail(user, id);
   if (!request) notFound();
-  const [timeline, artwork, catalog, notifications, templates, staff] = await Promise.all([
+  const [timeline, artwork, catalog, notifications, templates, staff, rfqs, quotes] = await Promise.all([
     getTimeline(user, id),
     listRequestArtwork(user, id),
     getPublicCatalog(),
     listRequestNotifications(user, id),
     listTemplates(user),
     listAssignableStaff(user),
+    listRfqs(user, id),
+    listQuotes(user, id),
   ]);
   const t = await getTranslations("admin.request");
   const ta = await getTranslations("admin");
@@ -102,6 +108,8 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
       if (ref.kind === "photo" && ref.storagePath) photoUrls.set(ref.storagePath, await signedUrl("artwork", ref.storagePath, { expiresIn: 600 }));
     }
   }
+
+  const panelItems = request.items.map((i) => ({ id: i.id, position: i.position, label: i.spec.type?.name ?? ts("typeAdvice"), quantities: i.spec.quantities }));
 
   const describe = (e: TimelineEntry): string => {
     if (e.type === "status") return e.from === null ? t("timeline.created") : t("timeline.status", { status: ta(`statuses.${e.to}`) });
@@ -232,6 +240,51 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
             <h2 className="mb-3 text-lg font-semibold">{ta("artwork.titleShort")}</h2>
             <StaffArtwork requestId={request.id} pieces={pieces} canOpen={artwork.canOpen} canEdit={canEdit} limits={uploadSettings(catalog)} />
           </div>
+
+          <Section id="rfq-title" title={ta("rfq.title")}>
+            <RfqPanel
+              requestId={request.id}
+              items={panelItems}
+              canEdit={canEdit}
+              canGenerate={request.status === "in_review" || request.status === "rfq_sent"}
+              factoryEmail={Boolean(getServerEnv().factoryEmail)}
+              rfqs={rfqs.map((r) => ({
+                id: r.id,
+                number: r.number,
+                createdAt: r.createdAt.toISOString(),
+                sentAt: r.sentAt?.toISOString() ?? null,
+                sentTo: r.sentTo,
+                respondedAt: r.respondedAt?.toISOString() ?? null,
+                costs: r.costs,
+                currency: r.currency,
+                productionDays: r.productionDays,
+                notes: r.notes,
+              }))}
+            />
+          </Section>
+
+          <Section id="quote-title" title={ta("quote.title")}>
+            <QuotePanel
+              requestId={request.id}
+              items={panelItems}
+              canEdit={canEdit}
+              canPrepare={["rfq_sent", "quoted", "expired"].includes(request.status) && (rfqs.some((r) => r.respondedAt) || quotes.length > 0)}
+              quotes={quotes.map((q) => ({
+                id: q.id,
+                number: q.number,
+                status: q.status,
+                lines: q.lines,
+                currency: q.currency,
+                validUntil: q.validUntil,
+                notes: q.notes,
+                sentAt: q.sentAt?.toISOString() ?? null,
+                acceptedAt: q.acceptedAt?.toISOString() ?? null,
+                acceptedByName: q.acceptedByName,
+                acceptedSelection: q.acceptedSelection,
+                hasPdf: q.hasPdf,
+              }))}
+            />
+          </Section>
 
           <Section id="timeline-title" title={t("timelineTitle")}>
             {canEdit ? (

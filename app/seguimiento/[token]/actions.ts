@@ -6,6 +6,7 @@ import type { ConfirmResult, SlotResult } from "@/lib/artwork/upload-types";
 import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { clientInfo } from "@/lib/http/client-info";
 import { kickNotifications } from "@/lib/notify";
+import { acceptQuote, requestQuoteChanges, type QuoteResult } from "@/lib/quotes";
 
 /*
  * Acciones del portal del cliente (enlace seguro). Todo se valida contra el
@@ -49,6 +50,29 @@ export async function approveProofAction(token: string, fileId: string, name: st
 export async function clientReplyAction(token: string, text: string): Promise<ReplyResult> {
   if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
   const result = await clientReply(token, String(text));
+  if (result.ok) {
+    kickNotifications();
+    revalidatePath(`/seguimiento/${token}`);
+  }
+  return result;
+}
+
+/** Aceptar la cotización eligiendo una cantidad por pieza (registra fecha, nombre, IP y navegador). */
+export async function acceptQuoteAction(token: string, quoteId: string, input: { name: string; selection: { itemId: string; quantity: number }[] }): Promise<QuoteResult> {
+  if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  const selection = Array.isArray(input.selection) ? input.selection.map((s) => ({ itemId: String(s.itemId), quantity: Number(s.quantity) })) : [];
+  const result = await acceptQuote(token, String(quoteId), { name: String(input.name ?? ""), selection, ...(await clientInfo()) });
+  if (result.ok) {
+    kickNotifications();
+    revalidatePath(`/seguimiento/${token}`);
+  }
+  return result;
+}
+
+/** "Pedir cambios" a la cotización. */
+export async function requestQuoteChangesAction(token: string, quoteId: string, text: string): Promise<QuoteResult> {
+  if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  const result = await requestQuoteChanges(token, String(quoteId), String(text));
   if (result.ok) {
     kickNotifications();
     revalidatePath(`/seguimiento/${token}`);

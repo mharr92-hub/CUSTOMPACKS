@@ -38,6 +38,7 @@ export default defineConfig({
         stderr: "pipe",
         env: {
           ADMIN_EMAIL: "admin@provenpack.test",
+          FACTORY_EMAIL: "fabrica@provenpack.test",
           NEXT_PUBLIC_SITE_URL: baseURL,
           // Base aislada para e2e, recreada en cada corrida (no toca los datos de desarrollo).
           LOCAL_DB_PORT: "54323",

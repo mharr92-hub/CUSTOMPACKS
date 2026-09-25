@@ -8,6 +8,8 @@ import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { assertStaff, EDITOR_ROLES } from "@/lib/auth";
 import { kickNotifications, markWhatsappSent } from "@/lib/notify";
 import { addRequestNote, assignRequest, changeRequestStatus, requestMissingData, type ActionResult } from "@/lib/panel/requests";
+import { createQuoteDraft, issueQuote, quoteFileUrl, updateQuoteDraft, type QuoteDraftInput, type QuoteResult } from "@/lib/quotes";
+import { generateRfq, recordRfqResponse, rfqFileUrl, sendRfq, type RfqResponseInput, type RfqResult } from "@/lib/rfq";
 import type { RequestStatus } from "@/lib/states";
 
 /* Acciones del equipo sobre el arte de una solicitud (asignado o admin; lo valida la base). */
@@ -114,4 +116,85 @@ export async function addNoteAction(requestId: string, input: { channel: string;
   const result = await addRequestNote(user, String(requestId), { channel: String(input.channel), body: String(input.body) });
   if (result.ok) revalidatePath(`/admin/solicitudes/${requestId}`);
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// RFQ y cotización (E7)
+// ---------------------------------------------------------------------------
+function refresh(requestId: string) {
+  revalidatePath(`/admin/solicitudes/${requestId}`);
+  revalidatePath("/admin/solicitudes");
+}
+
+export async function generateRfqAction(requestId: string): Promise<RfqResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await generateRfq(user, String(requestId));
+  if (result.ok) refresh(requestId);
+  return result.ok ? { ok: true } : result;
+}
+
+export async function sendRfqAction(requestId: string, rfqId: string): Promise<RfqResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await sendRfq(user, String(rfqId));
+  if (result.ok) refresh(requestId);
+  return result;
+}
+
+export async function recordRfqResponseAction(requestId: string, rfqId: string, input: RfqResponseInput): Promise<RfqResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await recordRfqResponse(user, String(rfqId), {
+    costs: Array.isArray(input.costs) ? input.costs.map((c) => ({ itemId: String(c.itemId), quantity: Number(c.quantity), unitCost: String(c.unitCost) })) : [],
+    currency: String(input.currency ?? "USD"),
+    productionDays: String(input.productionDays ?? ""),
+    notes: String(input.notes ?? ""),
+  });
+  if (result.ok) refresh(requestId);
+  return result;
+}
+
+export async function rfqFileUrlAction(rfqId: string, kind: "pdf" | "xlsx"): Promise<string | null> {
+  const user = await assertStaff();
+  return rfqFileUrl(user, String(rfqId), kind === "xlsx" ? "xlsx" : "pdf");
+}
+
+export async function createQuoteDraftAction(requestId: string): Promise<QuoteResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await createQuoteDraft(user, String(requestId));
+  if (result.ok) refresh(requestId);
+  return result.ok ? { ok: true } : result;
+}
+
+export async function updateQuoteDraftAction(requestId: string, quoteId: string, input: QuoteDraftInput): Promise<QuoteResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await updateQuoteDraft(user, String(quoteId), {
+    lines: Array.isArray(input.lines)
+      ? input.lines.map((l) => ({
+          itemId: String(l.itemId),
+          quantity: Number(l.quantity),
+          unitCost: String(l.unitCost),
+          freightTotal: String(l.freightTotal),
+          marginPct: String(l.marginPct),
+          leadTimeDays: String(l.leadTimeDays),
+        }))
+      : [],
+    validUntil: String(input.validUntil ?? ""),
+    notes: String(input.notes ?? ""),
+  });
+  if (result.ok) refresh(requestId);
+  return result.ok ? { ok: true } : result;
+}
+
+export async function issueQuoteAction(requestId: string, quoteId: string): Promise<QuoteResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await issueQuote(user, String(quoteId));
+  if (result.ok) {
+    kickNotifications();
+    refresh(requestId);
+  }
+  return result.ok ? { ok: true } : result;
+}
+
+export async function quoteFileUrlAction(quoteId: string): Promise<string | null> {
+  const user = await assertStaff();
+  return quoteFileUrl(user, String(quoteId));
 }
