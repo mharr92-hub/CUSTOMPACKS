@@ -24,6 +24,8 @@ export type TrackingRequest = {
   submittedAt: Date;
   items: { id: string; position: number; spec: ItemSpec }[];
   history: { status: RequestStatus; at: Date }[];
+  /** Lo que pidió el equipo al pasar a "Datos pendientes" (solo mientras sigue en ese estado). */
+  pendingList: string | null;
 };
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{32,64}$/;
@@ -54,8 +56,9 @@ async function load(actor: Actor, where: { token?: string; id?: string }): Promi
     if (!r) return null;
     const items = await tx<{ id: string; position: number; spec_snapshot: ItemSpec }[]>`
       select id, position, spec_snapshot from public.quote_items where request_id = ${r.id} order by position`;
-    const history = await tx<{ to_status: RequestStatus; changed_at: Date }[]>`
-      select to_status, changed_at from public.quote_request_status_log where request_id = ${r.id} order by changed_at`;
+    const history = await tx<{ to_status: RequestStatus; changed_at: Date; reason: string | null }[]>`
+      select to_status, changed_at, reason from public.quote_request_status_log where request_id = ${r.id} order by changed_at`;
+    const pending = r.status === "data_pending" ? [...history].reverse().find((h) => h.to_status === "data_pending") : undefined;
     return {
       id: r.id,
       number: r.number,
@@ -71,6 +74,7 @@ async function load(actor: Actor, where: { token?: string; id?: string }): Promi
       submittedAt: r.submitted_at,
       items: items.map((i) => ({ id: i.id, position: i.position, spec: i.spec_snapshot })),
       history: history.map((h) => ({ status: h.to_status, at: h.changed_at })),
+      pendingList: pending?.reason ?? null,
     };
   });
 }

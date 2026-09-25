@@ -1,6 +1,7 @@
 import "server-only";
 import { serviceActor, withActor } from "@/lib/db/actor";
 import { getRequestByToken } from "@/lib/quote/tracking";
+import { enqueueNotification } from "@/lib/notify";
 import { signedUrl } from "@/lib/storage";
 import type { ArtworkStatus, Checklist } from "./states";
 
@@ -105,4 +106,29 @@ export async function approveProof(
       values (${request.id}, 'artwork_file', ${file.id}, 'system', 'proof_approved', ${name}, ${tx.json({ ip: input.ip })})`;
     return { ok: true, approvedAt: approval?.approved_at ?? new Date() } as const;
   });
+}
+
+export type ReplyResult = { ok: true } | { ok: false; error: "not_found" | "body" | "status" };
+
+/**
+ * Respuesta del cliente desde su enlace mientras la solicitud espera datos
+ * (PRD §11: "todo contacto se registra en la solicitud"). Queda en el
+ * historial y avisa al equipo.
+ */
+export async function clientReply(accessToken: string, text: string): Promise<ReplyResult> {
+  const body = text.trim().slice(0, 4000);
+  if (body.length < 2) return { ok: false, error: "body" };
+  const request = await getRequestByToken(accessToken);
+  if (!request) return { ok: false, error: "not_found" };
+  if (request.status !== "data_pending") return { ok: false, error: "status" };
+  await withActor(serviceActor, (tx) => tx`
+    insert into public.activities (request_id, entity_type, entity_id, channel, kind, body)
+    values (${request.id}, 'quote_request', ${request.id}, 'system', 'client_reply', ${body})`);
+  await enqueueNotification("client_replied", request.id, {
+    entityType: "quote_request",
+    entityId: request.id,
+    vars: { respuesta: body.length > 300 ? `${body.slice(0, 299)}…` : body },
+    dedupe: `client_reply:${request.id}:${Date.now()}`,
+  });
+  return { ok: true };
 }

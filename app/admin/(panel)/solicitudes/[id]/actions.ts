@@ -7,6 +7,8 @@ import type { ConfirmResult, SlotResult } from "@/lib/artwork/upload-types";
 import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { assertStaff, EDITOR_ROLES } from "@/lib/auth";
 import { kickNotifications, markWhatsappSent } from "@/lib/notify";
+import { addRequestNote, assignRequest, changeRequestStatus, requestMissingData, type ActionResult } from "@/lib/panel/requests";
+import type { RequestStatus } from "@/lib/states";
 
 /* Acciones del equipo sobre el arte de una solicitud (asignado o admin; lo valida la base). */
 
@@ -62,4 +64,54 @@ export async function markWhatsappSentAction(requestId: string, notificationId: 
   const ok = await markWhatsappSent(user, String(notificationId));
   if (ok) revalidatePath(`/admin/solicitudes/${requestId}`);
   return ok;
+}
+
+/** Tomar la solicitud, asignarla a alguien o al siguiente en turno. */
+export async function assignAction(requestId: string, to: string): Promise<ActionResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await assignRequest(user, String(requestId), String(to));
+  if (result.ok) {
+    revalidatePath(`/admin/solicitudes/${requestId}`);
+    revalidatePath("/admin/solicitudes");
+  }
+  return result.ok ? { ok: true } : result;
+}
+
+export async function changeStatusAction(
+  requestId: string,
+  to: RequestStatus,
+  opts: { reason?: string; lossReason?: string; lossNote?: string },
+): Promise<ActionResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await changeRequestStatus(user, String(requestId), to, {
+    reason: String(opts.reason ?? ""),
+    lossReason: String(opts.lossReason ?? ""),
+    lossNote: String(opts.lossNote ?? ""),
+  });
+  if (result.ok) {
+    kickNotifications();
+    revalidatePath(`/admin/solicitudes/${requestId}`);
+    revalidatePath("/admin/solicitudes");
+  }
+  return result;
+}
+
+/** "Pedir datos faltantes": pasa a Datos pendientes con la lista y avisa al cliente. */
+export async function requestMissingDataAction(requestId: string, list: string): Promise<ActionResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await requestMissingData(user, String(requestId), String(list));
+  if (result.ok) {
+    kickNotifications();
+    revalidatePath(`/admin/solicitudes/${requestId}`);
+    revalidatePath("/admin/solicitudes");
+  }
+  return result;
+}
+
+/** Nota interna o registro de un contacto con el cliente. */
+export async function addNoteAction(requestId: string, input: { channel: string; body: string }): Promise<ActionResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await addRequestNote(user, String(requestId), { channel: String(input.channel), body: String(input.body) });
+  if (result.ok) revalidatePath(`/admin/solicitudes/${requestId}`);
+  return result;
 }

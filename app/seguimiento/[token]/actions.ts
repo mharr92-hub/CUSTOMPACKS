@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { approveProof, portalFileUrl, type ApproveResult } from "@/lib/artwork/client-portal";
+import { approveProof, clientReply, portalFileUrl, type ApproveResult, type ReplyResult } from "@/lib/artwork/client-portal";
 import type { ConfirmResult, SlotResult } from "@/lib/artwork/upload-types";
 import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { clientInfo } from "@/lib/http/client-info";
+import { kickNotifications } from "@/lib/notify";
 
 /*
  * Acciones del portal del cliente (enlace seguro). Todo se valida contra el
@@ -41,5 +42,16 @@ export async function approveProofAction(token: string, fileId: string, name: st
   if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
   const result = await approveProof(token, fileId, { name: String(name), ...(await clientInfo()) });
   if (result.ok) revalidatePath(`/seguimiento/${token}`);
+  return result;
+}
+
+/** Respuesta del cliente a "nos faltan datos". */
+export async function clientReplyAction(token: string, text: string): Promise<ReplyResult> {
+  if (!TOKEN.test(token)) return { ok: false, error: "not_found" };
+  const result = await clientReply(token, String(text));
+  if (result.ok) {
+    kickNotifications();
+    revalidatePath(`/seguimiento/${token}`);
+  }
   return result;
 }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { FileTextIcon } from "lucide-react";
 import { PortalArtwork, type PortalPiece } from "@/components/artwork/portal-artwork";
+import { PendingReply } from "@/components/portal/pending-reply";
 import { WhatsAppIcon } from "@/components/site/whatsapp-fab";
 import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
@@ -70,6 +71,8 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
         </p>
         {t(`statusHelp.${request.status}`) ? <p className="mt-1 text-muted-foreground">{t(`statusHelp.${request.status}`)}</p> : null}
       </section>
+
+      {request.status === "data_pending" ? <PendingReply token={token} list={request.pendingList} /> : null}
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Button asChild variant="outline">
