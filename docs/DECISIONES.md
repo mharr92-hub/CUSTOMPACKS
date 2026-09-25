@@ -640,3 +640,50 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
 - **Hallazgo:** los tokens base64url del borrador y los prefijos de archivo pueden empezar con "-" o "_", y el validador de rutas los rechazaba. Cerca del 3 % de los borradores no podía subir arte, y 1 de cada 32 subidas fallaba al azar. Probablemente es la falla que no se pudo reproducir en E8.
 - **Decisión:** cada segmento de la ruta puede empezar con letra, número, "-" o "_", nunca con "."; siguen prohibidos ".." y los segmentos vacíos. Los prefijos de archivo nuevos son hexadecimales.
 - **Cómo cambiarla:** `SAFE_PATH` en `lib/storage/index.ts`.
+
+### D-094 · 25/09/2026 · Migraciones contra un proyecto de Supabase
+- **Hallazgo:** `pnpm db:migrate` aplicaba siempre el shim local (roles, `auth.users`, `auth.uid()`), también contra Supabase, y `db:reset` borraba los esquemas `auth` y `storage`.
+- **Decisión:** si la base tiene el rol `supabase_admin` (señal de Supabase), `migrate` solo aplica las migraciones y asegura la tabla `supabase_migrations.schema_migrations`, y `reset` se niega. Así `db:migrate` y `db:seed` sirven para el despliegue igual que `supabase db push`, porque usan la misma tabla de migraciones.
+- **Cómo cambiarla:** `isSupabaseDatabase` en `scripts/lib/pg-local.mjs`.
+
+### D-095 · 25/09/2026 · Importación de fotos de la galería
+- **Decisión:**
+  - `pnpm gallery:import <carpeta> [--crear] [--prueba]`. `M-001.jpg` es la foto principal; `M-001-2.jpg` y siguientes, las adicionales.
+  - Se valida el tipo real de cada archivo (hasta 10 MB) y se usa el mismo almacenamiento que el panel.
+  - La ruta del archivo sale de su contenido: repetir la carga no duplica fotos.
+  - Las muestras que falten se crean solo con `--crear`, inactivas y PROVISIONAL, porque su nombre, tipo y papel los completa admin.
+  - El script corre con `tsx` bajo la condición `react-server`, para reutilizar el código del servidor.
+- **Cómo cambiarla:** `lib/catalog/import-gallery.ts`.
+
+### D-096 · 25/09/2026 · Capturas del manual
+- **Decisión:** las capturas de `docs/manual-equipo.md` salen del recorrido completo de Playwright cuando se define `MANUAL_SHOTS_DIR=docs/manual`. Así el manual muestra el flujo probado y se regenera si cambia el panel.
+- **Cómo cambiarla:** función `shot` en `tests/e2e/journey.spec.ts`.
+
+### D-097 · 25/09/2026 · Textos legales y retención del arte
+- **Decisión:**
+  - La política de privacidad se ajustó a lo que hoy trata el sistema: comprobantes de pago, encuesta, IP como constancia al aceptar y aprobar, borradores (30 días), protección contra abusos y registro de errores. Los meses de retención salen de `artwork_retention_months`.
+  - La retención del arte ahora cuenta la actividad del pedido (hitos, entrega, cierre). Antes miraba solo la solicitud y podía marcar el arte de un pedido en curso.
+  - Se recomienda que un abogado en Panamá revise los textos y agregar la razón social y el RUC (`docs/lanzamiento.md`).
+- **Cómo cambiarla:** `messages/es.json` > `legal`; `lib/artwork/retention.ts`.
+
+### D-098 · 25/09/2026 · Editor de cotización en tarjetas
+- **Hallazgo:** el editor era una tabla de 820 px dentro de una columna de unos 600 px: precio unitario y subtotal quedaban fuera de la vista a 1280 px.
+- **Decisión:** cada línea (pieza × cantidad) es una tarjeta con etiquetas visibles, con el precio y el subtotal siempre a la vista. Los formularios de pago del pedido van a 2–3 columnas.
+- **Cómo cambiarla:** `QuoteEditor` en `components/panel/rfq-quote.tsx`.
+
+### D-099 · 25/09/2026 · Criterio de salida del MVP
+- **Decisión:**
+  - El ciclo completo se prueba solo en los dos segmentos, con cada cambio:
+    - comercio con impresión, arte y proof (`journey.spec.ts`);
+    - alimentos sin impresión (`orders.spec.ts`).
+  - La verificación con una solicitud **real** de cada segmento queda como lista para Mark en producción (`docs/lanzamiento.md`, sección 6): no se puede simular con clientes reales.
+- **Cómo cambiarla:** no aplica.
+
+### D-100 · 25/09/2026 · Ensayo local del despliegue
+- **Decisión:** `pnpm verify:deploy` reproduce sin cuentas todo lo que el despliegue permite comprobar:
+  - base nueva, migraciones y seed;
+  - build de producción;
+  - revisión de secretos (también los valores de `AUTH_SECRET` y `CRON_SECRET`);
+  - cabeceras, SEO, acceso, enlaces inventados y crons.
+  - Lo que depende de servicios reales (correo, dominio, Auth de Supabase, GA4) queda en la parte C del checklist de `docs/deploy.md`.
+- **Cómo cambiarla:** `scripts/verify-deploy.mjs`.
