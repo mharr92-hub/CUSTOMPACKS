@@ -13,7 +13,7 @@ import type { ItemSpec } from "@/lib/quote/spec";
 import { getRequestByToken } from "@/lib/quote/tracking";
 import { formatMoney, parseMoney } from "@/lib/quotes/pricing";
 import { readObjectHead, removeObject, signedUploadUrl, signedUrl } from "@/lib/storage";
-import { randomToken } from "@/lib/tokens";
+import { fileNonce } from "@/lib/tokens";
 import { absoluteUrl } from "@/lib/urls";
 import { mergeQaResults, qaChecklistFromSpec, qaComplete, type QaKey, type QaPoint } from "./qa";
 import type { ReorderSource } from "./reorder";
@@ -653,7 +653,7 @@ export async function prepareEvidenceUpload(user: CurrentUser, milestoneId: stri
     select order_id, jsonb_array_length(evidence) as files from public.milestones where id = ${milestoneId}`);
   if (!m) return { ok: false, error: "expired" };
   if (m.files >= MAX_EVIDENCE) return { ok: false, error: "tooMany" };
-  return slot("evidence", `orders/${m.order_id}/${milestoneId}/${randomToken(12)}-${safeName(file.name)}`, file.size, file.name, EVIDENCE_EXT);
+  return slot("evidence", `orders/${m.order_id}/${milestoneId}/${fileNonce()}-${safeName(file.name)}`, file.size, file.name, EVIDENCE_EXT);
 }
 
 export async function confirmEvidenceUpload(user: CurrentUser, milestoneId: string, input: { path: string; name: string }): Promise<UploadConfirm> {
@@ -695,7 +695,7 @@ export async function prepareReceiptUpload(accessToken: string, file: { name: st
   const [pending] = await withActor(serviceActor, (tx) => tx<{ n: number }[]>`
     select count(*)::int as n from public.payments where order_id = ${order.id} and status = 'pending' and uploaded_by_client`);
   if ((pending?.n ?? 0) >= MAX_PENDING_RECEIPTS) return { ok: false, error: "tooMany" };
-  return slot("documents", `orders/${order.id}/receipts/${randomToken(12)}-${safeName(file.name)}`, file.size, file.name, RECEIPT_EXT);
+  return slot("documents", `orders/${order.id}/receipts/${fileNonce()}-${safeName(file.name)}`, file.size, file.name, RECEIPT_EXT);
 }
 
 export async function confirmReceiptUpload(accessToken: string, input: { path: string; name: string }): Promise<UploadConfirm> {

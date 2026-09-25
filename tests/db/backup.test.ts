@@ -18,6 +18,14 @@ afterAll(async () => {
   await closeTestSql();
 });
 
+// En CI las herramientas se instalan: si faltan, es un error, no un "omitido".
+describe.runIf(process.env.CI === "true")("herramientas de respaldo en CI", () => {
+  it("pg_dump y pg_restore 17 están disponibles", () => {
+    expect(hasTools).toBe(true);
+    expect(spawnSync(pgDump, ["--version"], { encoding: "utf8" }).stdout).toMatch(/pg_dump \(PostgreSQL\) 1[7-9]/);
+  });
+});
+
 describe.skipIf(!hasTools)("respaldo diario (pg_dump)", () => {
   it("genera un .dump que se restaura en una base nueva con los mismos datos", async () => {
     const url = inject("databaseUrl");

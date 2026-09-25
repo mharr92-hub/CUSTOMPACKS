@@ -22,7 +22,7 @@ import { CATALOG_TAG } from "@/lib/catalog/public";
 import { detectFileKind, extensionForKind, IMAGE_KINDS, mimeForKind } from "@/lib/files/magic";
 import { log } from "@/lib/log";
 import { publicUrl, putObject } from "@/lib/storage";
-import { randomToken } from "@/lib/tokens";
+import { fileNonce } from "@/lib/tokens";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -132,7 +132,7 @@ export async function uploadPhotoAction(
   try {
     const row = await getEntityRow(user, def, id);
     if (!row) return { status: "error", error: "not_found" };
-    const objectPath = `${def.table}/${id}/${randomToken(9)}.${extensionForKind(kind)}`;
+    const objectPath = `${def.table}/${id}/${fileNonce()}.${extensionForKind(kind)}`;
     await putObject("catalog", objectPath, bytes, mimeForKind(kind));
     const url = publicUrl("catalog", objectPath);
     if (mode === "extra" && def.hasGallery) await addEntityGalleryPhoto(user, def, id, url);

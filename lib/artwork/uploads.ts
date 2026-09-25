@@ -8,7 +8,7 @@ import { log } from "@/lib/log";
 import { loadDraft } from "@/lib/quote/drafts";
 import { getRequestByToken } from "@/lib/quote/tracking";
 import { readObjectHead, removeObject, signedUploadUrl, signedUrl } from "@/lib/storage";
-import { randomToken } from "@/lib/tokens";
+import { fileNonce, randomToken } from "@/lib/tokens";
 import { draftFilePath, isDraftPathFor, isRequestPathFor, requestFilePath, type UploadPurpose } from "./paths";
 
 /**
@@ -88,7 +88,7 @@ export async function prepareUpload(scope: UploadScope, file: { name: string; si
   const owner = await resolveOwner(scope);
   if (!owner) return { ok: false, error: "expired" };
   if (owner.existing >= maxFiles && scope.purpose !== "proof") return { ok: false, error: "tooMany" };
-  const nonce = randomToken(12);
+  const nonce = fileNonce();
   const path =
     "draftToken" in owner
       ? draftFilePath(owner.draftToken, owner.itemKey, scope.purpose, nonce, file.name)

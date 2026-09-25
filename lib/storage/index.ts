@@ -24,7 +24,9 @@ export function isBucketName(value: string): value is BucketName {
   return Object.hasOwn(BUCKETS, value);
 }
 
-const SAFE_PATH = /^[A-Za-z0-9][A-Za-z0-9._-]*(\/[A-Za-z0-9][A-Za-z0-9._-]*)*$/;
+// Cada segmento empieza con letra, número, "-" o "_" (los tokens base64url
+// pueden empezar así), nunca con "."; sin segmentos vacíos ni "..".
+const SAFE_PATH = /^[A-Za-z0-9_-][A-Za-z0-9._-]*(\/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$/;
 
 export function assertSafePath(objectPath: string): void {
   if (!SAFE_PATH.test(objectPath) || objectPath.includes("..")) {
