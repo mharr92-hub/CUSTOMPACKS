@@ -139,12 +139,12 @@ Aceptación: un vendedor toma una solicitud, pide datos faltantes, recibe respue
 
 Objetivo: RFQ a fábrica en PDF y Excel, registro de respuesta, cálculo de precio interno y cotización PDF con aceptación en un clic (§11, §13).
 
-- [ ] Migración `006_quotes_rfq`: `factory_rfqs` (versión, documento_url, enviado_at, respondido_at, costos JSON por cantidad, moneda, tiempo_produccion_dias, observaciones) y `quotes` (número `C-AAAA-NNNNN-vN`, líneas JSON con costo, flete, margen %, precio unitario, subtotal; vigencia; condiciones; pdf_url; estado; aceptada_at; aceptada_por).
-- [ ] Generador RFQ: PDF (`@react-pdf/renderer`) y Excel (SheetJS) con ficha técnica completa por pieza, códigos de catálogo, cantidades, arte adjunto si `released`; envío por correo a `FACTORY_EMAIL` y registro; formato de columnas en `config/rfq-format.ts` para adaptarlo al de la fábrica.
-- [ ] Formulario de respuesta de fábrica (manual): costo por cantidad, tiempo, notas.
-- [ ] Calculadora interna: flete estimado (campo manual), margen por línea editable con valor por defecto en `settings.default_margin_pct` (35 % provisional), precio unitario y subtotal; nunca visible al cliente.
-- [ ] Cotización PDF con marca, precios por cantidad, vigencia (`settings.quote_validity_days`), condiciones 50/50, plazo estimado, notas; versiones; envío por correo y wa.me; página `/seguimiento/[token]` con botón "Aceptar cotización" (registra fecha, usuario, IP) o "Pedir cambios" (texto libre → actividad).
-- [ ] Al aceptar: estado Aceptada y creación automática del pedido (E8 deja el gancho).
+- [x] Migración `006_quotes_rfq`: `factory_rfqs` (versión, documento_url, enviado_at, respondido_at, costos JSON por cantidad, moneda, tiempo_produccion_dias, observaciones) y `quotes` (número `C-AAAA-NNNNN-vN`, líneas JSON con costo, flete, margen %, precio unitario, subtotal; vigencia; condiciones; pdf_url; estado; aceptada_at; aceptada_por).
+- [x] Generador RFQ: PDF (`@react-pdf/renderer`) y Excel (SheetJS) con ficha técnica completa por pieza, códigos de catálogo, cantidades, arte adjunto si `released`; envío por correo a `FACTORY_EMAIL` y registro; formato de columnas en `config/rfq-format.ts` para adaptarlo al de la fábrica.
+- [x] Formulario de respuesta de fábrica (manual): costo por cantidad, tiempo, notas.
+- [x] Calculadora interna: flete estimado (campo manual), margen por línea editable con valor por defecto en `settings.default_margin_pct` (35 % provisional), precio unitario y subtotal; nunca visible al cliente.
+- [x] Cotización PDF con marca, precios por cantidad, vigencia (`settings.quote_validity_days`), condiciones 50/50, plazo estimado, notas; versiones; envío por correo y wa.me; página `/seguimiento/[token]` con botón "Aceptar cotización" (registra fecha, usuario, IP) o "Pedir cambios" (texto libre → actividad).
+- [x] Al aceptar: estado Aceptada y creación automática del pedido (E8 deja el gancho).
 
 Aceptación: de una solicitud verde se genera RFQ sin retipear nada, se registra costo, se emite cotización y el cliente la acepta desde su enlace; la cotización rechazada exige motivo.
 

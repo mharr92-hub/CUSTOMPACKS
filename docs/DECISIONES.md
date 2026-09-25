@@ -435,3 +435,63 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - Pedidos muestra que todavía no hay pedidos; se llena en E8.
   - Reportes muestra el pipeline de solicitudes por estado; E9 suma tiempos, conversión y CSV.
 - **Cómo cambiarla:** `config/admin-nav.ts`.
+
+### D-067 · 24/09/2026 · Cálculo del precio
+- **Duda:** §11 dice "costo de fábrica + flete estimado + margen", sin aclarar si el margen es sobre el costo o sobre el precio.
+- **Decisión:**
+  - El margen es sobre el precio de venta (margen bruto): precio unitario = (costo unitario + flete total ÷ cantidad) ÷ (1 − margen).
+  - El panel muestra al lado el sobrecosto equivalente. El precio unitario va con 4 decimales y el subtotal con 2.
+  - El margen por defecto es `default_margin_pct` (35 %, PROVISIONAL) y se edita por línea.
+  - Costos y márgenes nunca llegan al cliente: por permisos de columna, y el portal no los lee.
+- **Cómo cambiarla:** `priceLine` en `lib/quotes/pricing.ts`.
+
+### D-068 · 24/09/2026 · Precios solo en el PDF
+- **Duda:** CLAUDE.md prohíbe mostrar precios en el portal, y el cliente tiene que aceptar la cotización desde su enlace.
+- **Decisión:**
+  - El portal muestra la cotización sin precios: número, vigencia, "Descargar cotización (PDF)" y, para aceptar, una cantidad a elegir por pieza (solo cantidades).
+  - Los precios están únicamente en el PDF.
+  - La aceptación registra fecha, nombre, correo, IP, navegador y cantidades elegidas, y no se puede modificar.
+- **Cómo cambiarla:** `components/portal/client-quote.tsx`.
+
+### D-069 · 24/09/2026 · Nombre de la migración de E7
+- **Decisión:** TAREAS la llama `006_quotes_rfq`, pero el número 006 ya lo usa el panel de E6. Se llama `007_quotes_rfq`; el orden de los bloques no cambia.
+- **Cómo cambiarla:** no aplica.
+
+### D-070 · 24/09/2026 · RFQ a fábrica
+- **Decisión:**
+  - El formato vive en `config/rfq-format.ts`: una fila por pieza y cantidad, con códigos de catálogo; las cuatro columnas de la fábrica (costo, moneda, días, observaciones) van al final y vacías.
+  - Se generan PDF y Excel. El Excel se arma con SheetJS 0.20.3 del CDN oficial, porque la 0.18.5 de npm tiene vulnerabilidades conocidas.
+  - Regla de §14: ninguna pieza con impresión sale sin al menos un archivo de arte.
+  - Solo viaja el arte liberado, como enlaces firmados de 7 días; no se adjunta, por tamaño.
+  - El correo a `FACTORY_EMAIL` lleva adjuntos el PDF y el Excel. Sin esa variable, el panel lo avisa y los documentos se descargan para enviarlos a mano.
+- **Cómo cambiarla:** `config/rfq-format.ts` y `lib/rfq/`.
+
+### D-071 · 24/09/2026 · Versiones, vigencia y plazo de la cotización
+- **Decisión:**
+  - Numeración `C-AAAA-NNNNN-vN`: todas las versiones comparten el número base.
+  - Al emitir una versión, la anterior queda "Reemplazada". Si el cliente pide cambios, la cotización queda en "Cambios pedidos" hasta la versión nueva.
+  - La vigencia por defecto es `quote_validity_days` (15, PROVISIONAL) y se ajusta en cada cotización.
+  - El plazo va por línea según la cantidad (30/45 días de `settings`) y es editable.
+- **Cómo cambiarla:** `lib/quotes/index.ts`.
+
+### D-072 · 24/09/2026 · Aviso "Cotización enviada"
+- **Decisión:**
+  - Se encola al emitir cada versión, con número, vigencia, anticipo, saldo y plazo ("30 a 45" si varía entre cantidades), y no por el paso a Cotizada: así la v2 también avisa y la v1 no avisa dos veces.
+  - El PDF no va adjunto: se descarga desde el enlace de seguimiento.
+- **Cómo cambiarla:** `issueQuote` y `005`/`007` (trigger de estados).
+
+### D-073 · 24/09/2026 · Vencimiento y cierre de la cotización
+- **Decisión:**
+  - Cada hora (con el uso del panel o el cron diario), una cotización enviada con la vigencia pasada lleva la solicitud a "Vencida".
+  - El cliente recibe recordatorios por WhatsApp a 3 días y a 1 día del vencimiento.
+  - Rechazar o vencer la solicitud cierra también su cotización vigente (trigger), y Rechazada exige el motivo de pérdida (D-063).
+- **Cómo cambiarla:** `expireQuotes` y `quoteExpiryReminders` en `lib/quotes/index.ts`.
+
+### D-074 · 24/09/2026 · Al aceptar
+- **Decisión:** la solicitud pasa a "Aceptada", el equipo recibe el aviso y, en la misma transacción, se llama a `onQuoteAccepted`, el gancho donde E8 crea el pedido.
+- **Cómo cambiarla:** `lib/orders/hooks.ts`.
+
+### D-075 · 24/09/2026 · Impuestos en la cotización
+- **Duda:** el PRD no dice si los precios incluyen impuestos (ITBMS).
+- **Decisión:** la cotización no menciona impuestos: indica la moneda (USD) y las condiciones del PRD. Queda como pregunta para Mark en E10.
+- **Cómo cambiarla:** `messages/es.json` > `quotePdf`.

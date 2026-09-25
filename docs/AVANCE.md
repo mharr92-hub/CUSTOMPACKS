@@ -11,7 +11,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E4 — Arte y referencias | ✅ Hecho | 24/09/2026 |
 | E5 — Notificaciones | ✅ Hecho (crons de E7/E8 pendientes) | 24/09/2026 |
 | E6 — Panel interno | ✅ Hecho | 24/09/2026 |
-| E7 — RFQ y cotización | ⏳ Pendiente | — |
+| E7 — RFQ y cotización | ✅ Hecho | 24/09/2026 |
 | E8 — Pedidos y seguimiento | ⏳ Pendiente | — |
 | E9 — Calidad y seguridad | ⏳ Pendiente | — |
 | E10 — Lanzamiento | ⏳ Pendiente | — |
@@ -402,3 +402,50 @@ pnpm test:e2e     # vendedor: tomar → pedir datos → respuesta del cliente �
 - `pnpm test:e2e`: 23/23 en verde (21 omitidos por proyecto móvil/escritorio). Incluye el criterio de aceptación:
   - Un vendedor toma la solicitud, pide datos faltantes, recibe la respuesta del cliente desde su enlace y la pasa a "RFQ enviado" sin salir del panel.
   - El viewer no puede editar nada, verificado en la interfaz, en el servidor y en la base.
+
+## E7 — RFQ y cotización
+
+**Qué quedó hecho**
+- **Migración `007_quotes_rfq` (D-069):**
+  - `factory_rfqs`: versión, documentos, envío, respuesta con costos por cantidad, moneda, días de producción y observaciones.
+  - `quotes`: número `C-AAAA-NNNNN-vN`; líneas internas con costo, flete, margen, precio, subtotal y plazo; vigencia, condiciones, PDF, estado, y aceptación inmutable con cantidades elegidas.
+  - Bucket privado `documents`.
+  - RLS: todo para el equipo; el cliente no lee costos ni precios.
+  - Triggers de auditoría y de cierre de la cotización al rechazar o vencer la solicitud.
+- **RFQ:**
+  - PDF con marca y Excel (una fila por pieza y cantidad, columnas en `config/rfq-format.ts`), generados solo con la ficha congelada.
+  - Exige arte en las piezas impresas; el arte liberado viaja como enlaces.
+  - Envío por correo a `FACTORY_EMAIL` con los adjuntos; la solicitud pasa a "RFQ enviado".
+  - Formulario de respuesta de fábrica (D-070).
+- **Calculadora interna:** costo, flete y margen por línea con precio unitario y subtotal en vivo; margen por defecto desde `settings` (D-067).
+- **Cotización:**
+  - Borrador desde la respuesta de fábrica y emisión con PDF con marca: precios por cantidad, vigencia, 50/50, plazo y notas.
+  - Versiones que reemplazan a la anterior.
+  - Aviso al cliente por correo y WhatsApp (D-071, D-072).
+- **Portal del cliente:**
+  - Cotización sin precios en pantalla (D-068): descarga del PDF, elección de una cantidad por pieza y "Aceptar cotización" (fecha, nombre, IP, navegador).
+  - "Pedir cambios": queda en el historial y avisa al equipo.
+- **Al aceptar:** la solicitud pasa a Aceptada, el equipo recibe el aviso y queda el gancho `onQuoteAccepted` para crear el pedido en E8 (D-074).
+- **Procesos:** vencimiento de cotizaciones y recordatorios de vigencia a 3 y 1 día (D-073), en `lib/jobs.ts`.
+
+**Qué falta / notas**
+- El pedido se crea en E8, desde el gancho que queda listo.
+- En E5 sigue abierta la casilla de crons por los recordatorios de saldo y la encuesta NPS (E8). El de vigencia ya funciona.
+- Impuestos en la cotización: pregunta abierta para Mark (D-075).
+- El formato exacto que prefiere la fábrica sigue pendiente (PRD §20). Se ajusta en `config/rfq-format.ts`.
+
+**Cómo probarlo**
+```bash
+pnpm dev          # solicitud en /cotizar → /admin/solicitudes/<id>: En revisión → Generar RFQ → Enviar → respuesta → Preparar cotización → Emitir
+pnpm test         # precio, filas del RFQ, flujo completo, Excel, versiones, vencimiento, recordatorios, permisos
+pnpm test:e2e     # de una solicitud verde a la aceptación del cliente desde su enlace
+```
+
+**Resultado de la verificación (24/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 127/127 en verde.
+- `pnpm test:e2e`: 24/24 en verde (22 omitidos por proyecto móvil/escritorio). Incluye el criterio de aceptación:
+  - De una solicitud verde sale el RFQ sin retipear: PDF y Excel con los códigos.
+  - Se registra el costo y se emite la cotización con el precio calculado.
+  - Rechazar exige motivo.
+  - El cliente descarga el PDF y acepta desde su enlace, sin ver ningún precio en pantalla.
