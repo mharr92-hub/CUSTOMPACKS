@@ -416,6 +416,56 @@
       "confirm": "Borrar los archivos elegidos",
       "deleted": "Se borraron {n} archivos.",
       "empty": "Elige al menos un archivo."
+    },
+    "templates": {
+      "title": "Plantillas de mensajes",
+      "intro": "Texto de cada aviso por correo y WhatsApp. Las variables entre llaves las completa el sistema. Los cambios valen para los mensajes que se envíen desde ahora.",
+      "edit": "Editar",
+      "view": "Ver",
+      "back": "← Plantillas",
+      "channel": {
+        "email": "Correo",
+        "whatsapp": "WhatsApp"
+      },
+      "audience": {
+        "client": "Cliente",
+        "team": "Equipo"
+      },
+      "subject": "Asunto",
+      "body": "Texto",
+      "variables": "Variables disponibles",
+      "active": "Activa (si la desactivas, este aviso no se envía)",
+      "preview": "Vista previa",
+      "previewHint": "Con datos de ejemplo.",
+      "save": "Guardar plantilla",
+      "saved": "Plantilla guardada.",
+      "readOnly": "Solo admin puede editar las plantillas.",
+      "errors": {
+        "not_found": "La plantilla no existe o no tienes permiso para editarla.",
+        "body": "El texto es demasiado corto.",
+        "subject": "Escribe un asunto.",
+        "unknown_vars": "Estas variables no existen para este mensaje: {vars}.",
+        "generic": "No se pudo guardar. Inténtalo de nuevo."
+      }
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "intro": "Cada cambio de estado deja aquí el aviso que salió (o que falta enviar) al cliente o al equipo.",
+      "none": "Todavía no hay notificaciones.",
+      "audience": {
+        "client": "al cliente",
+        "team": "al equipo"
+      },
+      "status": {
+        "queued": "En cola",
+        "sent": "Enviado",
+        "simulated": "Simulado",
+        "failed": "Falló"
+      },
+      "showText": "Ver texto",
+      "openWhatsapp": "Abrir WhatsApp",
+      "markSent": "Marcar enviado",
+      "manualSent": "enviado a mano el {date}"
     }
   },
   "catalog": {
@@ -1134,9 +1184,7 @@
     "trackingHint": "Guarda este enlace: ahí verás el estado y podrás subir tu arte.",
     "pdf": "Descargar ficha técnica (PDF)",
     "whatsapp": "Escribir por WhatsApp",
-    "whatsappText": "Hola {brand}, envié la solicitud {number}.",
-    "emailSubject": "Recibimos tu solicitud {number}",
-    "emailText": "Hola {name}, recibimos tu solicitud {number} para {pieces}. Te enviamos la cotización en un máximo de 24 horas hábiles. Sigue el estado aquí: {link}"
+    "whatsappText": "Hola {brand}, envié la solicitud {number}."
   },
   "tracking": {
     "metaTitle": "Seguimiento de tu solicitud",
@@ -1258,5 +1306,36 @@
     "approveNotice": "Al aprobar registramos la fecha, la hora, tu nombre y tu conexión.",
     "sectionTitle": "Arte y proofs",
     "sectionIntro": "Sube aquí tu arte o una versión corregida. Revisamos cada archivo con el checklist de preprensa y te avisamos."
+  },
+  "notify": {
+    "segment": {
+      "commercial": "comercio",
+      "food": "alimentos",
+      "unsure": "por definir"
+    },
+    "light": {
+      "green": "verde",
+      "yellow": "amarillo",
+      "red": "rojo"
+    },
+    "field": {
+      "type": "el tipo de empaque",
+      "quantity": "la cantidad",
+      "artwork": "el archivo de arte",
+      "artwork_pending": "el archivo de arte",
+      "design": "el brief para diseñar el arte",
+      "weight": "el peso del producto",
+      "dimensions": "las medidas del producto",
+      "references": "una foto o referencia"
+    },
+    "piece": "pieza {n}",
+    "pieceField": "{field} (pieza {n})",
+    "yourPackaging": "tu empaque",
+    "taskRespond": "primera respuesta",
+    "taskQuote": "cotización emitida",
+    "footerClient": "Recibes este mensaje por tu solicitud {numero} en {brand}.",
+    "footerTeam": "Aviso interno del panel de {brand}.",
+    "missing": "Faltan datos para este mensaje: {vars}.",
+    "inactive": "La plantilla está desactivada."
   }
 }

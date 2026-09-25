@@ -6,6 +6,7 @@ import type { ArtworkStatus, Checklist } from "@/lib/artwork/states";
 import type { ConfirmResult, SlotResult } from "@/lib/artwork/upload-types";
 import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { assertStaff, EDITOR_ROLES } from "@/lib/auth";
+import { kickNotifications, markWhatsappSent } from "@/lib/notify";
 
 /* Acciones del equipo sobre el arte de una solicitud (asignado o admin; lo valida la base). */
 
@@ -21,7 +22,10 @@ export async function reviewArtworkAction(
 ): Promise<ReviewResult> {
   const user = await assertStaff(EDITOR_ROLES);
   const result = await reviewArtwork(user, String(fileId), { status: input.status, checklist: input.checklist, comments: String(input.comments ?? "") });
-  if (result.ok) revalidatePath(`/admin/solicitudes/${requestId}`);
+  if (result.ok) {
+    kickNotifications();
+    revalidatePath(`/admin/solicitudes/${requestId}`);
+  }
   return result;
 }
 
@@ -45,6 +49,17 @@ export async function confirmProofUploadAction(requestId: string, itemId: string
     { scope: "staff", user, requestId, itemId, purpose: "proof" },
     { path: String(input.path), name: String(input.name).slice(0, 200), size: Number(input.size) },
   );
-  if (result.ok) revalidatePath(`/admin/solicitudes/${requestId}`);
+  if (result.ok) {
+    kickNotifications();
+    revalidatePath(`/admin/solicitudes/${requestId}`);
+  }
   return result;
+}
+
+/** El equipo confirma que envió el WhatsApp precargado. */
+export async function markWhatsappSentAction(requestId: string, notificationId: string): Promise<boolean> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const ok = await markWhatsappSent(user, String(notificationId));
+  if (ok) revalidatePath(`/admin/solicitudes/${requestId}`);
+  return ok;
 }

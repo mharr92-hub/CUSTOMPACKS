@@ -5,6 +5,7 @@
   "buildCommand": "pnpm build",
   "crons": [
     { "path": "/api/cron/purge-drafts", "schedule": "30 8 * * *" },
-    { "path": "/api/cron/artwork-retention", "schedule": "45 8 * * *" }
+    { "path": "/api/cron/artwork-retention", "schedule": "45 8 * * *" },
+    { "path": "/api/cron/notifications", "schedule": "0 13 * * *" }
   ]
 }

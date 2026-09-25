@@ -1,10 +1,10 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
-import { after } from "next/server";
 import { brand } from "@/config/brand";
 import { serverT } from "@/lib/i18n";
 import { log } from "@/lib/log";
+import { kickNotifications } from "@/lib/notify";
 import { htmlParagraph, sendEmail } from "@/lib/mail";
 import { claimResumeEmail, isDraftToken, loadDraft, saveDraft } from "@/lib/quote/drafts";
 import { CONFIRMATION_COOKIE, resumeLink } from "@/lib/quote/links";
@@ -12,7 +12,6 @@ import { parseWizardState } from "@/lib/quote/schema";
 import { submitDraft } from "@/lib/quote/submit";
 import type { StepId, WizardState } from "@/lib/quote/types";
 import { isValidEmail, type StepErrors } from "@/lib/quote/validate";
-import { absoluteUrl } from "@/lib/urls";
 
 export type SaveResult = { ok: true; token: string } | { ok: false; submitted?: boolean };
 
@@ -90,23 +89,8 @@ export async function submitQuoteAction(token: string): Promise<SubmitActionResu
       path: "/cotizar/listo",
       maxAge: 60 * 60 * 24,
     });
-    if (!result.alreadySubmitted) {
-      const { number, accessToken, specs, state } = result;
-      after(async () => {
-        const email = state.contact.email.trim();
-        if (!email) return;
-        const t = serverT("confirmation");
-        const link = absoluteUrl(`/seguimiento/${accessToken}`);
-        const pieces = specs.map((s) => s.type?.name ?? "").filter(Boolean).join(", ") || number;
-        const values = { name: state.contact.name.trim(), number, pieces };
-        await sendEmail({
-          to: email,
-          subject: t("emailSubject", { number }),
-          text: t("emailText", { ...values, link }),
-          html: htmlParagraph((v) => t("emailText", v), values, link),
-        });
-      });
-    }
+    // La base encoló "Solicitud recibida" (cliente y equipo): se envía al terminar la respuesta.
+    if (!result.alreadySubmitted) kickNotifications();
     return { ok: true, number: result.number };
   } catch (error) {
     log.error("no se pudo enviar la solicitud", { error });
