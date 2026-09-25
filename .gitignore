@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-e2e/
 /out/
 
 # production
@@ -53,3 +54,6 @@ next-env.d.ts
 # supabase cli
 /supabase/.temp/
 /supabase/.branches/
+
+# herramientas locales
+/scripts/_*.mjs

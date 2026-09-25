@@ -20,6 +20,8 @@ function supabaseImagePatterns(): NonNullable<NextConfig["images"]>["remotePatte
 }
 
 const nextConfig: NextConfig = {
+  // NEXT_DIST_DIR permite un build/caché separado (lo usan los e2e con su propia base).
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],

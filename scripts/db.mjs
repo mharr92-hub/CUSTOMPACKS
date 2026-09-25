@@ -4,6 +4,7 @@
 //   pnpm db:reset    borra y recrea todo (shim + migraciones + seed)
 //   pnpm db:migrate  aplica migraciones pendientes a DATABASE_URL (o al local)
 //   pnpm db:seed     ejecuta supabase/seed.sql
+import fs from "node:fs";
 import path from "node:path";
 import {
   LOCAL_PORT,
@@ -40,6 +41,10 @@ async function main() {
     if (command === "reset") {
       const n = await reset(sql, { adminEmail, log });
       log(`base recreada (${n} migraciones + seed)`);
+      // La caché de datos de Next guarda consultas de la base anterior.
+      for (const dir of [".next/cache/fetch-cache", ".next/dev/cache/fetch-cache"]) {
+        fs.rmSync(path.join(ROOT, dir), { recursive: true, force: true });
+      }
     } else if (command === "migrate") {
       const n = await migrate(sql, log);
       log(n ? `${n} migraciones aplicadas` : "sin migraciones pendientes");

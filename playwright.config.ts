@@ -32,10 +32,19 @@ export default defineConfig({
     : {
         command: `node scripts/dev.mjs dev --port ${PORT}`,
         url: baseURL,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: false,
         timeout: 180_000,
         stdout: "ignore",
         stderr: "pipe",
-        env: { ADMIN_EMAIL: "admin@provenpack.test", NEXT_PUBLIC_SITE_URL: baseURL },
+        env: {
+          ADMIN_EMAIL: "admin@provenpack.test",
+          NEXT_PUBLIC_SITE_URL: baseURL,
+          // Base aislada para e2e, recreada en cada corrida (no toca los datos de desarrollo).
+          LOCAL_DB_PORT: "54323",
+          LOCAL_DB_DIR: ".data/postgres-e2e",
+          LOCAL_DB_RESET: "1",
+          STORAGE_LOCAL_DIR: ".data/storage-e2e",
+          NEXT_DIST_DIR: ".next-e2e",
+        },
       },
 });

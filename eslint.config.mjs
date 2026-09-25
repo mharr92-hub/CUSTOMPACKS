@@ -22,7 +22,7 @@ const eslintConfig = defineConfig([
         {
           noStrings: false,
           ignoreProps: true,
-          allowedStrings: ["·", "/", "×", "—", "–", "-", "|", ":", "%", "+", "→", "←", "*", "(", ")", "#", "…", "&nbsp;"],
+          allowedStrings: ["·", "/", "×", "—", "–", "-", "|", ":", "%", "+", "→", "←", "*", "(", ")", "#", "…", "&nbsp;", ".", ","],
         },
       ],
     },
@@ -33,6 +33,7 @@ const eslintConfig = defineConfig([
   },
   globalIgnores([
     ".next/**",
+    ".next-e2e/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
@@ -40,6 +41,7 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "supabase/**",
+    "scripts/_*.mjs",
   ]),
 ]);
 
