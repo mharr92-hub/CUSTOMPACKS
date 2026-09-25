@@ -75,11 +75,27 @@ export function listMigrations() {
 }
 
 /**
+ * true si la base es un proyecto de Supabase (existe el rol supabase_admin):
+ * ahí auth, storage y los roles ya existen y el shim local no debe tocarse.
+ */
+export async function isSupabaseDatabase(sql) {
+  const [row] = await sql`select exists (select 1 from pg_roles where rolname = 'supabase_admin') as yes`;
+  return Boolean(row?.yes);
+}
+
+/**
  * Aplica migraciones pendientes y las registra en
- * supabase_migrations.schema_migrations (misma tabla que usa la CLI).
+ * supabase_migrations.schema_migrations (misma tabla que usa la CLI). En un
+ * proyecto de Supabase no aplica el shim: solo asegura esa tabla.
  */
 export async function migrate(sql, log = () => {}) {
-  await applyShim(sql);
+  if (await isSupabaseDatabase(sql)) {
+    log("base de Supabase: no se aplica el shim local");
+    await sql`create schema if not exists supabase_migrations`;
+    await sql`create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text)`;
+  } else {
+    await applyShim(sql);
+  }
   const applied = new Set((await sql`select version from supabase_migrations.schema_migrations`).map((r) => r.version));
   let count = 0;
   for (const m of listMigrations()) {
@@ -109,8 +125,9 @@ export async function seed(sql, { adminEmail } = {}) {
   }
 }
 
-/** Borra todo y vuelve a crear: shim + migraciones + seed. */
+/** Borra todo y vuelve a crear: shim + migraciones + seed. Nunca contra Supabase. */
 export async function reset(sql, { adminEmail, log = () => {} } = {}) {
+  if (await isSupabaseDatabase(sql)) throw new Error("db:reset borra auth y storage: no se permite contra un proyecto de Supabase.");
   await sql.unsafe(`
     drop schema if exists public cascade;
     drop schema if exists auth cascade;

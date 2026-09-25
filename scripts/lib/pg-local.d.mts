@@ -18,6 +18,7 @@ export declare function startEmbedded(opts: {
 }): Promise<{ pg: EmbeddedHandle; fresh: boolean; url: string }>;
 export declare function connect(url: string): Sql;
 export declare function applyShim(sql: Sql): Promise<void>;
+export declare function isSupabaseDatabase(sql: Sql): Promise<boolean>;
 export declare function listMigrations(): { version: string; name: string; file: string }[];
 export declare function migrate(sql: Sql, log?: (message: string) => void): Promise<number>;
 export declare function seed(sql: Sql, opts?: { adminEmail?: string }): Promise<void>;
