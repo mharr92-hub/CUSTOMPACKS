@@ -117,3 +117,56 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - `business_hours` (lunes a viernes, 08:00–17:00, America/Panama).
   - `quote_expiry_reminder_days` [3, 1], `balance_reminder_days` [2, 5] y `nps_delay_days` (7).
 - **Cómo cambiarla:** admin > Configuración.
+
+### D-023 · 24/09/2026 · Identidad visual del sitio
+- **Decisión:** el lenguaje gráfico sale del troquel:
+  - Línea continua = corte, discontinua = pliegue.
+  - Las fotos van enmarcadas con marcas de corte de imprenta.
+  - El hero muestra el plano desplegado de una caja con sus cotas; es la única animación: se dibuja una vez y respeta "reducir movimiento".
+  - Fondo blanco (cartulina), kraft como superficie de bloques clave, verde bosque para acciones y footer, y titulares en Inter 800 de tracking cerrado.
+  - Numeración solo en "Cómo funciona", porque es una secuencia real.
+- **Cómo cambiarla:** `components/site/dieline.tsx`, `.crop-frame` y tokens en `app/globals.css`.
+
+### D-024 · 24/09/2026 · Sitio público casi sin JavaScript
+- **Decisión:** el menú móvil es un `<details>` nativo (sin Radix) y un componente mínimo lo cierra al navegar. Los filtros del catálogo y la galería son enlaces o formularios GET. Los textos solo viajan al navegador en las secciones que tienen componentes cliente (panel y, luego, cotizador). `Toaster` y `Tooltip` viven solo en `/admin`. Así el sitio público carga solo el runtime de Next.
+- **Cómo cambiarla:** `components/site/mobile-nav.tsx` y `components/intl-client-provider.tsx`.
+
+### D-025 · 24/09/2026 · Fuente sin precarga y marcadores estáticos
+- **Decisión:** Inter se sirve sin `preload`: el texto se pinta al instante con la fuente de respaldo ajustada por `next/font`. Los marcadores de foto son 4 SVG estáticos y cacheables (`public/placeholders`) con el código como texto, en lugar de un SVG en línea por tarjeta.
+- **Cómo cambiarla:** `app/layout.tsx` y `components/catalog/code-placeholder.tsx`.
+
+### D-026 · 24/09/2026 · LCP móvil de la página de inicio
+- **Duda:** TAREAS pide LCP < 2,5 s en Lighthouse móvil.
+- **Resultado medido en local** (`next start`, gzip, simulación de 4G lenta con CPU 4× más lenta):
+  - Rendimiento 94–99 y SEO, accesibilidad y buenas prácticas en 100 en todas las páginas medidas.
+  - LCP: fichas y catálogo 2,0–2,5 s; páginas interiores 2,4 s; inicio 2,6–2,9 s.
+  - El LCP real observado sin estrangulamiento es de 0,1–0,4 s.
+- **Qué se probó:**
+  - Menú sin JS, fuente sin precarga y marcado más liviano: mejoraron.
+  - CSS en línea: empeoró y se revirtió.
+  - `content-visibility`: sin efecto en Lighthouse y falsos positivos de accesibilidad; se revirtió.
+- **Por qué el inicio queda arriba:** es la página más larga (10 secciones de §17) y su LCP simulado queda por encima del resto.
+- **Pendiente:** volver a medir en el preview de Vercel (brotli + CDN) en E9 con `node scripts/lighthouse.mjs <url> /`.
+- **Cómo cambiarla:** si en Vercel sigue por encima de 2,5 s, reducir las secciones de la home (por ejemplo, 3 piezas destacadas en lugar de 6).
+
+### D-027 · 24/09/2026 · Contacto sin formulario
+- **Decisión:** `/contacto` ofrece WhatsApp, correo y el cotizador, sin formulario propio. TAREAS no lo pide, y un formulario sin notificaciones (E5) juntaría datos sin darles curso.
+- **Cómo cambiarla:** agregar un formulario que cree una actividad y una notificación (después de E5).
+
+### D-028 · 24/09/2026 · Enlaces hacia el cotizador desde el sitio
+- **Decisión:**
+  - "Cotizar esta pieza" abre `/cotizar?tipo=<código>`.
+  - "Quiero algo así" abre `/cotizar?muestra=<código>`, y el wizard (E3) agrega esa muestra como referencia al borrador.
+  - Mientras E3 no existe, `/cotizar` ofrece cotizar por WhatsApp.
+- **Cómo cambiarla:** `lib/catalog/view.ts` (`quoteHref`) y `components/catalog/sample-card.tsx`.
+
+### D-029 · 24/09/2026 · Textos legales y preguntas frecuentes
+- **Decisión:**
+  - Privacidad y términos son un borrador basado en el PRD (Ley 81 de 2019, 50/50, plazos, vigencia, tolerancias "según ficha técnica de fábrica"), marcado como "en revisión legal". La revisión final queda en E10.
+  - Se agregó la pregunta "¿Por qué no veo el precio en línea?" (mitigación de §19).
+  - La home muestra 3 preguntas y `/faq` todas.
+- **Cómo cambiarla:** `messages/es.json` > `legal` y `faq`.
+
+### D-030 · 24/09/2026 · E2E con base propia
+- **Decisión:** Playwright levanta su servidor en :3100 con su propia base (`.data/postgres-e2e` en :54323, recreada en cada corrida), su propio almacenamiento (`.data/storage-e2e`) y su propio build (`.next-e2e`). Los datos de prueba nunca tocan la base de desarrollo. `pnpm db:reset` borra además la caché de datos de Next.
+- **Cómo cambiarla:** `playwright.config.ts` y las variables `LOCAL_DB_*` de `scripts/dev.mjs`.

@@ -6,7 +6,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | --- | --- | --- |
 | E0 — Base del proyecto | ✅ Hecho | 24/09/2026 |
 | E1 — Datos maestros y admin | ✅ Hecho | 24/09/2026 |
-| E2 — Sitio público | ⏳ Pendiente | — |
+| E2 — Sitio público | ✅ Hecho | 24/09/2026 |
 | E3 — Cotizador | ⏳ Pendiente | — |
 | E4 — Arte y referencias | ⏳ Pendiente | — |
 | E5 — Notificaciones | ⏳ Pendiente | — |
@@ -109,3 +109,74 @@ pnpm test:e2e     # incluye tests/e2e/admin-catalog.spec.ts
   - 5 de magic bytes y formularios.
 - `pnpm test:e2e --project desktop`: 4/4 en verde. Incluye el criterio de aceptación: el admin crea un tipo con foto, marca la compatibilidad y el tipo aparece en `/api/catalog`.
 - `pnpm lint` y `pnpm typecheck`: en verde.
+
+---
+
+## E2 — Sitio público
+
+**Qué quedó hecho**
+- **Identidad visual (D-023):** lenguaje del troquel (corte y pliegue), marcas de corte de imprenta en las fotos y un troquel animado en el hero. Fondo blanco cartulina, kraft y verde bosque; Inter con números tabulares en medidas.
+- **Inicio** con las 10 secciones de §17 en orden:
+  1. Hero con slogan, "Cotiza en 5 minutos", WhatsApp y la explicación de por qué no hay precio en línea.
+  2. Franja de pruebas.
+  3. Dos puertas (comercio / alimentos).
+  4. Piezas del catálogo.
+  5. Cómo funciona.
+  6. Maleta de muestras.
+  7. Clientes (texto genérico, sin logos).
+  8. Sostenibilidad.
+  9. Preguntas frecuentes.
+  10. Cierre.
+- **Catálogo:**
+  - `/catalogo`, con filtros por categoría y segmento como enlaces.
+  - `/catalogo/[categoria]`.
+  - Ficha `/catalogo/[categoria]/[tipo]`: fotos o marcador, usos, papeles y calibres compatibles (con los motivos de las reglas), tamaños estándar, impresión, acabados, aptitud alimentaria, condiciones (sin mínimo, plazo, 50/50) y "Cotizar esta pieza" (`/cotizar?tipo=<código>`).
+- **Galería:** `/galeria` con filtros por segmento y tipo, código visible y "Quiero algo así" (`/cotizar?muestra=<código>`).
+- **Páginas interiores:**
+  - `/como-funciona`: 8 pasos de §6 con "tú / nosotros / lo que ves".
+  - `/sostenibilidad`: atributos sin sellos, solo con respaldo de fábrica.
+  - `/clientes`: sin logos ni nombres.
+  - `/nosotros`, `/faq` (10 preguntas), `/contacto`, `/legal/privacidad` (Ley 81 de 2019) y `/legal/terminos` (50/50, plazos, vigencia, tolerancias según ficha de fábrica).
+  - Página 404.
+  - `/cotizar` provisional (WhatsApp) hasta E3.
+- **SEO:**
+  - Metadatos y canonical por página.
+  - JSON-LD `Organization` (todas las páginas), `Product` y `BreadcrumbList` (fichas) y `FAQPage` (`/faq`).
+  - `sitemap.xml` con categorías y fichas, `robots.txt` (bloquea `/admin`, `/api`, `/auth`, `/seguimiento`) e imagen OpenGraph generada.
+- **Rendimiento:**
+  - ISR de 5 minutos (inicio, categorías y fichas se pre-renderizan en el build).
+  - Sitio público casi sin JS: menú móvil con `<details>` (D-024).
+  - Marcadores de foto estáticos y fuente local sin precarga (D-025).
+- `pnpm build` también levanta la base local si hace falta. `scripts/lighthouse.mjs` audita en móvil con el Chromium de Playwright.
+
+**Qué falta / notas**
+- LCP simulado del inicio: 2,6–2,9 s en local con gzip. El resto de páginas está en 2,0–2,5 s. El LCP real observado es de 0,1–0,4 s. Se vuelve a medir en el preview de Vercel en E9 (D-026).
+- Fotos reales, textos definitivos y revisión legal: E10 (dependen de Mark).
+
+**Cómo probarlo**
+```bash
+pnpm dev                                   # http://localhost:3000
+pnpm test:e2e                              # rastreo completo del sitio, SEO, filtros sin JS y menú móvil
+pnpm build && pnpm start -- --port 3200    # producción local
+node scripts/lighthouse.mjs http://localhost:3200 / /catalogo/cajas/plegadiza-con-tapa
+```
+
+**Resultado de la verificación (24/09/2026)**
+- `pnpm lint`, `pnpm typecheck` y `pnpm test` (31/31): en verde.
+- `pnpm test:e2e`: 9/9 en verde (7 omitidos por proyecto móvil/escritorio). Incluye:
+  - Rastreo de más de 30 páginas públicas sin enlaces rotos, con un solo `h1` por página, sin ningún precio ni la etiqueta PROVISIONAL.
+  - Sitemap, robots, JSON-LD, canonical e imagen OpenGraph.
+  - Filtros del catálogo y la galería con JavaScript desactivado.
+  - Menú móvil que se cierra al navegar.
+- Lighthouse móvil (build de producción local):
+
+  | Página | Rendimiento | SEO | Accesibilidad | Buenas prácticas | LCP |
+  | --- | --- | --- | --- | --- | --- |
+  | Inicio | 94–96 | 100 | 100 | 100 | 2,6–2,9 s |
+  | Ficha (`/catalogo/cajas/plegadiza-con-tapa`) | 97–99 | 100 | 100 | 100 | 2,0–2,5 s |
+  | `/catalogo` | 96–99 | 100 | 100 | 100 | 2,1–2,7 s |
+  | `/galeria` | 97 | 100 | 100 | 100 | 2,5–2,6 s |
+  | `/como-funciona` | 98 | 100 | 100 | 100 | 2,4 s |
+  | `/faq` | 98 | 100 | 100 | 100 | 2,4 s |
+
+  Se cumple el criterio de aceptación de E2 (≥ 90 en rendimiento y SEO en inicio y una ficha).

@@ -72,13 +72,13 @@ Aceptación: admin puede crear un tipo nuevo con foto, marcar compatibilidades y
 
 Objetivo: sitio completo de §17 con SEO, responsive y diseño con identidad propia (no plantilla genérica).
 
-- [ ] Inicio con las 10 secciones de §17 en ese orden; hero con slogan y CTA "Cotiza en 5 minutos" + WhatsApp; franja de pruebas; dos puertas (comercio / alimentos).
-- [ ] `/catalogo` con filtros por categoría y segmento; `/catalogo/[categoria]/[tipo]` = ficha de producto según §7 (fotos, usos, compatibilidades, tamaños, impresión, aptitud, "sin cantidad mínima", plazo, botón "Cotizar esta pieza" → `/cotizar?tipo=<code>`).
-- [ ] `/galeria`: grilla de `gallery_samples` con filtros y botón "quiero algo así" (guarda referencia en el borrador del wizard).
-- [ ] `/como-funciona` (8 pasos de §6), `/sostenibilidad`, `/clientes` (texto genérico, sin logos), `/faq` (lista de §17), `/contacto`, `/legal/privacidad`, `/legal/terminos` (condiciones 50/50, plazos, texto de tolerancias "según ficha técnica de fábrica").
-- [ ] SEO: metadatos por página, JSON-LD Organization/Product/FAQ, `sitemap.xml`, `robots.txt`, OpenGraph con imagen generada.
-- [ ] Rendimiento: `next/image`, fuentes locales, LCP < 2,5 s en Lighthouse móvil; accesibilidad AA básica.
-- [ ] Placeholders de fotos: generar SVG neutros con el código de la pieza hasta que lleguen las fotos reales; nunca fotos de terceros.
+- [x] Inicio con las 10 secciones de §17 en ese orden; hero con slogan y CTA "Cotiza en 5 minutos" + WhatsApp; franja de pruebas; dos puertas (comercio / alimentos).
+- [x] `/catalogo` con filtros por categoría y segmento; `/catalogo/[categoria]/[tipo]` = ficha de producto según §7 (fotos, usos, compatibilidades, tamaños, impresión, aptitud, "sin cantidad mínima", plazo, botón "Cotizar esta pieza" → `/cotizar?tipo=<code>`).
+- [x] `/galeria`: grilla de `gallery_samples` con filtros y botón "quiero algo así" (guarda referencia en el borrador del wizard).
+- [x] `/como-funciona` (8 pasos de §6), `/sostenibilidad`, `/clientes` (texto genérico, sin logos), `/faq` (lista de §17), `/contacto`, `/legal/privacidad`, `/legal/terminos` (condiciones 50/50, plazos, texto de tolerancias "según ficha técnica de fábrica").
+- [x] SEO: metadatos por página, JSON-LD Organization/Product/FAQ, `sitemap.xml`, `robots.txt`, OpenGraph con imagen generada.
+- [x] Rendimiento: `next/image`, fuentes locales, LCP < 2,5 s en Lighthouse móvil; accesibilidad AA básica.
+- [x] Placeholders de fotos: generar SVG neutros con el código de la pieza hasta que lleguen las fotos reales; nunca fotos de terceros.
 
 Aceptación: Lighthouse móvil ≥ 90 en rendimiento y SEO en inicio y una ficha; navegación completa sin enlaces rotos (test Playwright); todo texto viene de `messages/es.json`.
 
