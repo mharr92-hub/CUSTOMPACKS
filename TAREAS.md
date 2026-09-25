@@ -86,15 +86,15 @@ Aceptación: Lighthouse móvil ≥ 90 en rendimiento y SEO en inicio y una ficha
 
 Objetivo: wizard de 9 pasos de §8, multipieza, con guardado de borrador, lógica condicional, resumen, numeración y semáforo; sin precio en ninguna pantalla.
 
-- [ ] Migración `003_quotes`: `companies`, `quote_drafts` (token, payload JSON, step, expires_at), `quote_requests` (número `S-AAAA-NNNNN` por secuencia, estado enum de §14, semáforo, canal, segmento, fecha_deseada, dirección, UTM, asignado_a, timestamps por estado), `quote_items` (todos los campos de §13), `references`, `activities`. RLS: el cliente accede a lo suyo por token o por usuario; staff según rol.
-- [ ] Estado del wizard en servidor (`quote_drafts`) con respaldo en localStorage; reanudar por enlace mágico enviado a correo o WhatsApp.
-- [ ] Pasos 0–9 exactamente como §8: segmento; producto (peso, dimensiones, condiciones, uso); tipo con tarjetas y "no sé, sugiéranme"; tamaño estándar/personalizado/"según mi producto"; material con compatibilidades y calibre sugerido por peso; impresión y acabados (Pantone con validación `\d{3,4}\s?[CU]`); cantidades (hasta 3) + frecuencia + fecha deseada con plazo estimado en vivo (`lib/leadtime.ts` usando `settings.lead_time_threshold_units`); arte y referencias (integración con E4; en E3 deja el slot); contacto y entrega con consentimiento; resumen tipo ficha técnica + envío.
-- [ ] Multipieza: "agregar otra pieza" repite pasos 2–5; resumen muestra todas.
-- [ ] Botón "Prefiero hablar" en cada paso → `wa.me` con resumen parcial y token del borrador.
-- [ ] Semáforo (`lib/traffic-light.ts`): rojo si falta cantidad, tipo, o arte cuando hay impresión; amarillo si faltan peso, dimensiones o referencias; verde si todo.
-- [ ] Al enviar: crea `quote_request` + `quote_items`, número, semáforo, ficha técnica PDF (`/api/pdf/ficha/[id]`), página de confirmación "qué sigue" (respuesta en 24 h hábiles, condiciones, enlace de seguimiento `/seguimiento/[token]`), eventos de analytics por paso.
-- [ ] Mensajes de validación específicos (§8 "Validaciones clave"); accesible por teclado; móvil primero.
-- [ ] Tests: Vitest para semáforo, numeración, plazo, compatibilidades; Playwright: solicitud de dos piezas (comercial y alimentaria) completada en móvil en < 5 min de interacción simulada.
+- [x] Migración `003_quotes`: `companies`, `quote_drafts` (token, payload JSON, step, expires_at), `quote_requests` (número `S-AAAA-NNNNN` por secuencia, estado enum de §14, semáforo, canal, segmento, fecha_deseada, dirección, UTM, asignado_a, timestamps por estado), `quote_items` (todos los campos de §13), `references`, `activities`. RLS: el cliente accede a lo suyo por token o por usuario; staff según rol.
+- [x] Estado del wizard en servidor (`quote_drafts`) con respaldo en localStorage; reanudar por enlace mágico enviado a correo o WhatsApp.
+- [x] Pasos 0–9 exactamente como §8: segmento; producto (peso, dimensiones, condiciones, uso); tipo con tarjetas y "no sé, sugiéranme"; tamaño estándar/personalizado/"según mi producto"; material con compatibilidades y calibre sugerido por peso; impresión y acabados (Pantone con validación `\d{3,4}\s?[CU]`); cantidades (hasta 3) + frecuencia + fecha deseada con plazo estimado en vivo (`lib/leadtime.ts` usando `settings.lead_time_threshold_units`); arte y referencias (integración con E4; en E3 deja el slot); contacto y entrega con consentimiento; resumen tipo ficha técnica + envío.
+- [x] Multipieza: "agregar otra pieza" repite pasos 2–5; resumen muestra todas.
+- [x] Botón "Prefiero hablar" en cada paso → `wa.me` con resumen parcial y token del borrador.
+- [x] Semáforo (`lib/traffic-light.ts`): rojo si falta cantidad, tipo, o arte cuando hay impresión; amarillo si faltan peso, dimensiones o referencias; verde si todo.
+- [x] Al enviar: crea `quote_request` + `quote_items`, número, semáforo, ficha técnica PDF (`/api/pdf/ficha/[id]`), página de confirmación "qué sigue" (respuesta en 24 h hábiles, condiciones, enlace de seguimiento `/seguimiento/[token]`), eventos de analytics por paso.
+- [x] Mensajes de validación específicos (§8 "Validaciones clave"); accesible por teclado; móvil primero.
+- [x] Tests: Vitest para semáforo, numeración, plazo, compatibilidades; Playwright: solicitud de dos piezas (comercial y alimentaria) completada en móvil en < 5 min de interacción simulada.
 
 Aceptación: un usuario sin conocimientos técnicos completa dos piezas desde el celular y recibe número y confirmación; ninguna combinación inválida es seleccionable; el borrador se recupera desde otro navegador con el enlace.
 

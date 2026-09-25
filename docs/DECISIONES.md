@@ -170,3 +170,110 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
 ### D-030 · 24/09/2026 · E2E con base propia
 - **Decisión:** Playwright levanta su servidor en :3100 con su propia base (`.data/postgres-e2e` en :54323, recreada en cada corrida), su propio almacenamiento (`.data/storage-e2e`) y su propio build (`.next-e2e`). Los datos de prueba nunca tocan la base de desarrollo. `pnpm db:reset` borra además la caché de datos de Next.
 - **Cómo cambiarla:** `playwright.config.ts` y las variables `LOCAL_DB_*` de `scripts/dev.mjs`.
+
+### D-031 · 24/09/2026 · Semáforo cuando falta el arte
+- **Duda:** §8 pide rojo si falta el arte con impresión, y §9 ("Cliente sin arte") pide amarillo si el cliente marca "no tengo arte" o "necesito diseño".
+- **Decisión:**
+  - Con impresión y sin archivos: "Aún no tengo arte" y "Necesito que lo diseñen" dan amarillo (`artwork_pending` y `design`). "Tengo el arte" sin subir nada, o sin respuesta, da rojo (`artwork`).
+  - Una pieza "No sé, sugiéranme" queda en rojo por "falta tipo", porque el equipo tiene que definirlo antes del RFQ.
+- **Cómo cambiarla:** `lib/traffic-light.ts` y sus tests.
+
+### D-032 · 24/09/2026 · Los tokens nunca van en URLs que ve la analítica
+- **Duda:** GA4 y Meta Pixel registran la URL completa; el token del borrador y el de seguimiento dan acceso a datos personales.
+- **Decisión:**
+  - El wizard ya no escribe `?borrador=` en la barra de direcciones. El borrador vive en el servidor y en `localStorage`, y se comparte con "Guardar y seguir después".
+  - `/cotizar?borrador=` (enlace de reanudación) no carga la analítica y, al abrir, limpia la URL a `/cotizar`.
+  - La confirmación es `/cotizar/listo`. El token viaja en una cookie httpOnly (`pp_listo`, 24 h, solo para esa ruta). Desde ahí el seguimiento se abre con un enlace normal, sin navegación del lado del cliente.
+  - `/seguimiento/[token]` y el PDF no cargan analítica.
+  - El Pixel va sin eventos automáticos de botones (`autoConfig` en false).
+- **Cómo cambiarla:** `components/analytics-scripts.tsx`, `app/cotizar/page.tsx`, `app/cotizar/listo/page.tsx` y `submitQuoteAction`.
+
+### D-033 · 24/09/2026 · Datos personales del borrador y purga
+- **Decisión:**
+  - Mientras no se marque el consentimiento del paso 8, el servidor guarda el borrador sin los datos de contacto; quedan solo en el dispositivo. Al enviar ya hay consentimiento.
+  - Un cron diario (`/api/cron/purge-drafts`, 03:30 hora de Panamá, con `CRON_SECRET`) borra los borradores vencidos (30 días sin cambios) que nunca se enviaron, con sus archivos. Las solicitudes enviadas no se tocan.
+- **Cómo cambiarla:** `lib/quote/drafts.ts` (`stateForServer`, `purgeExpiredDrafts`) y `vercel.json`.
+
+### D-034 · 24/09/2026 · Empresa de cada solicitud
+- **Duda:** §13 define Empresa 1:N solicitudes, pero el cotizador es anónimo.
+- **Decisión:** al enviar se busca la empresa:
+  1. Por RUC. Se guarda normalizado, sin espacios y en mayúsculas, y es único.
+  2. Si no hay RUC, por una solicitud anterior del mismo correo o WhatsApp. Si el cliente da un RUC nuevo, solo se reutiliza una empresa sin RUC.
+  3. Si no se encuentra, se crea. Sin nombre de empresa, la persona figura como su propia cuenta (persona natural).
+  - El panel (E6) podrá fusionar o corregir.
+- **Cómo cambiarla:** `resolveCompany` en `lib/quote/submit.ts`.
+
+### D-035 · 24/09/2026 · Qué se pregunta una vez y qué por pieza
+- **Decisión:**
+  - El segmento (paso 0), el producto (paso 1), la fecha deseada, el contacto y la entrega son de la solicitud.
+  - Tipo, tamaño, material, impresión, cantidades, frecuencia, arte y referencias son de cada pieza.
+  - Máximo 20 piezas por solicitud.
+- **Cómo cambiarla:** `lib/quote/types.ts` y `lib/quote/flow.ts` (`MAX_PIECES`).
+
+### D-036 · 24/09/2026 · "No sé" en tipo y en material
+- **Decisión:**
+  - "No sé, sugiéranme" en el tipo salta los pasos de tamaño, material e impresión de esa pieza. Desde ahí se puede agregar otra pieza, igual que desde el paso 5 y el resumen.
+  - "No sé, asesórenme con el material" deja papel y calibre a propuesta del equipo.
+  - Las dos opciones marcan la solicitud como "necesita asesoría".
+- **Cómo cambiarla:** `lib/quote/flow.ts` y `lib/quote/validate.ts`.
+
+### D-037 · 24/09/2026 · Números en formato de Panamá
+- **Decisión:** en pantalla, en el PDF y en los mensajes, los miles van con coma (5,000). Al escribir se acepta 5000, 5.000, 5,000 o 5 000. Las medidas aceptan coma o punto decimal, con un decimal como máximo.
+- **Cómo cambiarla:** `lib/quote/validate.ts` (parsers) y `Intl.NumberFormat("es-PA")`.
+
+### D-038 · 24/09/2026 · Plazo en el cotizador
+- **Decisión:**
+  - El plazo en vivo usa la mayor cantidad de la solicitud, porque la producción se entrega junta: con más de 10,000 unidades, 45 días; si no, 30.
+  - La fecha deseada es opcional. Si no llega, se avisa sin bloquear el envío.
+  - El resumen, el paso 6 y la ficha PDF leen los días y el umbral desde `settings`.
+- **Cómo cambiarla:** `lib/leadtime.ts` y admin > Configuración.
+
+### D-039 · 24/09/2026 · Seguimiento y confirmación
+- **Decisión:**
+  - El cliente sigue su solicitud en `/seguimiento/[token]`, un enlace seguro sin cuenta, y descarga la ficha en `/api/pdf/ficha/[id]?t=token`. El equipo accede con sesión.
+  - El correo de confirmación sale con `lib/mail` (simulado sin `RESEND_API_KEY`). E5 lo pasa a las plantillas de notificaciones.
+  - Los valores que escribe el visitante van escapados en el HTML de todos los correos.
+- **Cómo cambiarla:** `app/seguimiento`, `app/api/pdf/ficha` y `app/cotizar/actions.ts`.
+
+### D-040 · 24/09/2026 · Segmento y tipos compatibles
+- **Decisión:**
+  - En el paso de tipo solo aparecen los tipos del segmento, con los exclusivos del segmento primero. "No estoy seguro" muestra todos.
+  - Cambiar de segmento suelta los tipos que dejan de servir. El servidor rechaza un tipo que no corresponde al segmento.
+  - Un tipo solo alimentario exige aptitud alimentaria aunque el segmento sea "No estoy seguro".
+  - Si el tipo precargado tiene un único segmento, ese segmento queda elegido.
+- **Cómo cambiarla:** `typeFitsSegment` y `needsFoodAttributes` en `lib/quote/validate.ts`.
+
+### D-041 · 24/09/2026 · "Cotizar esta pieza" y "Quiero algo así" con un borrador en curso
+- **Decisión** (precisa D-028): la precarga se suma al borrador del dispositivo y nunca lo reemplaza.
+  - El tipo va a la pieza que ya lo tenga, a una pieza vacía o a una pieza nueva.
+  - La muestra queda como referencia de esa pieza.
+  - Si el tipo no sirve para el segmento ya elegido, el segmento pasa a "No estoy seguro".
+  - Un aviso dice qué se agregó.
+- **Cómo cambiarla:** `applyPreload` en `lib/quote/flow.ts`.
+
+### D-042 · 24/09/2026 · Borradores
+- **Decisión:**
+  - Autoguardado en `localStorage` al instante y en el servidor 1,2 s después del último cambio.
+  - Si falla el guardado, se avisa con texto visible y un botón "Reintentar".
+  - El borrador vence a los 30 días sin cambios.
+  - "Guardar y seguir después" envía el enlace por correo (máximo 3 por borrador cada 24 h) o por WhatsApp, o permite copiarlo.
+- **Cómo cambiarla:** `components/wizard/wizard.tsx` y `RESUME_EMAILS_PER_DAY` en `lib/quote/drafts.ts`.
+
+### D-043 · 24/09/2026 · Navegación accesible del wizard
+- **Decisión:**
+  - En el paso 0 (segmento), tocar o hacer clic en una opción avanza solo. Con teclado, las flechas solo cambian la opción y se avanza con "Continuar" (WCAG 3.2.2).
+  - Los errores visibles no pasan de un paso a otro. "Ir al paso" desde el resumen marca y enfoca lo que falta, y al continuar vuelve al resumen.
+  - "Quitar" una pieza ofrece "Deshacer" en lugar de un diálogo de confirmación.
+- **Cómo cambiarla:** `OptionCard` en `components/wizard/fields.tsx` y `components/wizard/step-summary.tsx`.
+
+### D-044 · 24/09/2026 · Fotos en las opciones técnicas
+- **Decisión:** tamaños, papeles, calibres e impresión muestran foto cuando el catálogo la tiene. Sin foto no se muestra un marcador genérico, porque un dibujo de caja no explica un papel. Los tipos siempre tienen imagen (foto o marcador con su código).
+- **Cómo cambiarla:** `OptionPhoto` en `components/wizard/steps-piece.tsx`.
+
+### D-045 · 24/09/2026 · Analítica del embudo del cotizador
+- **Decisión:** eventos
+  - `wizard_step_view`, `wizard_step_complete` (el paso 6 lleva un rango de cantidad) y `wizard_step_error` con los campos.
+  - `wizard_option` con el paso, el campo y el código de catálogo elegido.
+  - `wizard_add_piece`, `wizard_prefer_talk`, `wizard_save_later_*`, `wizard_submit` y el estándar `generate_lead`/`Lead`.
+  - Nunca datos personales.
+- **Cómo cambiarla:** `lib/quote/option-events.ts` y `components/wizard/wizard.tsx`.

@@ -7,7 +7,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E0 — Base del proyecto | ✅ Hecho | 24/09/2026 |
 | E1 — Datos maestros y admin | ✅ Hecho | 24/09/2026 |
 | E2 — Sitio público | ✅ Hecho | 24/09/2026 |
-| E3 — Cotizador | ⏳ Pendiente | — |
+| E3 — Cotizador | ✅ Hecho | 24/09/2026 |
 | E4 — Arte y referencias | ⏳ Pendiente | — |
 | E5 — Notificaciones | ⏳ Pendiente | — |
 | E6 — Panel interno | ⏳ Pendiente | — |
@@ -180,3 +180,71 @@ node scripts/lighthouse.mjs http://localhost:3200 / /catalogo/cajas/plegadiza-co
   | `/faq` | 98 | 100 | 100 | 100 | 2,4 s |
 
   Se cumple el criterio de aceptación de E2 (≥ 90 en rendimiento y SEO en inicio y una ficha).
+
+## E3 — Cotizador
+
+**Qué quedó hecho**
+- **Migración `003_quotes`:**
+  - Tablas: `companies` (RUC único normalizado), `quote_drafts` (token, payload, paso, vencimiento a 30 días, cupo de correos de reanudación), `quote_requests` (número `S-AAAA-NNNNN`, estado de §14, semáforo, canal, segmento, fecha deseada, entrega, UTM, asignado, timestamps por estado, consentimiento con fecha e IP), `quote_items` (todos los campos de §13 más la ficha congelada), `quote_references` y `activities`.
+  - Máquina de estados de la solicitud en la base: un trigger valida las transiciones y registra un historial inmutable. `lib/states.ts` es el espejo en TypeScript.
+  - RLS: el cliente accede por el token de su enlace, el staff según su rol y anon no numera.
+- **Wizard `/cotizar`** con los 10 pasos de §8 (0–9) en móvil primero:
+  - Segmento.
+  - Producto: peso, medidas, volumen, condiciones y uso.
+  - Tipo con fotos o marcador y "No sé, sugiéranme".
+  - Tamaño estándar, a medida o "según mi producto".
+  - Material con compatibilidades, motivos visibles, sugerencias por condiciones y calibre por peso.
+  - Impresión, Pantone validado y acabados.
+  - Hasta 3 cantidades, frecuencia y fecha deseada con plazo en vivo.
+  - Arte y referencias: la elección de arte, muestras de la galería y enlaces. La subida de archivos llega con E4.
+  - Contacto con consentimiento.
+  - Resumen tipo ficha técnica.
+- **Multipieza (hasta 20):** "Agregar otra pieza" desde el paso 5, desde "No sé, sugiéranme" y desde el resumen. En el resumen se puede editar, quitar con "Deshacer" o ir al paso que falta.
+- **Borradores:**
+  - Autoguardado en el servidor y en `localStorage`.
+  - "Guardar y seguir después" por correo (3 por día) o WhatsApp.
+  - "Prefiero hablar" en cada paso, con el resumen parcial y el enlace del borrador.
+  - "Cotizar esta pieza" y "Quiero algo así" se suman al borrador en curso (D-041).
+- **Envío:**
+  - Revalidación completa en el servidor y semáforo (D-031).
+  - Número, empresa por RUC o contacto (D-034) y ficha técnica en PDF.
+  - Confirmación "qué sigue" en `/cotizar/listo`, seguimiento en `/seguimiento/[token]` y correo de confirmación (simulado sin Resend).
+  - Sin precio en ninguna pantalla.
+- **Privacidad y seguridad:**
+  - Tokens fuera de las URLs que ve la analítica (D-032).
+  - Contacto guardado en el servidor solo con consentimiento y purga diaria de borradores vencidos por cron (D-033).
+  - HTML de correos escapado.
+  - UTM limitado a claves conocidas.
+- **Accesibilidad:**
+  - Foco en el título de cada paso y en el primer error.
+  - Paso 0 (segmento) sin saltos con las flechas del teclado.
+  - Contornos de foco sólidos.
+  - Avisos de guardado, envío y bloqueo visibles y anunciados.
+- **Analítica del embudo:** vista y fin de paso, errores, opción elegida con códigos de catálogo, piezas agregadas y lead (D-045).
+- **Revisión adversarial (ultracode):** 4 revisores (PRD, lógica, seguridad y UX) y verificación escéptica de cada hallazgo. De 28 hallazgos, 23 se confirmaron y se corrigieron; 5 se descartaron con su razón. El revisor de lógica falló por red; su ámbito quedó cubierto por los tests nuevos.
+
+**Qué falta / notas**
+- La subida de arte y fotos de referencia del paso 7 es E4. Hoy "Tengo el arte" deja la pieza en rojo hasta que se suba el archivo.
+- El correo de confirmación pasa a las plantillas de notificaciones en E5.
+- El captcha y el límite de peticiones por IP se hacen en E9.
+
+**Cómo probarlo**
+```bash
+pnpm dev                          # http://localhost:3000/cotizar
+pnpm test                         # unit + db (semáforo, numeración, plazo, compatibilidades, flujo, empresa, borradores)
+pnpm test:e2e                     # recorridos del cotizador en móvil y escritorio
+curl http://localhost:3000/api/cron/purge-drafts   # en desarrollo no pide CRON_SECRET
+```
+
+**Resultado de la verificación (24/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 90/90 en verde (unitarios y de base).
+- `pnpm test:e2e`: 16/16 en verde (14 omitidos por proyecto móvil/escritorio). Incluye:
+  - Dos piezas (una alimentaria y una bolsa de comercio) desde el celular, con número `S-AAAA-NNNNN`, confirmación sin token en la URL, seguimiento "Recibida" y PDF, en menos de 5 minutos.
+  - Recorrido comercial completo en el celular con "No sé, sugiéranme" más una pieza con Pantone.
+  - Combinaciones inválidas deshabilitadas, con el motivo visible.
+  - Paso 0 (segmento) con teclado.
+  - Precarga sumada al borrador.
+  - Borrador recuperado desde otro navegador con el enlace.
+  - Validaciones de Pantone, medidas, cantidades y fecha.
+- Se cumple el criterio de aceptación de E3.
