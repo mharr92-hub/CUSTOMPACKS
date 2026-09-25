@@ -6,7 +6,7 @@
 
 /*
  * Tokens de marca (provisionales, ver docs/DECISIONES.md): kraft, verde bosque
- * y negro sobre fondo papel. Para cambiar la identidad basta con editar este
+ * y negro sobre cartulina blanca. Para cambiar la identidad basta con editar este
  * bloque y config/brand.ts.
  */
 @theme inline {
@@ -18,6 +18,8 @@
 
   --color-kraft: var(--kraft);
   --color-kraft-light: var(--kraft-light);
+  --color-kraft-surface: var(--kraft-surface);
+  --color-kraft-dark: var(--kraft-dark);
   --color-forest: var(--forest);
   --color-forest-dark: var(--forest-dark);
   --color-ink: var(--ink);
@@ -66,13 +68,15 @@
 }
 
 :root {
-  /* Marca */
+  /* Marca: cartulina blanca, kraft como material, verde bosque como tinta de acción. */
   --kraft: #b98b57;
   --kraft-light: #ebdcc6;
+  --kraft-surface: #e2c9a3;
+  --kraft-dark: #6f5132;
   --forest: #1e4a36;
   --forest-dark: #143326;
   --ink: #15130f;
-  --paper: #faf6ef;
+  --paper: #ffffff;
 
   /* Semáforo de completitud */
   --signal-green: #1f7a4d;
@@ -90,12 +94,12 @@
   --primary-foreground: #fbf8f2;
   --secondary: var(--kraft-light);
   --secondary-foreground: var(--ink);
-  --muted: #f1ebe1;
+  --muted: #f3f1ed;
   --muted-foreground: #5b5448;
-  --accent: #efe4d3;
+  --accent: #f1e6d6;
   --accent-foreground: var(--ink);
   --destructive: #b3261e;
-  --border: #e3d9c9;
+  --border: #e4ddd2;
   --input: #d6c9b5;
   --ring: var(--forest);
   --chart-1: #1e4a36;
@@ -126,6 +130,9 @@
     @apply bg-background text-foreground;
     font-feature-settings: "cv11", "ss01";
   }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
   h1,
   h2,
   h3,
@@ -134,5 +141,68 @@
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* Patrones repetidos del sitio (menos marcado en HTML y en el payload RSC). */
+@layer components {
+  .link-accent {
+    /* min-h-6: área táctil de al menos 24 px (WCAG 2.2, target-size). */
+    @apply inline-flex min-h-6 items-center font-semibold text-forest underline decoration-kraft decoration-2 underline-offset-4 hover:decoration-forest;
+  }
+  .h-section {
+    @apply text-3xl font-extrabold tracking-[-0.02em] sm:text-4xl;
+  }
+  .card-code {
+    @apply text-xs font-semibold tracking-wide text-kraft-dark;
+  }
+  /* Marcas de corte en las 4 esquinas (dos trazos de 12 px por esquina). */
+  .crop-frame {
+    --crop: color-mix(in oklab, var(--ink) 45%, transparent);
+    position: relative;
+    padding: 0.625rem;
+    background:
+      linear-gradient(var(--crop), var(--crop)) top left / 12px 1px no-repeat,
+      linear-gradient(var(--crop), var(--crop)) top left / 1px 12px no-repeat,
+      linear-gradient(var(--crop), var(--crop)) top right / 12px 1px no-repeat,
+      linear-gradient(var(--crop), var(--crop)) top right / 1px 12px no-repeat,
+      linear-gradient(var(--crop), var(--crop)) bottom left / 12px 1px no-repeat,
+      linear-gradient(var(--crop), var(--crop)) bottom left / 1px 12px no-repeat,
+      linear-gradient(var(--crop), var(--crop)) bottom right / 12px 1px no-repeat,
+      linear-gradient(var(--crop), var(--crop)) bottom right / 1px 12px no-repeat;
+  }
+}
+
+/* Troquel del hero: se dibuja una sola vez al cargar (respeta reducir movimiento). */
+@keyframes dieline-draw {
+  from {
+    stroke-dashoffset: var(--dash-length, 1200);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.dieline-draw {
+  stroke-dasharray: var(--dash-length, 1200);
+  animation: dieline-draw 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.15s both;
+}
+@keyframes dieline-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.dieline-fade {
+  animation: dieline-fade 0.6s ease-out 1.4s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dieline-draw {
+    animation: none;
+    stroke-dasharray: none;
+  }
+  .dieline-fade {
+    animation: none;
   }
 }

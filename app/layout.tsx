@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
@@ -12,6 +9,9 @@ const inter = localFont({
   variable: "--font-inter",
   weight: "100 900",
   display: "swap",
+  // Sin precarga: el texto se pinta al instante con la fuente de respaldo ajustada
+  // y la fuente no compite con el HTML en conexiones lentas (LCP móvil).
+  preload: false,
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,15 +35,14 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+/**
+ * Raíz mínima: cada sección (sitio, cotizador, seguimiento, panel) monta sus
+ * propios providers para no cargar JS ni textos que no usa.
+ */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={inter.variable}>
-      <body className="flex min-h-dvh flex-col antialiased">
-        <NextIntlClientProvider>
-          <TooltipProvider>{children}</TooltipProvider>
-          <Toaster />
-        </NextIntlClientProvider>
-      </body>
+      <body className="flex min-h-dvh flex-col antialiased">{children}</body>
     </html>
   );
 }

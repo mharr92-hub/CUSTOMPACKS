@@ -33,7 +33,7 @@ export async function SiteFooter() {
           <p className="mt-4 max-w-sm text-sm text-paper/75">{t("tagline")}</p>
           <p className="mt-2 text-sm font-medium text-kraft-light">{brand.slogan}</p>
         </div>
-        <FooterColumn title={t("explore")} items={catalogNav} />
+        <FooterColumn title={t("explore")} items={[...catalogNav, { key: "gallery", href: "/galeria" }]} />
         <FooterColumn title={t("company")} items={companyNav} />
         <div>
           <h2 className="text-sm font-semibold text-paper">{t("conditionsTitle")}</h2>
