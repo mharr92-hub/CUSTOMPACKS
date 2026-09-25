@@ -19,7 +19,8 @@
     "db:migrate": "node scripts/db.mjs migrate",
     "db:seed": "node scripts/db.mjs seed",
     "build:next": "next build",
-    "gallery:import": "tsx --conditions=react-server scripts/import-gallery.mts"
+    "gallery:import": "tsx --conditions=react-server scripts/import-gallery.mts",
+    "verify:deploy": "node scripts/verify-deploy.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
