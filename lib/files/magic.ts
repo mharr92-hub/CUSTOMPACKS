@@ -2,7 +2,7 @@
  * Detección del tipo real de archivo por sus primeros bytes ("magic bytes"),
  * sin confiar en la extensión ni en el Content-Type que envía el navegador.
  */
-export type DetectedKind = "pdf" | "ai" | "eps" | "svg" | "png" | "jpeg" | "webp" | "gif" | "unknown";
+export type DetectedKind = "pdf" | "ai" | "eps" | "svg" | "png" | "jpeg" | "webp" | "gif" | "mp4" | "mov" | "unknown";
 
 const MIME: Record<DetectedKind, string> = {
   pdf: "application/pdf",
@@ -13,6 +13,8 @@ const MIME: Record<DetectedKind, string> = {
   jpeg: "image/jpeg",
   webp: "image/webp",
   gif: "image/gif",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
   unknown: "application/octet-stream",
 };
 
@@ -47,6 +49,8 @@ export function detectFileKind(bytes: Uint8Array, fileName = ""): DetectedKind {
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return "jpeg";
   if (startsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && startsWith(bytes, [0x57, 0x45, 0x42, 0x50], 8)) return "webp";
   if (startsWith(bytes, [0x47, 0x49, 0x46, 0x38])) return "gif";
+  // Video ISO BMFF: "ftyp" en el byte 4; la marca "qt  " es QuickTime (.mov).
+  if (startsWith(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return asciiHead(bytes.slice(8, 12), 4) === "qt  " ? "mov" : "mp4";
   const text = asciiHead(bytes).replace(/^﻿/, "").trimStart();
   if (/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(text)) return "svg";
   return "unknown";

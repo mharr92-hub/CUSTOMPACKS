@@ -2,6 +2,7 @@ import "server-only";
 import { serviceActor, withActor } from "@/lib/db/actor";
 import { getRequestByToken } from "@/lib/quote/tracking";
 import { enqueueNotification } from "@/lib/notify";
+import { onProofApproved } from "@/lib/orders";
 import { signedUrl } from "@/lib/storage";
 import type { ArtworkStatus, Checklist } from "./states";
 
@@ -104,6 +105,8 @@ export async function approveProof(
     await tx`
       insert into public.activities (request_id, entity_type, entity_id, channel, kind, body, payload)
       values (${request.id}, 'artwork_file', ${file.id}, 'system', 'proof_approved', ${name}, ${tx.json({ ip: input.ip })})`;
+    // Si ya hay pedido: hito "Arte aprobado" y fecha estimada de entrega.
+    await onProofApproved(tx, request.id);
     return { ok: true, approvedAt: approval?.approved_at ?? new Date() } as const;
   });
 }

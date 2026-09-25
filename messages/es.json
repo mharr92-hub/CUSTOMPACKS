@@ -619,7 +619,12 @@
         "rfq_answered": "Respuesta de fábrica registrada",
         "quote_sent": "Cotización enviada",
         "quote_accepted": "Cotización aceptada por el cliente",
-        "quote_changes": "El cliente pidió cambios a la cotización"
+        "quote_changes": "El cliente pidió cambios a la cotización",
+        "order_created": "Pedido creado",
+        "milestone": "Hito del pedido",
+        "payment_confirmed": "Pago confirmado",
+        "receipt_uploaded": "El cliente subió un comprobante",
+        "evidence_uploaded": "Evidencia subida"
       },
       "by": "por {name}",
       "system": "sistema",
@@ -634,7 +639,8 @@
         "body": "Escribe la nota.",
         "assignee": "Esa persona no puede recibir solicitudes.",
         "generic": "No se pudo guardar. Inténtalo de nuevo."
-      }
+      },
+      "orderLink": "Pedido {number}"
     },
     "users": {
       "title": "Usuarios del equipo",
@@ -692,7 +698,21 @@
     },
     "orders": {
       "title": "Pedidos",
-      "empty": "Todavía no hay pedidos. Se crean cuando el cliente acepta una cotización."
+      "empty": "Todavía no hay pedidos. Se crean cuando el cliente acepta una cotización.",
+      "columns": {
+        "number": "Pedido",
+        "client": "Cliente",
+        "status": "Estado",
+        "delivery": "Entrega estimada",
+        "payments": "Pagos"
+      },
+      "delayed": "Atrasado",
+      "deposit": "Anticipo",
+      "balance": "Saldo",
+      "ok": "confirmado",
+      "pending": "pendiente",
+      "receipts": "{n, plural, one {# comprobante por revisar} other {# comprobantes por revisar}}",
+      "toBeConfirmed": "por confirmar"
     },
     "reports": {
       "title": "Reportes",
@@ -781,6 +801,121 @@
         "valid_until": "La vigencia no puede ser anterior a hoy.",
         "generic": "No se pudo completar. Inténtalo de nuevo."
       }
+    },
+    "order": {
+      "metaTitle": "Pedido {number}",
+      "back": "← Pedidos",
+      "request": "Solicitud {number}",
+      "quote": "Cotización {number}",
+      "statuses": {
+        "pending_deposit": "Esperando anticipo",
+        "deposit_received": "Anticipo recibido",
+        "in_production": "En producción",
+        "qa": "QA en planta",
+        "shipped": "Embarcado",
+        "in_customs": "En aduana",
+        "delivered": "Entregado",
+        "closed": "Cerrado"
+      },
+      "milestoneTypes": {
+        "deposit_received": "Anticipo recibido",
+        "artwork_approved": "Arte aprobado",
+        "production_started": "Producción iniciada",
+        "qa_completed": "QA en planta",
+        "shipped": "Embarcado",
+        "in_customs": "En aduana",
+        "delivered": "Entregado",
+        "balance_received": "Saldo recibido",
+        "closed": "Pedido cerrado"
+      },
+      "delayed": "Atrasado: la fecha de entrega ya pasó.",
+      "summaryTitle": "Resumen",
+      "total": "Total",
+      "deposit": "Anticipo ({pct} %)",
+      "balance": "Saldo",
+      "leadTime": "Plazo",
+      "leadTimeDays": "{days} días desde el anticipo y el proof aprobado",
+      "estimated": "Entrega estimada",
+      "toBeConfirmed": "por confirmar",
+      "artworkPending": "Falta el proof aprobado de alguna pieza impresa: no puede entrar a producción.",
+      "itemsTitle": "Piezas",
+      "itemLine": "{position}. {name} · {quantity} unidades",
+      "timelineTitle": "Línea de tiempo",
+      "noMilestones": "Todavía no hay hitos.",
+      "evidence": "Evidencias",
+      "uploadEvidence": "Subir fotos, video o PDF",
+      "evidenceHint": "Fotos (JPG, PNG, WebP), video (MP4, MOV) o PDF. El cliente las ve en su enlace al instante.",
+      "qaTitle": "Checklist de QA contra la especificación",
+      "qaExpected": "Esperado: {value}",
+      "qaResults": {
+        "ok": "Correcto",
+        "observed": "Observado",
+        "na": "No aplica"
+      },
+      "qaComment": "Comentario",
+      "responsible": "por {name}",
+      "recordTitle": "Registrar hito",
+      "milestone": "Hito",
+      "date": "Fecha",
+      "notes": "Nota (la ve el cliente)",
+      "transport": "Transporte",
+      "tracking": "Guía o número de rastreo",
+      "eta": "Llegada estimada (ETA)",
+      "record": "Registrar",
+      "noNext": "No hay hitos pendientes para este estado.",
+      "shippingTitle": "Envío y notas internas",
+      "internalNotes": "Notas internas",
+      "saveShipping": "Guardar",
+      "paymentsTitle": "Pagos",
+      "kinds": {
+        "deposit": "Anticipo",
+        "balance": "Saldo"
+      },
+      "paymentStatuses": {
+        "pending": "Por confirmar",
+        "confirmed": "Confirmado",
+        "rejected": "Rechazado"
+      },
+      "byClient": "comprobante del cliente",
+      "receipt": "Ver comprobante",
+      "recordPayment": "Registrar pago recibido",
+      "kind": "Tipo",
+      "amount": "Monto",
+      "method": "Método",
+      "methodPlaceholder": "Transferencia, ACH, Yappy…",
+      "reference": "Referencia",
+      "paidOn": "Fecha de pago",
+      "confirm": "Confirmar",
+      "reject": "Rechazar",
+      "save": "Registrar pago",
+      "statement": "Estado de pagos (PDF)",
+      "qa": {
+        "material": "Material",
+        "caliber": "Calibre",
+        "size": "Medidas",
+        "print": "Colores e impresión",
+        "finish": "Acabado",
+        "quantity": "Cantidad"
+      },
+      "saved": "Guardado.",
+      "errors": {
+        "forbidden": "No tienes permiso para hacer esto.",
+        "not_found": "No se encontró el pedido.",
+        "status": "Ese cambio no corresponde al estado actual.",
+        "artwork": "Falta el proof aprobado por el cliente: ningún pedido entra a producción sin él.",
+        "qa": "Completa cada punto del checklist de QA.",
+        "amount": "Escribe un monto mayor que 0.",
+        "balance": "Para cerrar el pedido, primero confirma el saldo.",
+        "type": "Ese hito no corresponde al estado actual.",
+        "file": "No se pudo subir el archivo.",
+        "score": "Elige un puntaje de 0 a 10.",
+        "generic": "No se pudo completar. Inténtalo de nuevo."
+      },
+      "evidenceLimits": "Hasta {max} MB por archivo, {files} archivos por hito.",
+      "evidenceAlt": "Evidencia de {milestone}",
+      "video": "Ver video",
+      "file": "Ver archivo",
+      "shipEstimate": "Embarque estimado (va en el aviso al cliente)"
     }
   },
   "catalog": {
@@ -1573,6 +1708,77 @@
         "body": "Escribe qué quieres cambiar.",
         "generic": "No pudimos registrar tu respuesta. Inténtalo de nuevo o escríbenos por WhatsApp."
       }
+    },
+    "order": {
+      "title": "Tu pedido {number}",
+      "status": "Estado",
+      "statuses": {
+        "pending_deposit": "Esperando anticipo",
+        "deposit_received": "Anticipo recibido",
+        "in_production": "En producción",
+        "qa": "QA en planta",
+        "shipped": "Embarcado",
+        "in_customs": "En aduana",
+        "delivered": "Entregado",
+        "closed": "Cerrado"
+      },
+      "milestoneTypes": {
+        "deposit_received": "Anticipo recibido",
+        "artwork_approved": "Arte aprobado",
+        "production_started": "Producción iniciada",
+        "qa_completed": "QA en planta",
+        "shipped": "Embarcado",
+        "in_customs": "En aduana",
+        "delivered": "Entregado",
+        "balance_received": "Saldo recibido",
+        "closed": "Pedido cerrado"
+      },
+      "estimated": "Entrega estimada: {date}",
+      "toBeConfirmed": "Entrega estimada: se confirma con el anticipo y el proof aprobado.",
+      "shipping": "Envío: {transport}",
+      "tracking": "Rastreo: {tracking}",
+      "timeline": "Etapas",
+      "qa": "Verificación en planta",
+      "qaResults": {
+        "ok": "Correcto",
+        "observed": "Observado",
+        "na": "No aplica"
+      },
+      "photoAlt": "Evidencia de {milestone}",
+      "video": "Ver video",
+      "file": "Ver archivo",
+      "paymentsTitle": "Pagos",
+      "paymentsIntro": "Los montos están en el estado de pagos. Pagas {deposit} % al aprobar y {balance} % al recibir.",
+      "deposit": "Anticipo",
+      "balance": "Saldo",
+      "paymentStatuses": {
+        "none": "Pendiente",
+        "pending": "Comprobante en revisión",
+        "confirmed": "Confirmado",
+        "rejected": "Comprobante rechazado: sube uno nuevo"
+      },
+      "statement": "Estado de pagos (PDF)",
+      "quote": "Cotización (PDF)",
+      "spec": "Ficha técnica (PDF)",
+      "instructions": "Cómo pagar",
+      "noInstructions": "Escríbenos por WhatsApp y te enviamos los datos para el pago.",
+      "uploadReceipt": "Subir comprobante de pago",
+      "receiptHint": "Foto o PDF de la transferencia. Lo confirmamos y te avisamos.",
+      "reorder": "Pedir de nuevo",
+      "reorderHint": "Abre el cotizador con las mismas piezas para ajustar cantidades o fecha.",
+      "surveyTitle": "¿Qué tan probable es que nos recomiendes?",
+      "surveyHint": "0 es nada probable y 10 es muy probable.",
+      "surveyComment": "¿Qué podemos mejorar? (opcional)",
+      "surveySend": "Enviar",
+      "surveyThanks": "Gracias por tu respuesta.",
+      "surveyError": "Elige un puntaje de 0 a 10.",
+      "reorderComment": "Repetición del pedido {number}: usar el arte aprobado de ese pedido, salvo que indique cambios.",
+      "receiptLimits": "PDF, JPG, PNG o WebP de hasta {max} MB.",
+      "receiptSent": "Recibimos tu comprobante. Te avisamos cuando lo confirmemos.",
+      "surveyFailed": "No se pudo enviar. Inténtalo de nuevo.",
+      "paymentHelp": "Hola {brand}, quiero los datos para pagar el pedido {number}.",
+      "whatsapp": "Escribir por WhatsApp",
+      "deliveredOn": "Entregado el {date}"
     }
   },
   "pdf": {
@@ -1778,5 +1984,29 @@
     "accept": "Para aceptar o pedir cambios, entra a tu enlace de seguimiento: {link}",
     "footer": "{brand} · {number}",
     "piece": "Pieza {n}: {name}"
+  },
+  "statementPdf": {
+    "title": "Estado de pagos",
+    "order": "Pedido {number}",
+    "date": "Al {date}",
+    "client": "Cliente",
+    "quote": "Cotización",
+    "items": "Detalle",
+    "quantity": "Cantidad",
+    "unitPrice": "Precio unitario",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "deposit": "Anticipo ({pct} %)",
+    "balance": "Saldo ({pct} %)",
+    "paid": "Pagado",
+    "pending": "Pendiente",
+    "payments": "Pagos confirmados",
+    "paymentLine": "{date} · {kind} · {amount}{method}",
+    "none": "Todavía no hay pagos confirmados.",
+    "kinds": {
+      "deposit": "Anticipo",
+      "balance": "Saldo"
+    },
+    "footer": "{brand} · {number}"
   }
 }
