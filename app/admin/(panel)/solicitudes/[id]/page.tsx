@@ -158,6 +158,11 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
           {ta(`lights.${request.trafficLight}`)}
         </span>
         {request.needsAdvice ? <span className="rounded-md bg-kraft-light px-2 py-0.5 text-xs font-medium text-kraft-dark">{t("needsAdvice")}</span> : null}
+        {request.isDemo ? (
+          <span className="rounded-md border border-dashed border-ink/40 px-2 py-0.5 text-xs font-semibold tracking-wide" data-testid="demo-badge">
+            {ta("demo")}
+          </span>
+        ) : null}
         {order ? (
           <Link href={`/admin/pedidos/${order.id}`} className="rounded-md bg-forest px-2 py-0.5 text-sm font-medium text-white hover:underline" data-testid="request-order-link">
             {t("orderLink", { number: order.number })}

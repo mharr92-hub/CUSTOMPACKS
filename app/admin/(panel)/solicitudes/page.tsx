@@ -152,6 +152,7 @@ export default async function InboxPage(props: PageProps<"/admin/solicitudes">) 
                     <Link href={`/admin/solicitudes/${r.id}`} className="text-forest hover:underline">
                       {r.number}
                     </Link>
+                    {r.isDemo ? <span className="ml-1.5 rounded border border-dashed border-ink/40 px-1 text-[10px] font-semibold tracking-wide">{ta("demo")}</span> : null}
                   </td>
                   <td className="max-w-48 truncate p-2" title={r.contactName}>
                     {r.company}

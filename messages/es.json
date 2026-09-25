@@ -982,7 +982,8 @@
       "video": "Ver video",
       "file": "Ver archivo",
       "shipEstimate": "Embarque estimado (va en el aviso al cliente)"
-    }
+    },
+    "demo": "DEMO"
   },
   "catalog": {
     "title": "Catálogo",

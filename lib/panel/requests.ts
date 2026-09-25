@@ -69,6 +69,8 @@ export type InboxRow = {
   assignedTo: string | null;
   assignedName: string | null;
   sla: SlaState;
+  /** Datos de demostración (pnpm db:seed-demo). */
+  isDemo: boolean;
 };
 
 const LIGHT_RANK = { red: 0, yellow: 1, green: 2 } as const;
@@ -96,9 +98,10 @@ export async function listInbox(user: CurrentUser, filters: InboxFilters, now = 
         assigned_name: string | null;
         pieces: (string | null)[] | null;
         max_qty: number | null;
+        is_demo: boolean;
       }[]
     >`
-      select r.id, r.number, r.status, r.segment, r.traffic_light, r.company_name, r.contact_name, r.submitted_at, r.in_review_at, r.assigned_to,
+      select r.id, r.number, r.status, r.segment, r.traffic_light, r.company_name, r.contact_name, r.submitted_at, r.in_review_at, r.assigned_to, r.is_demo,
              coalesce(p.name, p.email) as assigned_name,
              (select json_agg(i.spec_snapshot #>> '{type,name}' order by i.position) from public.quote_items i where i.request_id = r.id) as pieces,
              (select max(q) from public.quote_items i, unnest(i.quantities) q where i.request_id = r.id) as max_qty
@@ -128,6 +131,7 @@ export async function listInbox(user: CurrentUser, filters: InboxFilters, now = 
         assignedTo: r.assigned_to,
         assignedName: r.assigned_name,
         sla: slaFor({ status: r.status, submittedAt: r.submitted_at, inReviewAt: r.in_review_at }, cfg, now),
+        isDemo: Boolean(r.is_demo),
       }))
       .filter((r) => (filters.minQty ? (r.maxQuantity ?? 0) >= filters.minQty : true) && (filters.maxQty ? (r.maxQuantity ?? 0) <= filters.maxQty : true))
       .sort(
@@ -148,6 +152,8 @@ export type RequestDetail = {
   id: string;
   number: string;
   status: RequestStatus;
+  /** Datos de demostración (pnpm db:seed-demo). */
+  isDemo: boolean;
   segment: "commercial" | "food" | "unsure";
   trafficLight: "green" | "yellow" | "red";
   missingFields: { item: number; field: MissingField }[];
@@ -199,6 +205,7 @@ export async function getRequestDetail(user: CurrentUser, id: string, now = new 
         comments: string | null;
         lead_source: string | null;
         needs_advice: boolean;
+        is_demo: boolean;
         utm: Record<string, string>;
         submitted_at: Date;
         in_review_at: Date | null;
@@ -210,7 +217,7 @@ export async function getRequestDetail(user: CurrentUser, id: string, now = new 
     >`
       select r.id, r.number, r.status, r.segment, r.traffic_light, r.missing_fields, r.company_id, r.company_name, r.ruc,
              r.contact_name, r.contact_position, r.contact_email, r.contact_whatsapp, r.delivery_city, r.delivery_address,
-             to_char(r.desired_date, 'YYYY-MM-DD') as desired_date, r.comments, r.lead_source, r.needs_advice, r.utm, r.submitted_at, r.in_review_at,
+             to_char(r.desired_date, 'YYYY-MM-DD') as desired_date, r.comments, r.lead_source, r.needs_advice, r.is_demo, r.utm, r.submitted_at, r.in_review_at,
              r.assigned_to, coalesce(p.name, p.email) as assigned_name, r.loss_reason, r.loss_note
         from public.quote_requests r
         left join public.profiles p on p.user_id = r.assigned_to
@@ -251,6 +258,7 @@ export async function getRequestDetail(user: CurrentUser, id: string, now = new 
       comments: r.comments,
       leadSource: r.lead_source,
       needsAdvice: r.needs_advice,
+      isDemo: Boolean(r.is_demo),
       utm: r.utm ?? {},
       submittedAt: r.submitted_at,
       assignedTo: r.assigned_to,

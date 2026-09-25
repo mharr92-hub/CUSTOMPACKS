@@ -153,11 +153,18 @@ async function loadCatalog(): Promise<PublicCatalog> {
   });
 }
 
-/** Catálogo público cacheado (5 min o hasta que el panel lo invalide). */
-export const getPublicCatalog = unstable_cache(loadCatalog, ["public-catalog-v1"], {
-  tags: [CATALOG_TAG],
-  revalidate: 300,
-});
+/**
+ * Catálogo público cacheado (5 min o hasta que el panel lo invalide). Fuera de
+ * Next.js (scripts como `pnpm db:seed-demo`, con PROVENPACK_SCRIPT=1) no hay
+ * caché incremental: se lee directo de la base.
+ */
+export const getPublicCatalog: () => Promise<PublicCatalog> =
+  process.env.PROVENPACK_SCRIPT === "1"
+    ? loadCatalog
+    : unstable_cache(loadCatalog, ["public-catalog-v1"], {
+        tags: [CATALOG_TAG],
+        revalidate: 300,
+      });
 
 /** Lectura de una configuración pública con valor por defecto. */
 export function publicSetting<T>(catalog: PublicCatalog, key: string, fallback: T): T {
