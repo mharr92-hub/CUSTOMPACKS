@@ -328,3 +328,57 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
 ### D-052 · 24/09/2026 · Pantalla de la solicitud en el panel
 - **Decisión:** E4 crea `/admin/solicitudes/[id]` con el arte y los proofs de cada pieza, y la revisión de preprensa. La bandeja, la asignación, las notas y el resto del detalle se suman en E6, sobre la misma página.
 - **Cómo cambiarla:** `app/admin/(panel)/solicitudes/[id]`.
+
+### D-053 · 24/09/2026 · Cómo salen las notificaciones
+- **Decisión:**
+  - Los cambios de estado encolan los mensajes desde la base: triggers sobre el historial de la solicitud y sobre el arte. Así ningún camino se salta un aviso.
+  - El servidor los redacta con la plantilla vigente y los envía al terminar la respuesta de la acción que los disparó (`after()`).
+  - Cada mensaje se bloquea mientras se envía, tiene una clave única contra duplicados y hasta 3 intentos.
+  - Si a una plantilla le falta un dato (p. ej. el número de cotización), el mensaje queda "Falló" con la lista de variables faltantes y no se envía incompleto.
+  - Todo envío queda en `activities` de la solicitud.
+- **Cómo cambiarla:** `supabase/migrations/005_notifications.sql` y `lib/notify/index.ts`.
+
+### D-054 · 24/09/2026 · Procesos programados sin plan pago
+- **Duda:** el plan gratuito de Vercel solo permite crons diarios, y el SLA de 4 horas necesita revisarse más seguido.
+- **Decisión:**
+  - Crons diarios en `vercel.json`: `/api/cron/notifications` (SLA y cola), `/api/cron/purge-drafts` y `/api/cron/artwork-retention`.
+  - Además, el uso del panel pone al día la cola y revisa el SLA como máximo cada 10 minutos (`job_runs`).
+  - Cada acción que cambia un estado envía sus avisos al instante.
+- **Cómo cambiarla:** con un plan que permita crons frecuentes, programar `/api/cron/notifications` cada 15 minutos.
+
+### D-055 · 24/09/2026 · WhatsApp en el MVP
+- **Decisión:** WhatsApp es click-to-chat (§12).
+  - El aviso queda "Simulado", con el enlace wa.me al número del cliente y el texto de la plantilla.
+  - En la solicitud, el equipo pulsa "Abrir WhatsApp", lo envía desde su teléfono y lo marca "Enviado"; queda quién y cuándo.
+  - Con la API oficial (fase 2), el mismo registro pasa a enviarse solo.
+- **Cómo cambiarla:** la rama `whatsapp` de `deliver` en `lib/notify/index.ts`.
+
+### D-056 · 24/09/2026 · Avisos al equipo
+- **Decisión:**
+  - Los avisos internos (solicitud nueva, cotización aceptada, SLA vencido) van al correo de `team_notification_email`. Esta clave es PROVISIONAL y, vacía, usa el correo de admin.
+  - El saludo al cliente usa solo su primer nombre.
+- **Cómo cambiarla:** admin > Configuración.
+
+### D-057 · 24/09/2026 · Plantillas editables
+- **Decisión:**
+  - Hay 20 plantillas: los textos de §21-C tal cual; el resto, marcados PROVISIONAL hasta que admin los revise (al guardar dejan de serlo).
+  - Cada plantilla acepta solo las variables que su evento puede completar.
+  - La vista previa usa datos de ejemplo.
+  - Una plantilla desactivada no se envía.
+  - `/admin/plantillas`: el equipo las ve y solo admin edita.
+- **Cómo cambiarla:** `lib/notify/templates.ts`.
+
+### D-058 · 24/09/2026 · SLA vencido
+- **Decisión:** se usan horas hábiles de `business_hours` (lunes a viernes, 08:00–17:00, Panamá).
+  - Primera respuesta: una solicitud en "Enviada" más de `first_response_sla_hours` (4).
+  - Cotización: en revisión o con RFQ enviado más de `quote_sla_hours` (24), contadas desde que quedó en revisión.
+  - Un solo aviso por solicitud y etapa.
+- **Cómo cambiarla:** `checkSlaOverdue` en `lib/notify/index.ts` y Configuración.
+
+### D-059 · 24/09/2026 · Eventos de cotizaciones y pedidos
+- **Duda:** §12 incluye eventos de cotizaciones (E7) y pedidos (E8), que todavía no existen.
+- **Decisión:**
+  - Sus plantillas y el cálculo de fechas de los recordatorios (vigencia a 3 y 1 día, saldo a los 2 y 5 días, NPS a los 7) quedan listos en E5, en `lib/notify/schedule.ts`, con tests.
+  - E7 y E8 los disparan con `enqueueNotification` al crear esas tablas.
+  - "Cotización enviada" ya se encola al pasar la solicitud a "Cotizada", pero no sale hasta que E7 aporte el número, la vigencia y el plazo.
+- **Cómo cambiarla:** en E7 y E8.

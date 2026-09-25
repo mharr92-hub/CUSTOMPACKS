@@ -115,11 +115,11 @@ Aceptación: archivo de 80 MB sube con progreso y solo lo abren cliente, staff a
 
 Objetivo: todos los eventos de §12 por correo y wa.me, con plantillas editables y registro.
 
-- [ ] Migración `005_notifications`: `notifications` (evento, destinatario, canal, estado `queued|sent|simulated|failed`, payload, enviado_at) y carga de `message_templates` con los textos de §21-C.
-- [ ] Servicio `lib/notify.ts`: render de plantilla con variables, envío por Resend (o simulado), enlace wa.me con texto precargado, registro en `activities`.
+- [x] Migración `005_notifications`: `notifications` (evento, destinatario, canal, estado `queued|sent|simulated|failed`, payload, enviado_at) y carga de `message_templates` con los textos de §21-C.
+- [x] Servicio `lib/notify.ts`: render de plantilla con variables, envío por Resend (o simulado), enlace wa.me con texto precargado, registro en `activities`.
 - [ ] Disparadores por cambio de estado (trigger o hook en servidor) para cada fila de la tabla de §12.
 - [ ] Crons: vigencia por vencer (3 y 1 día), saldo pendiente (2 y 5 días tras entrega), encuesta NPS (7 días), SLA vencido al equipo (4 h sin respuesta, 24 h sin cotizar).
-- [ ] Admin `/admin/plantillas` para editar textos y previsualizar.
+- [x] Admin `/admin/plantillas` para editar textos y previsualizar.
 
 Aceptación: cada transición de estado genera la notificación correcta y visible en la solicitud; sin credenciales todo queda en `simulated` y se ve en consola.
 

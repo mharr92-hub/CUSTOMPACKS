@@ -9,7 +9,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E2 — Sitio público | ✅ Hecho | 24/09/2026 |
 | E3 — Cotizador | ✅ Hecho | 24/09/2026 |
 | E4 — Arte y referencias | ✅ Hecho | 24/09/2026 |
-| E5 — Notificaciones | ⏳ Pendiente | — |
+| E5 — Notificaciones | ✅ Hecho (crons de E7/E8 pendientes) | 24/09/2026 |
 | E6 — Panel interno | ⏳ Pendiente | — |
 | E7 — RFQ y cotización | ⏳ Pendiente | — |
 | E8 — Pedidos y seguimiento | ⏳ Pendiente | — |
@@ -309,3 +309,53 @@ curl http://localhost:3000/api/cron/artwork-retention
   - Revisión con checklist, proof y aprobación del cliente con nombre e IP.
   - Un intento de modificar la aprobación en la base falla ("inmutable").
 - Se cumple el criterio de aceptación de E4.
+
+## E5 — Notificaciones
+
+**Qué quedó hecho**
+- **Migración `005_notifications`:**
+  - `notifications`: evento, plantilla, solicitud, destinatario, canal, estado `queued|sent|simulated|failed`, texto enviado, enlace wa.me, error, intentos, clave contra duplicados y marca de envío manual.
+  - `job_runs`.
+  - Audiencia (cliente o equipo) en `message_templates`.
+  - Las 20 plantillas: textos de §21-C y el resto PROVISIONAL.
+  - Triggers que encolan por estado de solicitud (enviada, datos pendientes, cotizada, aceptada) y por arte (observado, proof listo).
+- **Servicio `lib/notify`:**
+  - Render de plantillas con variables: HTML escapado y solo los enlaces del sistema como `<a>`.
+  - Correo por Resend con el marco de la marca; sin clave queda "simulated" y se ve en consola y en `.data/mail`.
+  - WhatsApp click-to-chat con texto precargado (D-055).
+  - Reintentos y bloqueo.
+  - Registro en `activities`.
+  - Ningún mensaje sale incompleto (D-053).
+- **Disparadores:**
+  - Solicitud recibida: cliente por correo y WhatsApp, y equipo.
+  - Datos faltantes: con el motivo que escribe el equipo, o la lista del semáforo.
+  - Cotización aceptada: al equipo.
+  - Arte observado y proof listo.
+  - La confirmación del cotizador ya sale por este camino.
+- **SLA vencido al equipo** en horas hábiles (D-058): cron diario, más el uso del panel como máximo cada 10 minutos (D-054).
+- **Panel:**
+  - `/admin/plantillas`: lista, edición con vista previa en vivo, sin variables inexistentes; solo admin guarda.
+  - En cada solicitud, el registro de notificaciones con el texto enviado, "Abrir WhatsApp" y "Marcar enviado".
+- **Recordatorios** de vigencia (3 y 1 día), saldo (2 y 5 días) y NPS (7 días): cálculo de fechas listo y probado (D-059).
+
+**Qué falta / notas**
+- Quedan abiertas dos casillas, porque dependen de tablas de bloques siguientes:
+  - Disparadores: los de solicitud y arte funcionan; los de pedido (anticipo, hitos, entrega) se conectan en E8.
+  - Crons: el de SLA funciona; los de vigencia, saldo y NPS se conectan en E7 y E8.
+  - Las plantillas y el cálculo de fechas ya están. Se marcan al cerrar E8.
+- El paso a "Datos pendientes" con su motivo se hace desde el panel en E6. Hoy funciona si el estado cambia en la base.
+- Resend real y dominio de envío: E10, con credenciales de Mark.
+
+**Cómo probarlo**
+```bash
+pnpm dev                                      # enviar una solicitud en /cotizar → /admin/solicitudes/<id> → Notificaciones
+pnpm test                                     # plantillas, horas hábiles, recordatorios, cola, SLA, WhatsApp manual
+pnpm test:e2e                                 # avisos visibles en la solicitud y edición de plantillas
+curl http://localhost:3000/api/cron/notifications
+```
+
+**Resultado de la verificación (24/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 112/112 en verde.
+- `pnpm test:e2e`: 21/21 en verde (19 omitidos por proyecto móvil/escritorio).
+- Cada transición disponible hoy genera su notificación, que se ve en la solicitud. Sin credenciales todo queda "Simulado" y se ve en consola.
