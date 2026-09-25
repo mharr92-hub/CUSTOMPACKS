@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { FileTextIcon } from "lucide-react";
+import { PortalArtwork, type PortalPiece } from "@/components/artwork/portal-artwork";
 import { WhatsAppIcon } from "@/components/site/whatsapp-fab";
 import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
+import { listPortalArtwork } from "@/lib/artwork/client-portal";
+import { formatDateTime } from "@/lib/format";
+import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
 import { specPdfPath } from "@/lib/quote/links";
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
 import { getRequestByToken } from "@/lib/quote/tracking";
@@ -28,12 +32,34 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
   const t = await getTranslations("tracking");
   const ts = await getTranslations("spec");
   const specT: SpecTranslator = (key, values) => ts(key as "none", values as never);
-  const fmt = new Intl.DateTimeFormat("es-PA", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Panama" });
+  const [files, catalog] = await Promise.all([listPortalArtwork(token), getPublicCatalog()]);
+  // Arte: piezas con impresión o con archivos ya cargados.
+  const artPieces: PortalPiece[] = request.items
+    .filter((item) => item.spec.artwork !== "not_applicable" || files.some((f) => f.itemId === item.id))
+    .map((item) => ({
+      id: item.id,
+      label: `${t("piece", { n: item.position })}${item.spec.type ? `: ${item.spec.type.name}` : ""}`,
+      printing: item.spec.artwork !== "not_applicable",
+      files: files
+        .filter((f) => f.itemId === item.id)
+        .map((f) => ({
+          id: f.id,
+          kind: f.kind,
+          version: f.version,
+          fileName: f.fileName,
+          status: f.status,
+          checklist: f.checklist,
+          comments: f.comments,
+          createdAt: f.createdAt.toISOString(),
+          approval: f.approval ? { approvedAt: f.approval.approvedAt.toISOString(), name: f.approval.name } : null,
+        })),
+    }));
+  const ta = await getTranslations("artwork");
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <h1 className="text-3xl font-extrabold tracking-[-0.03em] sm:text-4xl">{t("title", { number: request.number })}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{t("submittedAt", { date: fmt.format(request.submittedAt) })}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{t("submittedAt", { date: formatDateTime(request.submittedAt) })}</p>
 
       <section aria-labelledby="status-title" className="mt-6 rounded-lg border-2 border-forest p-5">
         <h2 id="status-title" className="text-sm font-semibold text-muted-foreground">
@@ -84,6 +110,18 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
         </div>
       </section>
 
+      {artPieces.length > 0 ? (
+        <section aria-labelledby="artwork-title" className="mt-10">
+          <h2 id="artwork-title" className="text-xl font-bold">
+            {ta("sectionTitle")}
+          </h2>
+          <p className="mt-1 text-muted-foreground">{ta("sectionIntro")}</p>
+          <div className="mt-4">
+            <PortalArtwork token={token} pieces={artPieces} contactName={request.contactName} limits={uploadSettings(catalog)} />
+          </div>
+        </section>
+      ) : null}
+
       <section aria-labelledby="history-title" className="mt-10">
         <h2 id="history-title" className="text-xl font-bold">
           {t("timeline")}
@@ -93,7 +131,7 @@ export default async function TrackingPage(props: PageProps<"/seguimiento/[token
             <li key={`${h.status}-${i}`} className="relative pb-5 last:pb-0">
               <span aria-hidden="true" className="absolute top-1.5 -left-[27px] size-3 rounded-full bg-forest" />
               <p className="font-semibold">{t(`statuses.${h.status}`)}</p>
-              <p className="text-sm text-muted-foreground">{fmt.format(h.at)}</p>
+              <p className="text-sm text-muted-foreground">{formatDateTime(h.at)}</p>
             </li>
           ))}
         </ol>
