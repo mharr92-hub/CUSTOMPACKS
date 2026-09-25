@@ -277,3 +277,54 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - `wizard_add_piece`, `wizard_prefer_talk`, `wizard_save_later_*`, `wizard_submit` y el estándar `generate_lead`/`Lead`.
   - Nunca datos personales.
 - **Cómo cambiarla:** `lib/quote/option-events.ts` y `components/wizard/wizard.tsx`.
+
+### D-046 · 24/09/2026 · Archivos subidos antes de enviar la solicitud
+- **Duda:** en el paso 7 todavía no existe la solicitud, pero el arte tiene que subirse ahí.
+- **Decisión:**
+  - El archivo sube directo al bucket privado `artwork` con una URL firmada, en `drafts/<token>/<pieza>/<tipo>/…`.
+  - Al confirmar la subida, el servidor verifica el tipo real (magic bytes) y el tamaño, y lo registra en `quote_draft_files`. La lista que manda el navegador no cuenta.
+  - Al enviar, solo los archivos verificados pasan a `artwork_files` (versión 1, 2… en "Recibido") y a `quote_references` (fotos). El archivo no se mueve de ruta.
+  - Los borradores abandonados se borran con sus archivos (cron de D-033).
+- **Cómo cambiarla:** `lib/artwork/uploads.ts` y `withVerifiedFiles` en `lib/quote/submit.ts`.
+
+### D-047 · 24/09/2026 · Fechas con el mes en letras
+- **Duda:** `Intl` con es-PA escribe las fechas como mes/día (09/24/2026), y en Panamá se lee también día/mes.
+- **Decisión:** las fechas visibles llevan el mes en letras ("24 sept 2026, 9:15 p. m."), con zona horaria America/Panama.
+- **Cómo cambiarla:** `lib/format.ts`.
+
+### D-048 · 24/09/2026 · Quién abre los archivos de arte
+- **Decisión:**
+  - El cliente ve y abre los archivos de su solicitud con su enlace.
+  - Todo el equipo ve que hay archivos (nombre, versión, estado), porque la bandeja lo necesita.
+  - Abrir, descargar, revisar y subir proofs queda para el equipo asignado a la solicitud y admin (`can_access_request_files`). Se valida en la base y en el servidor antes de firmar la URL, que vence a los 5 minutos.
+  - En modo local, los archivos que no son PDF se sirven aislados (CSP `sandbox`, `nosniff`) para que un SVG subido no ejecute nada en el sitio.
+- **Cómo cambiarla:** `supabase/migrations/004_artwork.sql`, `lib/artwork/staff.ts` y `app/api/storage/object/route.ts`.
+
+### D-049 · 24/09/2026 · Flujo de revisión del arte y del proof
+- **Decisión:** cada archivo tiene su propio estado.
+  - Arte: Recibido → En revisión → Con observaciones o Aprobado para proof. Una versión corregida es un archivo nuevo, versión n+1.
+    - "Aprobado para proof" exige los 8 puntos del checklist (§21-B) en Correcto o No aplica.
+    - "Con observaciones" exige al menos un punto observado o un comentario. El cliente ve cada punto con su nota.
+  - Proof: solo se sube si hay una versión aprobada para proof. Pasa por Proof enviado → Proof aprobado → Liberado a fábrica.
+    - "Proof aprobado" solo lo registra el cliente. Un trigger lo impide a cualquier otro.
+    - La aprobación guarda fecha y hora, nombre, correo, IP y navegador, y no se puede editar ni borrar.
+- **Cómo cambiarla:** `lib/artwork/states.ts` y los triggers de `004_artwork`.
+
+### D-050 · 24/09/2026 · Retención del arte
+- **Duda:** §9 propone 24 meses "después del último pedido", pero los pedidos llegan en E8.
+- **Decisión:**
+  - Hasta E8, la última actividad es la más reciente entre el último cambio de estado de la solicitud y el último archivo subido. E8 la cambia a la fecha del último pedido.
+  - Un cron diario (`/api/cron/artwork-retention`) solo marca lo vencido.
+  - Admin revisa y confirma en `/admin/archivos`. Al confirmar se borra el archivo del almacenamiento; el registro de la versión y su aprobación quedan.
+- **Cómo cambiarla:** `lib/artwork/retention.ts` y `artwork_retention_months` en Configuración.
+
+### D-051 · 24/09/2026 · Vista previa de archivos
+- **Decisión:**
+  - Las imágenes se muestran tal cual.
+  - En PDF y AI se dibuja la primera página con pdf.js, cargado solo cuando hace falta, hasta 15 MB (un PDF de 80 MB no se descarga en el celular solo para la miniatura).
+  - EPS, SVG y los archivos grandes muestran un ícono con el formato y el nombre.
+- **Cómo cambiarla:** `components/upload/file-preview.tsx`.
+
+### D-052 · 24/09/2026 · Pantalla de la solicitud en el panel
+- **Decisión:** E4 crea `/admin/solicitudes/[id]` con el arte y los proofs de cada pieza, y la revisión de preprensa. La bandeja, la asignación, las notas y el resto del detalle se suman en E6, sobre la misma página.
+- **Cómo cambiarla:** `app/admin/(panel)/solicitudes/[id]`.

@@ -102,12 +102,12 @@ Aceptación: un usuario sin conocimientos técnicos completa dos piezas desde el
 
 Objetivo: subida de arte a Storage privado, versiones, checklist manual, referencias desde la galería (§9).
 
-- [ ] Migración `004_artwork`: `artwork_files` (pieza, versión, url, formato, tamaño, estado enum `received|in_review|observed|approved_for_proof|proof_sent|proof_approved|released`, checklist JSON, comentarios, revisado_por, aprobado_por_cliente_at).
-- [ ] Bucket privado `artwork` con RLS; subida directa con URL firmada, barra de progreso, reintento, validación de tipo real (magic bytes), límites desde `settings`.
-- [ ] Vista previa: PDF primera página (pdf.js) e imágenes; para AI/EPS mostrar ícono + nombre.
-- [ ] Paso 7 del wizard integrado: "tengo arte" / "aún no tengo arte" / "necesito diseño"; checklist de §21-B visible al lado; referencias por foto, enlace o muestra de galería.
-- [ ] Portal: subir nueva versión; ver comentarios; aprobar proof (registra fecha, hora, usuario, IP).
-- [ ] Cron de retención según `artwork_retention_months` (solo marca, no borra, hasta confirmación admin).
+- [x] Migración `004_artwork`: `artwork_files` (pieza, versión, url, formato, tamaño, estado enum `received|in_review|observed|approved_for_proof|proof_sent|proof_approved|released`, checklist JSON, comentarios, revisado_por, aprobado_por_cliente_at).
+- [x] Bucket privado `artwork` con RLS; subida directa con URL firmada, barra de progreso, reintento, validación de tipo real (magic bytes), límites desde `settings`.
+- [x] Vista previa: PDF primera página (pdf.js) e imágenes; para AI/EPS mostrar ícono + nombre.
+- [x] Paso 7 del wizard integrado: "tengo arte" / "aún no tengo arte" / "necesito diseño"; checklist de §21-B visible al lado; referencias por foto, enlace o muestra de galería.
+- [x] Portal: subir nueva versión; ver comentarios; aprobar proof (registra fecha, hora, usuario, IP).
+- [x] Cron de retención según `artwork_retention_months` (solo marca, no borra, hasta confirmación admin).
 
 Aceptación: archivo de 80 MB sube con progreso y solo lo abren cliente, staff asignado y admin; el proof aprobado queda con sello de tiempo inmutable.
 

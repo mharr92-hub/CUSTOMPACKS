@@ -8,7 +8,7 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E1 — Datos maestros y admin | ✅ Hecho | 24/09/2026 |
 | E2 — Sitio público | ✅ Hecho | 24/09/2026 |
 | E3 — Cotizador | ✅ Hecho | 24/09/2026 |
-| E4 — Arte y referencias | ⏳ Pendiente | — |
+| E4 — Arte y referencias | ✅ Hecho | 24/09/2026 |
 | E5 — Notificaciones | ⏳ Pendiente | — |
 | E6 — Panel interno | ⏳ Pendiente | — |
 | E7 — RFQ y cotización | ⏳ Pendiente | — |
@@ -248,3 +248,64 @@ curl http://localhost:3000/api/cron/purge-drafts   # en desarrollo no pide CRON_
   - Borrador recuperado desde otro navegador con el enlace.
   - Validaciones de Pantone, medidas, cantidades y fecha.
 - Se cumple el criterio de aceptación de E3.
+
+## E4 — Arte y referencias
+
+**Qué quedó hecho**
+- **Migración `004_artwork`:**
+  - `artwork_files`: pieza, versión, archivo, formato, tamaño, estado de §9, checklist JSON, comentarios, revisor, aprobación del cliente, retención y borrado.
+  - `artwork_approvals`: solo inserción e inmutable.
+  - `quote_draft_files`: archivos verificados del borrador.
+  - Bucket privado `artwork` (100 MB).
+  - RLS: el cliente ve lo suyo por enlace; abrir y revisar es solo para el equipo asignado y admin (D-048). El cliente no ve columnas internas.
+- **Subidas:**
+  - Directas al almacenamiento con URL firmada: barra de progreso, 3 reintentos automáticos y botón "Reintentar".
+  - Validación del tipo real por magic bytes (un PNG renombrado a `.pdf` se rechaza y se borra).
+  - Límites desde `settings`: `max_file_mb` y `max_files_per_item`.
+  - El mismo componente sirve para el cotizador, el portal y el panel.
+- **Vista previa:** imágenes; primera página de PDF y AI con pdf.js, cargado a demanda, hasta 15 MB; ícono con el nombre para EPS y SVG (D-051).
+- **Paso 7 del cotizador:**
+  - "Tengo el arte", "Aún no tengo arte" o "Necesito que lo diseñen".
+  - Con "Tengo el arte", subida de archivos PDF, AI, EPS o SVG.
+  - Fotos de referencia (JPG, PNG, WebP o PDF), muestras de la galería y enlaces.
+  - El checklist §21-B se ve al lado.
+  - Al enviar, solo los archivos verificados pasan a la solicitud (D-046) y alimentan el semáforo.
+- **Portal del cliente (`/seguimiento/[token]`):**
+  - Versiones con estado, fecha, puntos a corregir con su nota y comentarios del equipo.
+  - Ver y descargar con URL firmada.
+  - "Subir nueva versión".
+  - Proof con aprobación: nombre, fecha, hora, IP y navegador quedan registrados de forma inmutable.
+- **Panel (`/admin/solicitudes/[id]`):**
+  - Checklist de preprensa por punto (Correcto, Observado o No aplica) con nota.
+  - Comentarios para el cliente y cambios de estado con sus reglas (D-049).
+  - Subida del proof y "Liberar a fábrica".
+  - Un miembro del equipo sin asignación ve los archivos pero no puede abrirlos.
+- **Retención:** un cron diario marca lo vencido según `artwork_retention_months`; admin confirma el borrado en `/admin/archivos` (D-050).
+- **Otras mejoras:**
+  - Los guardados del borrador van en fila: dos guardados simultáneos ya no crean dos borradores, y los cambios hechos durante un guardado no se pierden.
+  - Fechas con el mes en letras (D-047).
+
+**Qué falta / notas**
+- La bandeja, la asignación y el resto del detalle de la solicitud llegan en E6 (D-052). Mientras tanto la asignación se hace en la base.
+- Los avisos al cliente (arte observado, proof listo) y al equipo (arte nuevo) llegan con las notificaciones de E5.
+- La retención pasa a contar desde el último pedido en E8.
+- En Supabase la subida usa `createSignedUploadUrl`. Falta probarla contra un proyecto real, porque no hay credenciales; el modo local cumple el mismo contrato.
+
+**Cómo probarlo**
+```bash
+pnpm dev                              # /cotizar → paso 7; /seguimiento/<token>; /admin/solicitudes/<id>
+pnpm test                             # RLS del arte, proof inmutable, archivos verificados, retención
+pnpm test:e2e                         # 80 MB con progreso, revisión, proof y aprobación
+curl http://localhost:3000/api/cron/artwork-retention
+```
+
+**Resultado de la verificación (24/09/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 101/101 en verde.
+- `pnpm test:e2e`: 19/19 en verde (17 omitidos por proyecto móvil/escritorio). Incluye:
+  - Un PDF de 80 MB sube desde el paso 7 con barra de progreso (valores intermedios registrados) y llega a la solicitud.
+  - El cliente lo abre con su enlace.
+  - Un vendedor sin asignación no puede abrirlo; asignado, sí; admin, siempre.
+  - Revisión con checklist, proof y aprobación del cliente con nombre e IP.
+  - Un intento de modificar la aprobación en la base falla ("inmutable").
+- Se cumple el criterio de aceptación de E4.
