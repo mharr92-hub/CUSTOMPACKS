@@ -42,6 +42,8 @@ export async function startEmbedded({ dataDir, port, persistent = true, quiet = 
     persistent,
     onLog: quiet ? () => {} : (m) => process.stdout.write(`[pg] ${m}`),
     onError: (m) => process.stderr.write(`[pg] ${m instanceof Error ? m.message : String(m)}\n`),
+    // UTF8 como Supabase (en Windows initdb tomaría WIN1252 de la configuración regional).
+    initdbFlags: ["--encoding=UTF8", "--locale=C"],
     postgresFlags: ["-c", "timezone=UTC", "-c", "log_min_messages=warning"],
   });
   const fresh = !fs.existsSync(path.join(dataDir, "PG_VERSION"));
