@@ -36,8 +36,8 @@ Detalle de cada pregunta: `docs/PREGUNTAS.md`. Detalle técnico de cada cuenta: 
 
 ## 4. Contenido (Panel → Catálogo, Configuración y Plantillas)
 
-- [ ] **Catálogo real** (PRD §20): tipos, tamaños, papeles, calibres, impresión, acabados, atributos y compatibilidades, con fotos (pregunta 4). Hoy todo es PROVISIONAL.
-- [ ] **Fotos de las 200 muestras** con su código: `pnpm gallery:import <carpeta>` (pregunta 5).
+- [ ] **Catálogo real** (PRD §20; pregunta 4): corregir `catalogo/plantilla-catalogo.csv` (ya trae lo de hoy, marcado PROVISIONAL) y cargarlo con `pnpm catalog:import`. Una página de instrucciones: `docs/CATALOGO-COMO-LLENARLO.md`.
+- [ ] **Las 200 muestras** (pregunta 5): datos en `catalogo/plantilla-muestras.csv` (incluye "cliente anterior", que no se publica) y fotos escaneadas con `pnpm gallery:import <carpeta>`, que acepta PDF de varias páginas y JPG grandes.
 - [ ] **Instrucciones de pago** (banco, cuenta, ACH, Yappy) y **correo del equipo** para avisos internos (preguntas 9 y 10).
 - [ ] **Confirmar o cambiar los valores PROVISIONAL** de Configuración: margen, vigencia, umbral 30/45 días, SLA y horario hábil, horas del resumen de WhatsApp (preguntas 6 y 15).
 - [ ] **Revisar los textos PROVISIONAL de las plantillas** de correo y WhatsApp (15 originales y 8 nuevos de los avisos por los dos canales). Al guardarlos dejan de ser provisionales (pregunta 16).

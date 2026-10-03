@@ -14,7 +14,9 @@ Orden sugerido:
 
 ### 1.1 Catálogo real
 
-Hoy el catálogo tiene datos provisionales para poder probar. Se reemplazan en **Panel → Catálogo** (admin): editar, completar y desmarcar PROVISIONAL.
+Hoy el catálogo tiene datos provisionales para poder probar. Se reemplazan de dos formas:
+- **En lote (recomendado):** con las plantillas `catalogo/plantilla-catalogo.csv` y `catalogo/plantilla-muestras.csv` y `pnpm catalog:import`. Instrucciones de una página en `docs/CATALOGO-COMO-LLENARLO.md`.
+- **Una por una:** en **Panel → Catálogo** (admin): editar, completar y desmarcar PROVISIONAL.
 
 | Qué | Hoy (provisional) | Qué hace falta |
 | --- | --- | --- |
@@ -34,7 +36,7 @@ Cada foto se nombra con el código de la muestra:
 - `M-001.jpg` → foto principal de la muestra M-001
 - `M-001-2.jpg`, `M-001-3.jpg` → fotos adicionales de la misma muestra
 
-Formato JPG, PNG o WebP, hasta 10 MB cada una. Recomendado: 1600 px de lado, fondo neutro, sin logos de clientes.
+Formato JPG, PNG, WebP o PDF de varias páginas (escaneos), hasta 80 MB cada uno. El sistema recorta el margen blanco, convierte a WebP y genera la miniatura. Recomendado: fondo blanco, sin logos de clientes. Si el escáner pone sus propios nombres, un CSV de orden asigna los códigos (`--orden`, ver `docs/CATALOGO-COMO-LLENARLO.md`).
 
 **Cargarlas en lote** (en la computadora donde está el proyecto, con las variables de producción en `.env.local`):
 

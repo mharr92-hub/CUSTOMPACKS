@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireStaff } from "@/lib/auth";
 import { listEntityRows, listRefOptions, type RefOption } from "@/lib/catalog/admin";
 import { entityBySlug, type EntityKey, type FieldDef } from "@/lib/catalog/entities";
+import { thumbnailUrl } from "@/lib/catalog/thumbnail";
 import { moveAction, setActiveAction } from "../actions";
 
 export async function generateMetadata(props: PageProps<"/admin/catalogo/[entidad]">): Promise<Metadata> {
@@ -124,7 +125,7 @@ export default async function EntityListPage(props: PageProps<"/admin/catalogo/[
                 <TableCell>
                   <div className="size-10 overflow-hidden rounded border border-border">
                     {row.photo_url ? (
-                      <Image src={row.photo_url} alt="" width={40} height={40} unoptimized className="size-10 object-cover" />
+                      <Image src={thumbnailUrl(row.photo_url)} alt="" width={40} height={40} unoptimized className="size-10 object-cover" />
                     ) : (
                       <CodePlaceholder code={row.code} showCode={false} variant={placeholderVariant ?? ((row.size_family as "box" | "bag" | "food_box" | undefined) ?? "box")} />
                     )}

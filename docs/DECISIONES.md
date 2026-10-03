@@ -856,3 +856,30 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
     - en la constancia de aceptación y en la aprobación del proof se conserva el nombre de quien aceptó (es la prueba del contrato) y se quitan su correo, su IP y su navegador.
   - **Quién lo atiende:** un usuario admin, en Panel → Datos personales (como en D-112).
 - **Cómo cambiarla:** la migración 021 y `lib/panel/personal-data.ts`.
+
+### D-117 · 03/10/2026 · Catálogo real por plantillas CSV y fotos desde escaneos (Bloque 2)
+- **Duda:** Mark todavía no tiene el catálogo real ni las fotos. ¿Cómo dejar la carga lista para que la haga él (o su socio) sin entrar al panel pieza por pieza?
+- **Decisión:**
+  - **Plantillas:** `catalogo/plantilla-catalogo.csv` lleva una fila por opción, con la columna **clase** (categoría, tipo, tamaño, papel, calibre, impresión, acabado, atributo ambiental, aptitud alimentaria o regla). `catalogo/plantilla-muestras.csv` lleva una fila por muestra. Las dos vienen prellenadas con el catálogo actual, que sigue PROVISIONAL (se regeneran con `pnpm catalog:export`). Son CSV con BOM y coma; también se lee punto y coma (Excel en español).
+  - **Compatibilidades**, de dos formas:
+    - en la fila del tipo, las columnas papel y calibre listan los únicos permitidos (lista blanca sin motivo);
+    - las filas "regla" llevan permitido sí/no y el motivo en descripción, que ve el cliente. Una regla escrita gana a la lista.
+    - Para cada tipo que trae el CSV, sus reglas son exactamente las del CSV: las que ya no están se desactivan, no se borran.
+  - **`pnpm catalog:import`** carga o actualiza por código. Nunca borra filas ni toca solicitudes; quitar algo es "activo = no". Antes de cargar valida:
+    - códigos únicos en todo el archivo;
+    - que existan las categorías, papeles, calibres y acabados que se nombran;
+    - fotos presentes;
+    - valores de segmento, familia y aptitud;
+    - medidas;
+    - que cada tipo activo tenga al menos una combinación papel + calibre posible;
+    - que cada muestra use un papel permitido para su tipo.
+    - Con un solo error no carga nada (todo en una transacción) y muestra archivo, fila, código y motivo.
+  - **Fotos:**
+    - `gallery:import` y `catalog:import` aceptan JPG, PNG, WebP y PDF de varias páginas (una foto por página), hasta 80 MB;
+    - cada foto se endereza, se le recorta el margen blanco (sharp, umbral 40), se reduce a 2000 px y se guarda en WebP con una miniatura de 480 px (`-mini.webp`), que usa el listado del panel;
+    - la web sigue con `next/image`;
+    - el código sale del nombre (`M-001.jpg`, `M-001-2.jpg`, `M-001.pdf`) o de un CSV de orden (`--orden`: columnas archivo/pagina/codigo, o solo codigo en el orden de las fotos).
+  - **Cliente anterior:** nueva columna interna `gallery_samples.previous_client` (migración 022). El rol anónimo no la recibe; publicar nombres de clientes sigue pendiente de autorización escrita (pregunta 14).
+  - **Fotos de Mark:** las carpetas `catalogo/fotos` y `catalogo/escaneos` no van al repositorio (`.gitignore`).
+  - **Dependencias:** `sharp` y `@napi-rs/canvas` son de desarrollo; solo las usan los scripts de importación, nunca la web.
+- **Cómo cambiarla:** columnas y validación en `lib/catalog/catalog-csv.ts`; carga en `lib/catalog/import-catalog.ts`; fotos en `lib/catalog/photos.ts`.

@@ -58,3 +58,8 @@ next-env.d.ts
 
 # herramientas locales
 /scripts/_*.mjs
+
+# fotos y escaneos del catálogo real (pesados; no van al repositorio)
+/catalogo/fotos/*
+!/catalogo/fotos/.gitkeep
+/catalogo/escaneos/

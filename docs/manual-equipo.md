@@ -200,7 +200,8 @@ En **Registrar hito** solo aparece el siguiente paso válido.
 
 - **Catálogo**:
   - tipos, tamaños, papeles, calibres, impresión, acabados, atributos y compatibilidades;
-  - la galería de muestras: fotos una por una o en lote con `pnpm gallery:import` (ver `docs/lanzamiento.md`);
+  - la galería de muestras: fotos una por una o en lote con `pnpm gallery:import` (acepta escaneos en PDF y JPG grandes);
+  - el catálogo completo en lote: plantillas CSV de `catalogo/` y `pnpm catalog:import` (ver `docs/CATALOGO-COMO-LLENARLO.md`);
   - lo marcado PROVISIONAL se ve solo en el panel.
 
   ![Catálogo](manual/17-catalogo.png)

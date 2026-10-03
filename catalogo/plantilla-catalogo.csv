@@ -1,0 +1,91 @@
+﻿clase,código,nombre,descripción,categoría,tipo,papel,calibre,tamaños,familia,acabados,aptitud,segmento,usos típicos,notas de fábrica,archivo de foto,barrera,etiqueta simple,gramaje g/m2,puntos,peso mín g,peso máx g,tintas,pantone,sin impresión,sello en la web,certificado,permitido,activo,orden,provisional
+categoría,CAJ,Cajas,"Cajas plegadizas, rígidas y de envío para producto, regalo y e-commerce.",,,,,,,,,,,,,,,,,,,,,,,,,sí,1,sí
+categoría,BOL,Bolsas,"Bolsas de papel con o sin asa para tiendas, panaderías y pedidos para llevar.",,,,,,,,,,,,,,,,,,,,,,,,,sí,2,sí
+categoría,BPR,Bolsas premium,Bolsas boutique con acabados finos para marcas que cuidan cada detalle.,,,,,,,,,,,,,,,,,,,,,,,,,sí,3,sí
+categoría,ALI,Empaque alimentario,"Empaque para comida rápida, food service y delivery.",,,,,,,,,,,,,,,,,,,,,,,,,sí,4,sí
+categoría,COM,Complementos,"Insertos, separadores y etiquetas. Categoría opcional por confirmar.",,,,,,,,,,,,,,,,,,,,,,,,,no,5,sí
+tipo,CJ-01,Caja plegadiza con tapa,La caja de producto más versátil: se arma en segundos y cierra con solapas en ambos extremos.,CAJ,,,,,caja,,,comercial | alimentario,Cosméticos y cuidado personal | Alimentos secos y confitería | Productos pequeños de tienda,,,,,,,,,,,,,,,sí,1,sí
+tipo,CJ-02,Caja autoarmable de fondo automático,El fondo se arma solo al abrir la caja: rápida de armar y firme para productos con más peso.,CAJ,,,,,caja,,,comercial | alimentario,Botellas y frascos | Kits y combos | Productos de mayor peso,,,,,,,,,,,,,,,sí,2,sí
+tipo,CJ-03,Bandeja,Base abierta con paredes firmes para exhibir o servir.,CAJ,,,,,caja,,,comercial | alimentario,Exhibición en vitrina | Repostería y postres | Presentación de kits,,,,,,,,,,,,,,,sí,3,sí
+tipo,CJ-04,Caja de dos piezas (base y tapa),Base y tapa independientes para una apertura con presencia.,CAJ,,,,,caja,,,comercial,Regalos corporativos | Ropa y accesorios | Calzado,,,,,,,,,,,,,,,sí,4,sí
+tipo,CJ-05,Caja rígida,"Estructura rígida que no se pliega, para productos de alto valor.",CAJ,,,,,caja,,,comercial,Lanzamientos de producto | Joyería y relojería | Ediciones especiales,,,,,,,,,,,,,,,sí,5,sí
+tipo,CJ-06,Mailer de envío (tapa abatible),Caja de envío con tapa abatible que protege el producto y luce al abrirse.,CAJ,,,,,caja,,,comercial,E-commerce | Suscripciones | Envíos de campaña,,,,,,,,,,,,,,,sí,6,sí
+tipo,CJ-07,Caja gable con asa,"Caja con asa integrada, fácil de transportar.",CAJ,,,,,caja,,,comercial | alimentario,Combos para llevar | Regalos | Eventos,,,,,,,,,,,,,,,sí,7,sí
+tipo,CJ-08,Clamshell para hamburguesa,"Caja con tapa tipo concha que se cierra sola, pensada para hamburguesas y sándwiches.",ALI,,,,,caja de alimentos,,,alimentario,Hamburguesas | Sándwiches calientes | Porciones individuales,,,,,,,,,,,,,,,sí,8,sí
+tipo,CJ-09,Cono o scoop para papas,Envase abierto para servir y comer papas y snacks.,ALI,,,,,caja de alimentos,,,alimentario,Papas fritas | Snacks | Porciones para compartir,,,,,,,,,,,,,,,sí,9,sí
+tipo,CJ-10,Balde para pollo,Balde de papel para porciones grandes y combos familiares.,ALI,,,,,caja de alimentos,,,alimentario,Pollo frito | Combos familiares | Alitas,,,,,,,,,,,,,,,sí,10,sí
+tipo,CJ-11,Caja para pizza,Caja plana de cierre firme para pizza y productos horneados.,ALI,,,,,caja de alimentos,,,alimentario,Pizza | Focaccia | Tartas saladas,,,,,,,,,,,,,,,sí,11,sí
+tipo,CJ-12,Caja para torta y pastelería,"Caja para tortas y pastelería, con o sin ventana.",ALI,,,,,caja de alimentos,,,alimentario,Tortas | Pastelería | Cajas de postres,,,,,,,,,,,,,,,sí,12,sí
+tipo,BL-01,Bolsa kraft con asa plana,Bolsa de papel kraft con asa plana de papel.,BOL,,,,,bolsa,,,comercial | alimentario,Tiendas de retail | Farmacias | Comida para llevar,,,,,,,,,,,,,,,sí,13,sí
+tipo,BL-02,Bolsa kraft con asa retorcida,Bolsa de papel kraft con asa de papel retorcido.,BOL,,,,,bolsa,,,comercial,Tiendas de ropa | Regalos | Ferias y eventos,,,,,,,,,,,,,,,sí,14,sí
+tipo,BL-03,Bolsa boutique laminada con asa de cordón,Bolsa premium con laminado y asa de cordón.,BPR,,,,,bolsa,,,comercial,Moda y accesorios | Joyería | Perfumería,,,,,,,,,,,,,,,sí,15,sí
+tipo,BL-04,Bolsa SOS de fondo cuadrado (sin asa),Bolsa sin asa con fondo cuadrado que se para sola.,BOL,,,,,bolsa,,,comercial | alimentario,Panaderías | Supermercados | Cafeterías,,,,,,,,,,,,,,,sí,16,sí
+tipo,BL-05,Bolsa para delivery,Bolsa pensada para pedidos a domicilio.,ALI,,,,,bolsa,,,alimentario,Delivery | Pedidos para llevar | Dark kitchens,,,,,,,,,,,,,,,sí,17,sí
+tipo,BL-06,Bolsa antigrasa,Bolsa de papel con barrera contra grasa y humedad.,ALI,,,,,bolsa,,,alimentario,Frituras | Panadería | Snacks,,,,,,,,,,,,,,,sí,18,sí
+tamaño,BL-S01,S1,,,,,,14 x 7 x 20,bolsa,,,,,,,,,,,,,,,,,,,sí,1,sí
+tamaño,BL-S02,S2,,,,,,18 x 8 x 24,bolsa,,,,,,,,,,,,,,,,,,,sí,2,sí
+tamaño,BL-S03,S3,,,,,,20 x 10 x 28,bolsa,,,,,,,,,,,,,,,,,,,sí,3,sí
+tamaño,BL-S04,S4,,,,,,24 x 12 x 30,bolsa,,,,,,,,,,,,,,,,,,,sí,4,sí
+tamaño,BL-S05,S5,,,,,,26 x 12 x 34,bolsa,,,,,,,,,,,,,,,,,,,sí,5,sí
+tamaño,BL-S06,S6,,,,,,30 x 12 x 36,bolsa,,,,,,,,,,,,,,,,,,,sí,6,sí
+tamaño,BL-S07,S7,,,,,,32 x 14 x 40,bolsa,,,,,,,,,,,,,,,,,,,sí,7,sí
+tamaño,BL-S08,S8,,,,,,36 x 16 x 42,bolsa,,,,,,,,,,,,,,,,,,,sí,8,sí
+tamaño,BL-S09,S9,,,,,,40 x 18 x 45,bolsa,,,,,,,,,,,,,,,,,,,sí,9,sí
+tamaño,BL-S10,S10,,,,,,45 x 20 x 50,bolsa,,,,,,,,,,,,,,,,,,,sí,10,sí
+tamaño,CJ-S01,S1,,,,,,8 x 5 x 3,caja,,,,,,,,,,,,,,,,,,,sí,1,sí
+tamaño,CJ-S02,S2,,,,,,10 x 7 x 4,caja,,,,,,,,,,,,,,,,,,,sí,2,sí
+tamaño,CJ-S03,S3,,,,,,12 x 8 x 5,caja,,,,,,,,,,,,,,,,,,,sí,3,sí
+tamaño,CJ-S04,S4,,,,,,15 x 10 x 6,caja,,,,,,,,,,,,,,,,,,,sí,4,sí
+tamaño,CJ-S05,S5,,,,,,18 x 12 x 8,caja,,,,,,,,,,,,,,,,,,,sí,5,sí
+tamaño,CJ-S06,S6,,,,,,22 x 15 x 10,caja,,,,,,,,,,,,,,,,,,,sí,6,sí
+tamaño,CJ-S07,S7,,,,,,26 x 18 x 12,caja,,,,,,,,,,,,,,,,,,,sí,7,sí
+tamaño,CJ-S08,S8,,,,,,30 x 22 x 15,caja,,,,,,,,,,,,,,,,,,,sí,8,sí
+tamaño,CJ-S09,S9,,,,,,35 x 25 x 18,caja,,,,,,,,,,,,,,,,,,,sí,9,sí
+tamaño,CJ-S10,S10,,,,,,40 x 30 x 20,caja,,,,,,,,,,,,,,,,,,,sí,10,sí
+tamaño,AL-S01,S1,,,,,,9 x 9 x 6,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,1,sí
+tamaño,AL-S02,S2,,,,,,11 x 11 x 7,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,2,sí
+tamaño,AL-S03,S3,,,,,,13 x 13 x 8,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,3,sí
+tamaño,AL-S04,S4,,,,,,15 x 15 x 9,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,4,sí
+tamaño,AL-S05,S5,,,,,,18 x 18 x 10,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,5,sí
+tamaño,AL-S06,S6,,,,,,20 x 20 x 12,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,6,sí
+tamaño,AL-S07,S7,,,,,,25 x 25 x 5,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,7,sí
+tamaño,AL-S08,S8,,,,,,30 x 30 x 4,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,8,sí
+tamaño,AL-S09,S9,,,,,,35 x 35 x 4,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,9,sí
+tamaño,AL-S10,S10,,,,,,40 x 40 x 5,caja de alimentos,,,,,,,,,,,,,,,,,,,sí,10,sí
+papel,PA-01,Kraft (natural o blanco),"Papel de fibra resistente, natural (marrón) o blanqueado; típico de bolsas y cajas con look artesanal.",,,,,,,,,,,,,no,,,,,,,,,,,,sí,1,sí
+papel,PA-02,Cartulina plegadiza (SBS o dúplex),Cartón delgado y rígido para cajas impresas de producto y alimentos.,,,,,,,,,,,,,no,,,,,,,,,,,,sí,2,sí
+papel,PA-03,Cartón microcorrugado (flauta E o B),Cartón con capa ondulada para cajas de envío y resistencia.,,,,,,,,frágil,,,,,no,,,,,,,,,,,,sí,3,sí
+papel,PA-04,Papel estucado (couché),Papel de superficie lisa para impresión de alta calidad y acabados premium.,,,,,,,,,,,,,no,,,,,,,,,,,,sí,4,sí
+papel,PA-05,Papel antigrasa o con barrera,"Papel con barrera que resiste aceite y humedad; uso en comida rápida.",,,,,,,,grasa | caliente | líquido,,,,,sí,,,,,,,,,,,,sí,5,sí
+calibre,CA-01,Ligero,Calibre delgado para productos livianos.,,,,,,,,,,,,,,"Para productos livianos, hasta 500 g",,,0,500,,,,,,,sí,1,sí
+calibre,CA-02,Medio,Calibre intermedio para la mayoría de productos.,,,,,,,,,,,,,,Para productos de 500 g a 2 kg,,,500,2000,,,,,,,sí,2,sí
+calibre,CA-03,Pesado,Calibre grueso para productos pesados o envíos.,,,,,,,,,,,,,,Para productos de más de 2 kg o envíos,,,2000,,,,,,,,sí,3,sí
+impresión,PR-00,Sin impresión,"Empaque liso, sin tintas.",,,,,,,,,,,,,,,,,,,0,no,sí,,,,sí,1,sí
+impresión,PR-01,1 tinta,"Un color plano, ideal para logos sencillos.",,,,,,,,,,,,,,,,,,,1,no,no,,,,sí,2,sí
+impresión,PR-02,2 tintas,Dos colores planos.,,,,,,,,,,,,,,,,,,,2,no,no,,,,sí,3,sí
+impresión,PR-04,"4 tintas (CMYK, full color)",Impresión a todo color para fotos y degradados.,,,,,,,,,,,,,,,,,,,4,no,no,,,,sí,4,sí
+impresión,PR-PT,Pantone especial,Tinta plana de color exacto identificada por código Pantone.,,,,,,,,,,,,,,,,,,,,sí,no,,,,sí,5,sí
+impresión,PR-4P,Más de 4 tintas,Full color más tintas especiales.,,,,,,,,,,,,,,,,,,,,no,no,,,,sí,6,sí
+acabado,AC-01,Laminado mate,Película mate sobre la impresión: protege y da un tacto suave.,,,,,,,,,,,,,,,,,,,,,,,,,sí,1,sí
+acabado,AC-02,Laminado brillo,Película brillante que resalta los colores.,,,,,,,,,,,,,,,,,,,,,,,,,sí,2,sí
+acabado,AC-03,Barniz UV parcial,Brillo localizado para destacar logos o detalles.,,,,,,,,,,,,,,,,,,,,,,,,,sí,3,sí
+acabado,AC-04,Barniz UV total,Capa de brillo y protección en toda la superficie.,,,,,,,,,,,,,,,,,,,,,,,,,sí,4,sí
+acabado,AC-05,Hot stamping (foil),Lámina metálica o de color aplicada con calor y presión.,,,,,,,,,,,,,,,,,,,,,,,,,sí,5,sí
+acabado,AC-06,Relieve o bajorrelieve,Zonas levantadas o hundidas en el papel.,,,,,,,,,,,,,,,,,,,,,,,,,sí,6,sí
+acabado,AC-07,Ventana con película,Ventana troquelada con película transparente para ver el producto.,,,,,,,,,,,,,,,,,,,,,,,,,sí,7,sí
+acabado,AC-08,Troquel especial,Forma o recorte a medida.,,,,,,,,,,,,,,,,,,,,,,,,,sí,8,sí
+atributo ambiental,EC-01,Papel reciclado,Fabricado con fibra reciclada.,,,,,,,,,,,,,,,,,,,,,,no,,,sí,1,sí
+atributo ambiental,EC-02,Fibra de origen certificado,"Fibra de bosques con manejo certificado, sujeta a disponibilidad de certificado vigente.",,,,,,,,,,,,,,,,,,,,,,no,,,sí,2,sí
+atributo ambiental,EC-03,Compostable,"Material que puede compostarse, sujeto a ficha técnica de fábrica.",,,,,,,,,,,,,,,,,,,,,,no,,,sí,3,sí
+atributo ambiental,EC-04,Sin recubrimiento plástico,Sin película plástica sobre el papel.,,,,,,,,,,,,,,,,,,,,,,no,,,sí,4,sí
+aptitud alimentaria,AL-01,Contacto directo con alimentos,Apto para que el alimento toque el empaque.,,,,,,,,,,,,,,,,,,,,,,,,,sí,1,sí
+aptitud alimentaria,AL-02,Resistente a grasa,Soporta aceite y grasa sin mancharse ni debilitarse.,,,,,,,,grasa,,,,,,,,,,,,,,,,,sí,2,sí
+aptitud alimentaria,AL-03,Apto para calor,Soporta alimentos calientes.,,,,,,,,caliente,,,,,,,,,,,,,,,,,sí,3,sí
+aptitud alimentaria,AL-04,Apto para frío o congelado,Soporta refrigeración y congelación.,,,,,,,,frío,,,,,,,,,,,,,,,,,sí,4,sí
+aptitud alimentaria,AL-05,Apto para microondas,Puede calentarse en microondas.,,,,,,,,,,,,,,,,,,,,,,,,,sí,5,sí
+regla,,,La bolsa boutique laminada se fabrica en papel estucado.,,BL-03,PA-04,,,,,,,,,,,,,,,,,,,,,sí,sí,,sí
+regla,,,La bolsa antigrasa se fabrica en papel antigrasa.,,BL-06,PA-05,,,,,,,,,,,,,,,,,,,,,sí,sí,,sí
+regla,,,La caja rígida no se fabrica en microcorrugado.,,CJ-05,PA-03,,,,,,,,,,,,,,,,,,,,,no,sí,,sí
+regla,,,El mailer de envío necesita calibre medio o pesado.,,CJ-06,,CA-01,,,,,,,,,,,,,,,,,,,,no,sí,,sí
+regla,,,El cono para papas exige papel antigrasa.,,CJ-09,PA-05,,,,,,,,,,,,,,,,,,,,,sí,sí,,sí
+regla,,,El balde para pollo exige papel antigrasa.,,CJ-10,PA-05,,,,,,,,,,,,,,,,,,,,,sí,sí,,sí

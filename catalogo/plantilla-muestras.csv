@@ -1,0 +1,13 @@
+﻿código,nombre,descripción,tipo,papel,acabados,segmento,etiquetas,cliente anterior,notas de fábrica,archivo de foto,activo,orden,provisional
+M-001,"Caja plegadiza con tapa, cartulina a 4 tintas",Muestra de referencia. Foto real pendiente de carga.,CJ-01,PA-02,AC-01,comercial,cosmética | full color,,,,sí,1,sí
+M-002,"Caja autoarmable, cartulina a 2 tintas",Muestra de referencia. Foto real pendiente de carga.,CJ-02,PA-02,,comercial | alimentario,botellas,,,,sí,2,sí
+M-003,Mailer de envío en microcorrugado kraft,Muestra de referencia. Foto real pendiente de carga.,CJ-06,PA-03,,comercial,e-commerce,,,,sí,3,sí
+M-004,Caja rígida con hot stamping,Muestra de referencia. Foto real pendiente de carga.,CJ-05,PA-04,AC-01 | AC-05,comercial,premium,,,,sí,4,sí
+M-005,Caja gable con asa,Muestra de referencia. Foto real pendiente de carga.,CJ-07,PA-02,,comercial | alimentario,para llevar,,,,sí,5,sí
+M-006,Clamshell para hamburguesa,Muestra de referencia. Foto real pendiente de carga.,CJ-08,PA-05,,alimentario,comida rápida,,,,sí,6,sí
+M-007,Cono para papas,Muestra de referencia. Foto real pendiente de carga.,CJ-09,PA-05,,alimentario,comida rápida,,,,sí,7,sí
+M-008,Balde para pollo,Muestra de referencia. Foto real pendiente de carga.,CJ-10,PA-05,,alimentario,comida rápida,,,,sí,8,sí
+M-009,Caja para pizza en microcorrugado,Muestra de referencia. Foto real pendiente de carga.,CJ-11,PA-03,,alimentario,pizzería,,,,sí,9,sí
+M-010,Caja para torta con ventana,Muestra de referencia. Foto real pendiente de carga.,CJ-12,PA-02,AC-07,alimentario,pastelería,,,,sí,10,sí
+M-011,Bolsa kraft con asa retorcida,Muestra de referencia. Foto real pendiente de carga.,BL-02,PA-01,,comercial,retail,,,,sí,11,sí
+M-012,Bolsa boutique laminada con asa de cordón,Muestra de referencia. Foto real pendiente de carga.,BL-03,PA-04,AC-01 | AC-05,comercial,premium,,,,sí,12,sí
