@@ -1,7 +1,5 @@
 # Despliegue — ProvenPack
 
-> **Bloqueante antes de producción (auditoría DAT-01, 25/09/2026):** con `DB_POOL_MAX=1`, el portal de un pedido y la primera cotización de una solicitud se quedan colgados, porque hay transacciones anidadas que piden una segunda conexión. No desplegar a producción hasta corregirlo (`docs/AUDITORIA.md`, `TAREAS-mejoras.md`). Subir el valor no alcanza: con varias visitas a la vez vuelve a bloquearse.
-
 Pasos para llevar la plataforma de local a producción. Los pasos con cuentas reales (Supabase, Vercel, Resend, dominio) **no se han ejecutado**: requieren credenciales de Mark. Lo que se puede comprobar sin ellas se ensaya en local con `pnpm verify:deploy` (ver el checklist al final). Ningún paso obliga a contratar un plan de pago, salvo donde se indica expresamente.
 
 ## 0. Requisitos locales
@@ -24,7 +22,7 @@ Comandos útiles: `pnpm db:reset` (recrea la base local), `pnpm lint`, `pnpm typ
    - `Project URL` → `SUPABASE_URL`
    - `anon public` → `SUPABASE_ANON_KEY`
    - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (solo servidor, nunca en el navegador)
-3. En **Project Settings → Database → Connection string → Transaction pooler** (puerto 6543) copia la cadena → `DATABASE_URL`. Usa `DB_POOL_MAX=1` en Vercel **solo después de corregir DAT-01** (ver el aviso al inicio).
+3. En **Project Settings → Database → Connection string → Transaction pooler** (puerto 6543) copia la cadena → `DATABASE_URL`. Usa `DB_POOL_MAX=1` en Vercel: el pooler reparte las conexiones y el código nunca abre una transacción dentro de otra (DAT-01, corregido; la CI y las pruebas e2e corren con una sola conexión).
 4. Aplica las migraciones y los datos iniciales. Usa la conexión directa o *Session pooler* (puerto 5432), no la de transacción. Desde la carpeta del proyecto:
    ```bash
    DATABASE_URL="postgres://postgres.<ref>:<clave>@<host>:5432/postgres" pnpm db:migrate

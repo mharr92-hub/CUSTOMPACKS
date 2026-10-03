@@ -161,6 +161,8 @@ export async function createQuoteDraft(user: CurrentUser, requestId: string): Pr
   const validity = Number(settings.find((s) => s.key === "quote_validity_days")?.value ?? publicSetting(catalog, "quote_validity_days", 15));
 
   return withActor(actorFor(user), async (tx) => {
+    // Dos "Preparar" a la vez: el segundo espera y encuentra el borrador del primero.
+    await tx`select pg_advisory_xact_lock(hashtext(${`quote-draft:${requestId}`}))`;
     const existing = await tx<DbQuote[]>`${SELECT(tx)} where request_id = ${requestId} order by version desc`;
     const draft = existing.find((q) => q.status === "draft");
     if (draft) return { ok: true, quote: toQuote(draft) } as const;
@@ -192,7 +194,7 @@ export async function createQuoteDraft(user: CurrentUser, requestId: string): Pr
     );
     let base = previous ? previous.number.replace(/-v\d+$/, "") : null;
     if (!base) {
-      const [row] = await withActor(serviceActor, (s) => s<{ n: string }[]>`select public.next_document_number('C') as n`);
+      const [row] = await tx<{ n: string }[]>`select public.next_quote_number() as n`;
       base = row?.n ?? null;
     }
     if (!base) throw new Error("no se pudo numerar la cotización");

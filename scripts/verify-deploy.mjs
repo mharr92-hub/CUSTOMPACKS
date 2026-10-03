@@ -64,7 +64,7 @@ try {
     NODE_ENV: "production",
     NEXT_TELEMETRY_DISABLED: "1",
     DATABASE_URL: started.url,
-    DB_POOL_MAX: "2",
+    DB_POOL_MAX: "1",
     NEXT_DIST_DIR: DIST,
     STORAGE_LOCAL_DIR: storageDir,
     NEXT_PUBLIC_SITE_URL: BASE,

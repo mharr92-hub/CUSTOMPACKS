@@ -147,6 +147,20 @@ describe("RFQ a fábrica", () => {
 });
 
 describe("cotización", () => {
+  it("dos 'Preparar cotización' a la vez crean un solo borrador v1 (DAT-05)", async () => {
+    const { user, requestId } = await readyForQuote();
+    const [a, b] = await Promise.all([createQuoteDraft(user, requestId), createQuoteDraft(user, requestId)]);
+    expect(a.ok && b.ok).toBe(true);
+    if (!a.ok || !b.ok) return;
+    expect(a.quote.id).toBe(b.quote.id);
+    const drafts = await testSql()`select 1 from public.quotes where request_id = ${requestId}`;
+    expect(drafts).toHaveLength(1);
+    await expect(
+      testSql()`insert into public.quotes (request_id, base_number, version, number, lines, deposit_pct, valid_until)
+                values (${requestId}, 'C-X', 2, 'C-X-v2', '[]', 50, current_date)`,
+    ).rejects.toThrow(/quotes_one_draft_per_request/);
+  });
+
   it("se calcula con margen, se emite, avisa al cliente y el cliente la acepta eligiendo cantidades", async () => {
     const { user, requestId, accessToken, itemId } = await readyForQuote();
     const draft = await createQuoteDraft(user, requestId);

@@ -1,5 +1,22 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { log } from "@/lib/log";
 import { getSql, type Tx } from "./client";
+
+/**
+ * Marca de "dentro de una transacción" (DAT-01). Una transacción abierta
+ * dentro de otra pide una segunda conexión mientras retiene la primera: con
+ * DB_POOL_MAX=1 (producción en Vercel) se queda esperando para siempre. La
+ * marca se apaga al terminar, así que lo que se agenda con after() no cuenta.
+ */
+const openTx = new AsyncLocalStorage<{ active: boolean }>();
+
+function guardNesting() {
+  if (!openTx.getStore()?.active) return;
+  const message = "withActor anidado: una transacción se abrió dentro de otra (bloquea el pool con DB_POOL_MAX=1)";
+  if (process.env.NODE_ENV === "production") log.error(message, { stack: new Error(message).stack });
+  else throw new Error(message);
+}
 
 /**
  * Quién ejecuta la consulta. Las políticas RLS se evalúan igual que en
@@ -21,6 +38,16 @@ export const anonActor: Actor = { kind: "anon" };
 export const serviceActor: Actor = { kind: "service" };
 
 export async function withActor<T>(actor: Actor, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  guardNesting();
+  const store = { active: true };
+  try {
+    return await openTx.run(store, () => runInTransaction(actor, fn));
+  } finally {
+    store.active = false;
+  }
+}
+
+async function runInTransaction<T>(actor: Actor, fn: (tx: Tx) => Promise<T>): Promise<T> {
   const sql = getSql();
   const result = await sql.begin(async (tx) => {
     if (actor.kind !== "service") {

@@ -48,6 +48,10 @@ export default defineConfig({
           LOCAL_DB_RESET: "1",
           STORAGE_LOCAL_DIR: ".data/storage-e2e",
           NEXT_DIST_DIR: ".next-e2e",
+          // Una sola conexión, como en producción (DAT-01).
+          DB_POOL_MAX: "1",
+          // Habilita /prueba-error para probar la pantalla de error (M1).
+          ENABLE_ERROR_TEST_ROUTE: "1",
         },
       },
 });

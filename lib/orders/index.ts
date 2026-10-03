@@ -771,76 +771,82 @@ export type ClientOrder = {
 export async function getClientOrder(accessToken: string): Promise<ClientOrder | null> {
   const row = await clientOrderRow(accessToken);
   if (!row) return null;
-  return withActor({ kind: "anon", accessToken }, async (tx) => {
+  // Lo que el enlace puede ver por RLS, en su propia transacción.
+  const { o, milestones } = await withActor({ kind: "anon", accessToken }, async (tx) => {
     const [o] = await tx<{ estimated_delivery_date: string | null; transport: string | null; tracking: string | null; eta: string | null; delivered_at: Date | null }[]>`
       select to_char(estimated_delivery_date, 'YYYY-MM-DD') as estimated_delivery_date, transport, tracking, to_char(eta, 'YYYY-MM-DD') as eta, delivered_at
         from public.orders where id = ${row.id}`;
     const milestones = await tx<{ id: string; type: MilestoneType; occurred_at: Date; notes: string | null; evidence: Evidence[]; qa_checklist: QaPoint[] | null }[]>`
       select id, type, occurred_at, notes, evidence, qa_checklist from public.milestones where order_id = ${row.id} order by occurred_at`;
-    const payments = await tx<{ kind: PaymentKind; status: PaymentStatus }[]>`select kind, status from public.payments where order_id = ${row.id} order by created_at`;
-    const status = (kind: PaymentKind): PaymentStatus | "none" => {
-      const list = payments.filter((p) => p.kind === kind);
-      if (list.some((p) => p.status === "confirmed")) return "confirmed";
-      if (list.some((p) => p.status === "pending")) return "pending";
-      return list.length ? "rejected" : "none";
-    };
-    const extra = await withActor(serviceActor, (s) => s<
+    return { o, milestones };
+  });
+  // Montos y pagos: el enlace ya se validó; se leen con el servicio en una
+  // transacción aparte, nunca dentro de la anterior (DAT-01).
+  const { extra, paymentRows } = await withActor(serviceActor, async (s) => {
+    const extra = await s<
       { quote_id: string; deposit_pct: number; survey: boolean; instructions: unknown; currency: string; total_amount: string; deposit_amount: string; balance_amount: string }[]
     >`
       select o.quote_id, o.deposit_pct, exists (select 1 from public.surveys v where v.order_id = o.id) as survey,
              (select value from public.settings where key = 'payment_instructions') as instructions,
              o.currency, o.total_amount, o.deposit_amount, o.balance_amount
-        from public.orders o where o.id = ${row.id}`);
-    const paymentRows = await withActor(serviceActor, (s) => s<
+        from public.orders o where o.id = ${row.id}`;
+    const paymentRows = await s<
       { id: string; kind: PaymentKind; status: PaymentStatus; amount: string | null; paid_on: string | null; created_at: Date; uploaded_by_client: boolean }[]
     >`
       select id, kind, status, amount, to_char(paid_on, 'YYYY-MM-DD') as paid_on, created_at, uploaded_by_client
-        from public.payments where order_id = ${row.id} order by created_at`);
-    const paid = (kind: PaymentKind) =>
-      paymentRows.filter((p) => p.kind === kind && p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
-    return {
-      id: row.id,
-      number: row.number,
-      status: row.status,
-      estimatedDeliveryDate: o?.estimated_delivery_date ?? null,
-      transport: o?.transport ?? null,
-      tracking: o?.tracking ?? null,
-      eta: o?.eta ?? null,
-      deliveredAt: o?.delivered_at ?? null,
-      milestones: await Promise.all(
-        milestones.map(async (m) => ({
-          id: m.id,
-          type: m.type,
-          occurredAt: m.occurred_at,
-          notes: m.notes,
-          evidence: await Promise.all((m.evidence ?? []).map(async (e) => ({ ...e, url: await signedUrl("evidence", e.path, { expiresIn: 600 }) }))),
-          qa: m.qa_checklist?.map((p) => ({ label: p.label, expected: p.expected, result: p.result })) ?? null,
-        })),
-      ),
-      payments: { deposit: status("deposit"), balance: status("balance") },
-      amounts: {
-        currency: extra[0]?.currency ?? "USD",
-        total: Number(extra[0]?.total_amount ?? 0),
-        deposit: Number(extra[0]?.deposit_amount ?? 0),
-        balance: Number(extra[0]?.balance_amount ?? 0),
-        paidDeposit: round2(paid("deposit")),
-        paidBalance: round2(paid("balance")),
-      },
-      paymentList: paymentRows.map((p) => ({
-        id: p.id,
-        kind: p.kind,
-        status: p.status,
-        amount: p.status === "confirmed" && p.amount !== null ? Number(p.amount) : null,
-        paidOn: p.paid_on,
-        createdAt: p.created_at,
-        uploadedByClient: p.uploaded_by_client,
-      })),
-      surveyDone: Boolean(extra[0]?.survey),
-      quoteId: extra[0]?.quote_id ?? "",
-      depositPct: extra[0]?.deposit_pct ?? 0,
-      paymentInstructions: typeof extra[0]?.instructions === "string" ? (extra[0]?.instructions as string) : "",
-    };
+        from public.payments where order_id = ${row.id} order by created_at`;
+    return { extra, paymentRows };
   });
+  const status = (kind: PaymentKind): PaymentStatus | "none" => {
+    const list = paymentRows.filter((p) => p.kind === kind);
+    if (list.some((p) => p.status === "confirmed")) return "confirmed";
+    if (list.some((p) => p.status === "pending")) return "pending";
+    return list.length ? "rejected" : "none";
+  };
+  const paid = (kind: PaymentKind) =>
+    paymentRows.filter((p) => p.kind === kind && p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+  return {
+    id: row.id,
+    number: row.number,
+    status: row.status,
+    estimatedDeliveryDate: o?.estimated_delivery_date ?? null,
+    transport: o?.transport ?? null,
+    tracking: o?.tracking ?? null,
+    eta: o?.eta ?? null,
+    deliveredAt: o?.delivered_at ?? null,
+    milestones: await Promise.all(
+      milestones.map(async (m) => ({
+        id: m.id,
+        type: m.type,
+        occurredAt: m.occurred_at,
+        notes: m.notes,
+        evidence: await Promise.all((m.evidence ?? []).map(async (e) => ({ ...e, url: await signedUrl("evidence", e.path, { expiresIn: 600 }) }))),
+        qa: m.qa_checklist?.map((p) => ({ label: p.label, expected: p.expected, result: p.result })) ?? null,
+      })),
+    ),
+    payments: { deposit: status("deposit"), balance: status("balance") },
+    amounts: {
+      currency: extra[0]?.currency ?? "USD",
+      total: Number(extra[0]?.total_amount ?? 0),
+      deposit: Number(extra[0]?.deposit_amount ?? 0),
+      balance: Number(extra[0]?.balance_amount ?? 0),
+      paidDeposit: round2(paid("deposit")),
+      paidBalance: round2(paid("balance")),
+    },
+    paymentList: paymentRows.map((p) => ({
+      id: p.id,
+      kind: p.kind,
+      status: p.status,
+      amount: p.status === "confirmed" && p.amount !== null ? Number(p.amount) : null,
+      paidOn: p.paid_on,
+      createdAt: p.created_at,
+      uploadedByClient: p.uploaded_by_client,
+    })),
+    surveyDone: Boolean(extra[0]?.survey),
+    quoteId: extra[0]?.quote_id ?? "",
+    depositPct: extra[0]?.deposit_pct ?? 0,
+    paymentInstructions: typeof extra[0]?.instructions === "string" ? (extra[0]?.instructions as string) : "",
+  };
 }
 
 /** Datos para "Pedir de nuevo": piezas del pedido con la cantidad pedida y el contacto. */

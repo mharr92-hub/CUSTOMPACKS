@@ -1309,6 +1309,35 @@
     "catalog": "Ver el catálogo",
     "home": "Ir al inicio"
   },
+  "errors": {
+    "code": "Código del error: {code}",
+    "retry": "Intentar de nuevo",
+    "site": {
+      "title": "Algo salió mal",
+      "body": "No pudimos mostrar esta página. Intenta de nuevo; si sigue igual, escríbenos y te ayudamos.",
+      "home": "Ir al inicio",
+      "contact": "Escríbenos por WhatsApp"
+    },
+    "quote": {
+      "title": "El cotizador tuvo un problema",
+      "body": "Tu avance está guardado. Intenta de nuevo para seguir donde quedaste; si sigue igual, escríbenos por WhatsApp y te ayudamos a terminar.",
+      "home": "Ir al inicio",
+      "contact": "Escríbenos por WhatsApp"
+    },
+    "portal": {
+      "title": "No pudimos cargar tu solicitud",
+      "body": "Intenta de nuevo en unos minutos. Si sigue igual, escríbenos por WhatsApp con el número de tu solicitud.",
+      "home": "Ir al inicio",
+      "contact": "Escríbenos por WhatsApp"
+    },
+    "admin": {
+      "title": "Esta pantalla falló",
+      "body": "El error quedó registrado. Intenta de nuevo; si se repite, avisa al administrador con el código del error.",
+      "home": "Volver a la bandeja",
+      "contact": "Ir a pedidos"
+    },
+    "whatsappText": "Hola, tuve un problema en el sitio de {brand}."
+  },
   "wizard": {
     "metaTitle": "Cotiza tu empaque",
     "title": "Cotiza tu empaque",
