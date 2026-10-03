@@ -903,3 +903,28 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - Sin datos, el portal ofrece pedirlos por WhatsApp y el PDF dice que se envían al aceptar.
 - **Lo que necesita una decisión de Mark** quedó en `docs/TEXTOS-POR-CONFIRMAR.md`.
 - **Cómo cambiarla:** los textos en `messages/es.json` y Panel → Plantillas; los datos de pago en Configuración y en `lib/orders/payment-info.ts`.
+
+### D-119 · 03/10/2026 · Despliegue sin cuentas: doctor, previews y ensayo ampliado (Bloque 4)
+- **Duda:** cómo dejar listo el despliegue para que, cuando existan las cuentas, sea solo pegar variables.
+- **Decisión:**
+  - **`.env.example`** documenta cada variable por servicio: dónde va (Vercel Production o Preview, GitHub o solo local), cómo se obtiene y qué pasa sin ella. Se copia a `.env.production` (ignorado por git), se revisa y se pega en Vercel con "Import .env".
+  - **`pnpm run doctor`** (`scripts/doctor.mjs`, reglas en `scripts/lib/doctor-rules.mjs`): en una pantalla, cada servicio con ✔, !, · o ✘ y qué deja de funcionar. No usa red ni base.
+    - Con `--produccion`, lo necesario que falta es error; detecta el número de WhatsApp de ejemplo, las claves de prueba de Turnstile, las variables de prueba, secretos cortos o repetidos y el pooler equivocado.
+    - Con `--env <archivo>`, revisa ese archivo.
+    - Se llama con `pnpm run doctor` porque `pnpm doctor` es un comando propio de pnpm (12) y tiene prioridad sobre los scripts.
+  - **Comandos contra producción con el mismo archivo:**
+    - `db:migrate`, `db:seed`, `admin:invite`, `cron:install` y `check:storage` aceptan `--env .env.production`.
+    - Los scripts y `backup.mjs` pasan solos del Transaction pooler (6543) al Session pooler (5432) del mismo host, porque necesitan sesión y sentencias preparadas. Basta con el `DATABASE_URL` de Vercel.
+  - **`pnpm supabase:preview`** prepara el proyecto Free de previews con la API de administración de Supabase. Por defecto solo muestra el plan; con `--ejecutar`:
+    - se detiene si la organización no está en el plan Free;
+    - crea el proyecto, aplica migraciones y seed, y cierra el registro público;
+    - escribe `.env.preview` sin `RESEND_API_KEY`.
+    - No se ejecutó: no hay token de Mark.
+  - **`pnpm verify:deploy`** suma:
+    - Turnstile con las claves de prueba de Cloudflare: la clave del sitio llega al navegador, la secreta no, y la CSP permite el script y el iframe;
+    - copia S3: los buckets del flujo de GitHub coinciden con los buckets privados, y sus secretos están documentados;
+    - cron: crons diarios para Vercel Hobby, ruta de Supabase Cron y `cron:install` que se niega fuera de Supabase;
+    - el plan del script de previews y su `.env.preview`;
+    - el doctor;
+    - que cada variable que lee el código esté en `.env.example`.
+- **Cómo cambiarla:** reglas en `scripts/lib/doctor-rules.mjs`; pasos de previews en `scripts/supabase-preview.mjs`; comprobaciones en `scripts/verify-deploy.mjs`.

@@ -23,6 +23,8 @@
     "catalog:import": "tsx --import ./scripts/lib/script-env.mjs scripts/import-catalog.mts",
     "catalog:export": "tsx --import ./scripts/lib/script-env.mjs scripts/export-catalog.mts",
     "verify:deploy": "node scripts/verify-deploy.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "supabase:preview": "node scripts/supabase-preview.mjs",
     "admin:invite": "node scripts/admin-invite.mjs",
     "check:storage": "node scripts/check-storage.mjs",
     "cron:install": "node scripts/cron-install.mjs",

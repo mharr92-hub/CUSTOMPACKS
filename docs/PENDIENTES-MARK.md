@@ -22,17 +22,21 @@ Detalle de cada pregunta: `docs/PREGUNTAS.md`. Detalle técnico de cada cuenta: 
 - [ ] Opcional: **Sentry** (plan gratuito) para recibir los errores.
 - [ ] **Almacenamiento compatible con S3** para la copia diaria de los archivos (el que elijas; ver `docs/respaldos.md`, sección 5).
 
-## 3. Configurar y desplegar (en este orden; `docs/deploy.md`)
+## 3. Configurar y desplegar (`docs/deploy.md`, paso a paso)
 
-- [ ] Variables de entorno en Vercel: `NEXT_PUBLIC_SITE_URL`, `DATABASE_URL`, `DB_POOL_MAX=1`, las de Supabase, `AUTH_SECRET` y `CRON_SECRET` (al azar), `ADMIN_EMAIL`, `MAIL_FROM`, `RESEND_API_KEY`, `FACTORY_EMAIL`, `NEXT_PUBLIC_WHATSAPP_NUMBER`, `NEXT_PUBLIC_CONTACT_EMAIL`, las dos de Turnstile, GA4 y Meta Pixel. **Nunca** `ALLOW_LOCAL_AUTH_LINKS` ni `RATE_LIMIT_FACTOR`: el servidor no arranca.
-- [ ] Aplicar la base: `pnpm db:migrate` y `pnpm db:seed` contra Supabase (con `ADMIN_EMAIL`).
-- [ ] En Supabase: plantilla del enlace mágico, URLs de redirección, SMTP de Resend y **desactivar "Allow new users to sign up"**.
-- [ ] Tu cuenta: `pnpm admin:invite tu-correo@…`. Al resto del equipo lo invitas desde **Panel → Usuarios**.
-- [ ] Desplegar en Vercel.
-- [ ] Cron cada 15 minutos (SLA, recordatorios, avisos): `pnpm cron:install` y comprobar con `pnpm cron:install --estado`.
-- [ ] Límite de archivos: subirlo en Supabase (Storage → Settings) y comprobar con `pnpm check:storage`. Si te quedas en Free, baja `max_file_mb` a 50 en Configuración.
-- [ ] Respaldos en GitHub: secretos `BACKUP_DATABASE_URL` y `BACKUP_PASSPHRASE` (guárdala fuera de GitHub), variable `BACKUP_SCHEMAS=public`; y para los archivos, los secretos `STORAGE_S3_*` y `BACKUP_S3_*` y la variable `BACKUP_S3_BUCKET`.
-- [ ] Revisar el checklist "Después de desplegar" de `docs/deploy.md`.
+Todo está preparado para que desplegar sea completar un archivo, pegarlo en Vercel y correr unos comandos. Cada paso de `docs/deploy.md` dice el comando exacto y cómo saber que salió bien.
+
+- [ ] `copy .env.example .env.production` y completarlo con las claves de las cuentas. Cada variable dice dónde se obtiene y qué pasa sin ella.
+- [ ] `pnpm run doctor --env .env.production --produccion` hasta que diga **0 errores**.
+- [ ] Base: `pnpm db:migrate --env .env.production` y `pnpm db:seed --env .env.production`.
+- [ ] Supabase: Site URL y Redirect URLs, plantilla del enlace mágico, SMTP de Resend y **desactivar "Allow new users to sign up"**.
+- [ ] Previews: `pnpm supabase:preview` (muestra el plan) y `pnpm supabase:preview --ejecutar` (crea el proyecto Free y escribe `.env.preview`).
+- [ ] Vercel: importar el repositorio y pegar `.env.production` (Production) y `.env.preview` (Preview) con "Import .env". Desplegar.
+- [ ] Tu cuenta: `pnpm admin:invite tu-correo@… --env .env.production`. Al resto del equipo lo invitas desde **Panel → Usuarios**.
+- [ ] Cron cada 15 minutos: `pnpm cron:install --env .env.production` y, a los 20 minutos, `pnpm cron:install --estado --env .env.production`.
+- [ ] Límite de archivos: `pnpm check:storage --env .env.production`. Si te quedas en Free, baja `max_file_mb` a 50 en Configuración.
+- [ ] Respaldos en GitHub: secretos `BACKUP_DATABASE_URL`, `BACKUP_PASSPHRASE`, `STORAGE_S3_*` y `BACKUP_S3_*`, y variables `BACKUP_SCHEMAS=public` y `BACKUP_S3_BUCKET`. Luego, un run a mano.
+- [ ] Checklist "Después de desplegar" (paso 11 de `docs/deploy.md`).
 
 ## 4. Contenido (Panel → Catálogo, Configuración y Plantillas)
 

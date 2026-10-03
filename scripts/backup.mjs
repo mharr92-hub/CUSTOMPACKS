@@ -13,7 +13,11 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const url = process.env.BACKUP_DATABASE_URL || process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:54322/postgres";
+// pg_dump necesita sesión: el Transaction pooler de Supabase (6543) se cambia por el Session pooler (5432).
+const url = (process.env.BACKUP_DATABASE_URL || process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:54322/postgres").replace(
+  /(@[^/@]*\.pooler\.supabase\.com):6543\//,
+  "$1:5432/",
+);
 const dir = path.resolve(process.env.BACKUP_DIR || ".data/backups");
 const keepDays = Number(process.env.BACKUP_KEEP_DAYS || 30);
 const schemas = (process.env.BACKUP_SCHEMAS || "")

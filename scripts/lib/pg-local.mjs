@@ -54,8 +54,18 @@ export async function startEmbedded({ dataDir, port, persistent = true, quiet = 
 }
 
 /** @param {string} url */
+/**
+ * Los scripts (migraciones, seed, invitaciones, cron, respaldos) usan
+ * sentencias preparadas y sesión: contra el Transaction pooler de Supabase
+ * (puerto 6543) se conectan al Session pooler del mismo host (5432). Así basta
+ * con el DATABASE_URL de Vercel.
+ */
+export function scriptDatabaseUrl(url) {
+  return url.replace(/(@[^/@]*\.pooler\.supabase\.com):6543\//, "$1:5432/");
+}
+
 export function connect(url) {
-  return postgres(url, { max: 1, onnotice: () => {} });
+  return postgres(scriptDatabaseUrl(url), { max: 1, onnotice: () => {} });
 }
 
 /** Aplica el shim de Supabase (idempotente). */
@@ -179,9 +189,32 @@ export async function reset(sql, { adminEmail, log = () => {} } = {}) {
   return n;
 }
 
-/** Carga .env y .env.local (sin pisar variables ya definidas). */
+/** Archivo indicado con `--env <archivo>` (p. ej. .env.production), o null. */
+export function envFileArg(argv = process.argv) {
+  const i = argv.indexOf("--env");
+  return i >= 0 && argv[i + 1] ? argv[i + 1] : null;
+}
+
+/** Argumentos sin `--env <archivo>`, para los scripts con argumentos posicionales. */
+export function argsWithoutEnv(argv = process.argv.slice(2)) {
+  const i = argv.indexOf("--env");
+  return i >= 0 ? [...argv.slice(0, i), ...argv.slice(i + 2)] : argv;
+}
+
+/**
+ * Carga las variables: primero el archivo de `--env <archivo>` (manda sobre
+ * todo, para correr un comando contra producción con el mismo archivo que se
+ * pegó en Vercel); luego .env.local y .env, sin pisar lo ya definido.
+ */
 export async function loadEnvFiles() {
   const { config } = await import("dotenv");
+  const explicit = envFileArg();
+  if (explicit) {
+    const p = path.resolve(ROOT, explicit);
+    if (!fs.existsSync(p)) throw new Error(`No existe ${p}`);
+    config({ path: p, quiet: true, override: true });
+    return;
+  }
   for (const file of [".env.local", ".env"]) {
     const p = path.join(ROOT, file);
     if (fs.existsSync(p)) config({ path: p, quiet: true });

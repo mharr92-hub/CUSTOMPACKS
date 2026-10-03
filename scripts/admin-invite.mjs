@@ -4,10 +4,10 @@
 // Así ninguna cuenta se crea sola desde el formulario de ingreso: el registro
 // público de Supabase se deja cerrado (docs/deploy.md).
 // Lee SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DATABASE_URL y NEXT_PUBLIC_SITE_URL de .env.
-import { connect, loadEnvFiles } from "./lib/pg-local.mjs";
+import { argsWithoutEnv, connect, loadEnvFiles } from "./lib/pg-local.mjs";
 
 await loadEnvFiles();
-const [email, role = "admin"] = process.argv.slice(2);
+const [email, role = "admin"] = argsWithoutEnv();
 const out = (m) => process.stdout.write(`${m}\n`);
 const fail = (m) => {
   process.stderr.write(`[invitar] ${m}\n`);

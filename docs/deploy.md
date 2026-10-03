@@ -1,145 +1,179 @@
-# Despliegue — ProvenPack
+# Despliegue — lista de verificación
 
-Pasos para llevar la plataforma de local a producción. Los pasos con cuentas reales (Supabase, Vercel, Resend, dominio) **no se han ejecutado**: requieren credenciales de Mark. Lo que se puede comprobar sin ellas se ensaya en local con `pnpm verify:deploy` (ver el checklist al final).
+El código está listo para producción. Desplegar consiste en tres cosas:
 
-## Planes para producción (decisión de Mark)
+1. crear las cuentas (gratis, salvo los planes de la pregunta 20);
+2. completar un archivo de variables y pegarlo en Vercel;
+3. correr unos pocos comandos.
 
-Este repositorio no contrata nada. La recomendación sale de la auditoría (`docs/AUDITORIA.md`, sección 8). Los precios son los públicos conocidos hasta 2025: verifícalos antes de contratar.
+Cada paso dice el comando exacto y cómo saber que salió bien. Ninguno se ha ejecutado contra cuentas reales: requieren las credenciales de Mark.
+
+Los comandos se corren en la carpeta del proyecto, en PowerShell o en la terminal de VS Code. Tiempo estimado: una tarde.
+
+## Antes de empezar
+
+- [ ] **Node 20.9 o superior y pnpm.**
+  - Comando: `node -v` y `pnpm -v`.
+  - Sale bien si: Node dice v20.9 o más (probado con v24) y pnpm responde. Si falta pnpm: `npm install -g pnpm`.
+- [ ] **Dependencias.**
+  - Comando: `pnpm install`.
+  - Sale bien si: termina sin errores.
+- [ ] **Ensayo completo del despliegue, sin cuentas.**
+  - Comando: `pnpm verify:deploy`.
+  - Sale bien si: termina con **"N/N comprobaciones en verde"** (hoy 34/34, ver la tabla al final). Tarda unos 3 minutos.
+- [ ] **Decidir los planes** (pregunta 20).
 
 | Servicio | Para probar | Para operar con clientes | Por qué |
 | --- | --- | --- | --- |
-| Supabase | Free | **Pro** (≈ USD 25/mes) | Free da 1 GB de archivos y 5 GB de transferencia: con 100 solicitudes al mes se agotan en semanas. Free tampoco tiene respaldos ni acepta archivos de más de 50 MB, y se pausa tras 7 días sin uso. |
-| Vercel | Hobby | **Pro** (≈ USD 20/mes, un miembro) | Hobby es solo para uso personal no comercial. |
-| Resend | Free (3.000 correos/mes, 100 por día) | Free hasta ≈ 200 solicitudes/mes; luego Pro (≈ USD 20/mes) | El tope diario se alcanza primero en los días de más movimiento. |
+| Supabase | Free | **Pro** (≈ USD 25/mes) | Free da 1 GB de archivos, se pausa tras 7 días sin uso y no acepta archivos de más de 50 MB |
+| Vercel | Hobby | **Pro** (≈ USD 20/mes) | Hobby es solo para uso personal no comercial |
+| Resend | Free (100 correos/día) | Pro (≈ USD 20/mes) pasadas ≈ 200 solicitudes/mes | El tope diario llega primero |
 
-Total estimado: unos USD 45 al mes con 100 solicitudes, y USD 65–85 con 500 a 1.000 (más el dominio). Pregunta 20 de `docs/PREGUNTAS.md`.
+Precios públicos de 2025: verifícalos. Este repositorio no contrata nada.
 
-**Previews de Vercel:** usa un **segundo proyecto de Supabase Free** solo para Preview, sin `RESEND_API_KEY` (los correos quedan simulados) y con un `FACTORY_EMAIL` de prueba. Así un preview nunca toca la base, los archivos ni el correo de producción. En Vercel → Settings → Environment Variables, carga esas variables solo en el entorno *Preview*.
+## 1. Archivo de variables de producción
 
-## 0. Requisitos locales
+- [ ] **Crear el archivo.**
+  - Comando: `copy .env.example .env.production` (en bash: `cp .env.example .env.production`).
+  - Sale bien si: existe `.env.production`. Git lo ignora: nunca se sube.
+- [ ] **Completarlo a medida que avances** en los pasos 2 a 6. Cada variable del archivo dice dónde se obtiene y qué pasa sin ella.
+- [ ] **Revisarlo.**
+  - Comando: `pnpm run doctor --env .env.production --produccion`.
+  - Sale bien si: dice **"0 errores"**. Cada ✘ dice qué falta y qué deja de funcionar.
+  - Ojo: es `pnpm run doctor`, porque `pnpm doctor` es un comando propio de pnpm.
 
-- Node 20.9 o superior (probado con Node 24) y pnpm (`npm install -g pnpm`).
-- No hace falta Docker: `pnpm dev` levanta un Postgres 17 embebido en `localhost:54322` con los mismos roles y funciones de Supabase que usan las migraciones (ver `docs/DECISIONES.md`, D-002).
+## 2. Supabase (base de datos, ingreso y archivos)
 
-```bash
-pnpm install
-cp .env.example .env.local   # opcional: completa lo que tengas
-pnpm dev                     # Postgres local + migraciones + seed + next dev
-```
+- [ ] **Crear el proyecto de producción** en <https://supabase.com>, región `us-east-1`.
+- [ ] **Copiar las claves al archivo.**
+  - En **Project Settings → API**: `Project URL` va a `SUPABASE_URL`, `anon public` a `SUPABASE_ANON_KEY` y `service_role` a `SUPABASE_SERVICE_ROLE_KEY`.
+  - En **Project Settings → Database → Connection string → Transaction pooler** (puerto 6543): la cadena, con la clave de la base, va a `DATABASE_URL`, junto con `DB_POOL_MAX=1`.
+  - Sale bien si: `pnpm run doctor --env .env.production --produccion` muestra ✔ en "Base de datos" y en "Supabase".
+- [ ] **Crear las tablas y cargar el catálogo inicial.**
+  - Comando: `pnpm db:migrate --env .env.production` y luego `pnpm db:seed --env .env.production`. Los scripts pasan solos al Session pooler (5432).
+  - Sale bien si: dice "24 migraciones aplicadas" (o las que haya) y "seed aplicado". En **Table Editor** todas las tablas figuran con RLS.
+  - `db:migrate` hace un respaldo previo si la base ya tenía datos. Si falla por falta de `pg_dump`, instala PostgreSQL 17 (solo el cliente) o, la primera vez con la base vacía, agrega `--sin-respaldo`.
+- [ ] **Auth → URL Configuration.**
+  - `Site URL` = `https://<dominio>`.
+  - *Redirect URLs*: `https://<dominio>/auth/confirm` y `https://*.vercel.app/auth/confirm`.
+- [ ] **Auth → Email Templates → Magic Link.** El enlace debe ser `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next={{ .RedirectTo }}`.
+- [ ] **Auth → Providers → Email.** Desactivar **"Allow new users to sign up"**. Nadie se crea cuenta solo; el equipo entra por invitación (paso 8).
+- [ ] **Auth → SMTP.** Configurar el SMTP de Resend (paso 4), para que los enlaces salgan del dominio propio.
+- [ ] **Storage.**
+  - Las migraciones crean los buckets: `artwork`, `documents` y `evidence` son privados; `catalog` es público.
+  - En Pro, sube **Storage → Settings → Upload file size limit** a 100 MB.
+  - Comando: `pnpm check:storage --env .env.production`.
+  - Sale bien si: los tres buckets privados aceptan `max_file_mb`. Si te quedas en Free, baja `max_file_mb` a 50 en Configuración.
 
-Comandos útiles: `pnpm db:reset` (recrea la base local), `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`.
+## 3. Supabase para los previews (proyecto Free aparte)
 
-## 1. Supabase (base de datos, Auth y Storage)
+Cada pull request genera un preview en Vercel. Usa su propia base: nunca toca la de producción ni manda correos reales.
 
-1. Crea un proyecto en <https://supabase.com> (Free para probar; Pro para operar, ver arriba). Región sugerida: `us-east-1` (la más cercana a Panamá con Vercel `iad1`). Crea también el proyecto Free de previews.
-2. En **Project Settings → API** copia:
-   - `Project URL` → `SUPABASE_URL`
-   - `anon public` → `SUPABASE_ANON_KEY`
-   - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (solo servidor, nunca en el navegador)
-3. En **Project Settings → Database → Connection string → Transaction pooler** (puerto 6543) copia la cadena → `DATABASE_URL`. Usa `DB_POOL_MAX=1` en Vercel: el pooler reparte las conexiones y el código nunca abre una transacción dentro de otra (DAT-01, corregido; la CI y las pruebas e2e corren con una sola conexión).
-4. Aplica las migraciones y los datos iniciales. Usa la conexión directa o *Session pooler* (puerto 5432), no la de transacción. Desde la carpeta del proyecto:
-   ```bash
-   DATABASE_URL="postgres://postgres.<ref>:<clave>@<host>:5432/postgres" pnpm db:migrate
-   DATABASE_URL="postgres://postgres.<ref>:<clave>@<host>:5432/postgres" ADMIN_EMAIL="correo@de-mark.com" pnpm db:seed
-   ```
-   - `db:migrate` reconoce que la base es de Supabase y **no** aplica el shim local; `db:reset` se niega a correr contra Supabase (D-094).
-   - El seed carga el catálogo PROVISIONAL y registra el correo de admin; se puede repetir sin duplicar.
-   - Alternativa con la CLI de Supabase: `pnpm dlx supabase link --project-ref <ref>` y luego `pnpm dlx supabase db push`. Usa la misma tabla de migraciones, así que se pueden combinar.
-5. **Auth → URL Configuration**: `Site URL` = dominio final; agrega `https://<dominio>/auth/confirm` y la URL de preview de Vercel a *Redirect URLs*.
-6. **Auth → Email Templates → Magic Link**: usa el enlace con `token_hash` para que funcione desde cualquier navegador:
-   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next={{ .RedirectTo }}`
-7. **Auth → SMTP**: configura Resend como SMTP (paso 3) para que los enlaces salgan desde el dominio propio.
-7b. **Auth → Providers → Email: desactiva "Allow new users to sign up".** Nadie debe poder crearse una cuenta, y menos con el correo de admin (SEG-06). Las cuentas del equipo se crean por invitación: `pnpm admin:invite correo@de-mark.com` (rol admin) y después, desde **Panel → Usuarios**, el resto del equipo. El correo de `ADMIN_EMAIL` solo recibe el rol admin con el correo confirmado.
-8. **Storage**: las migraciones crean los buckets. `artwork`, `evidence` y `documents` son privados (URLs firmadas); `catalog` es público (fotos del catálogo, D-015). El plan Free limita cada archivo a 50 MB; para el límite de 100 MB por archivo del PRD hace falta el plan Pro (decisión de Mark; ver D-012). En Pro, sube el límite global en **Storage → Settings → Upload file size limit** a 100 MB o más, y comprueba con `pnpm check:storage` (con las credenciales de producción en `.env`) que los buckets privados aceptan `max_file_mb`. Mientras siga en Free, baja `max_file_mb` a 50 en Configuración.
+- [ ] **Datos para el script.** En `.env.local` agrega:
+  - `SUPABASE_ACCESS_TOKEN`: supabase.com → Account → Access Tokens;
+  - `PREVIEW_SITE_URL`: por ejemplo `https://custompacks-git-main-<equipo>.vercel.app`;
+  - `ADMIN_EMAIL`.
+- [ ] **Ver el plan.**
+  - Comando: `pnpm supabase:preview`.
+  - Sale bien si: muestra los 7 pasos y "Variables completas". No cambia nada.
+- [ ] **Crear el proyecto.**
+  - Comando: `pnpm supabase:preview --ejecutar`.
+  - Sale bien si: termina con "Listo. Pega .env.preview…". Si la organización no está en Free, se detiene antes de crear nada, para no generar cobros.
+- [ ] **Revisar el archivo generado.**
+  - Comando: `pnpm run doctor --env .env.preview`.
+  - Sale bien si: no hay ✘. Los correos simulados y la falta de Turnstile salen como "·", y es lo esperado en previews.
 
-## 2. Vercel (aplicación)
+## 4. Resend (correo) y dominio
 
-1. Importa el repositorio `mharr92-hub/CUSTOMPACKS` en <https://vercel.com/new>. Framework: Next.js; install `pnpm install --frozen-lockfile`; build `pnpm build` (ya definidos en `vercel.json`).
-2. Variables de entorno (Production y Preview): todas las de `.env.example` que tengas. Mínimo para producción: `NEXT_PUBLIC_SITE_URL`, `DATABASE_URL`, `DB_POOL_MAX=1`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AUTH_SECRET` (32+ caracteres aleatorios; **obligatoria**: sin ella el panel no deja entrar, D-089), `ADMIN_EMAIL`, `CRON_SECRET`, `NEXT_PUBLIC_WHATSAPP_NUMBER`, `MAIL_FROM`, `RESEND_API_KEY`, `FACTORY_EMAIL`, y **Turnstile** (`NEXT_PUBLIC_TURNSTILE_SITE_KEY` y `TURNSTILE_SECRET_KEY`, gratis en Cloudflare): sin él, el panel muestra un aviso rojo porque el cotizador queda expuesto a abuso.
-   - **Nunca** en producción: `ALLOW_LOCAL_AUTH_LINKS` ni `RATE_LIMIT_FACTOR` (solo para pruebas). Si están, el servidor no arranca.
-3. Crons: `vercel.json` declara los crons diarios y Vercel envía `Authorization: Bearer $CRON_SECRET`.
-4. **Cron cada 15 minutos (SLA, recordatorios y cola de avisos), sin pagar:** después del primer despliegue, desde tu computadora y con las variables de producción en `.env` (`DATABASE_URL` del proyecto de Supabase, `NEXT_PUBLIC_SITE_URL` y el mismo `CRON_SECRET` de Vercel):
-   ```bash
-   pnpm cron:install            # programa Supabase Cron: */15 * * * * → /api/cron/notifications
-   pnpm cron:install --estado   # muestra el job y sus últimas corridas
-   pnpm cron:install --quitar   # lo apaga
-   ```
-   La URL y el secreto quedan en Supabase Vault, no en el repositorio. Sin este paso, el SLA de 4 h y 24 h solo se revisa al abrir el panel y una vez al día (D-013).
-5. Despliega. Cada PR genera un preview automáticamente, con las variables del entorno *Preview* (el proyecto de Supabase de pruebas).
+- [ ] **Dominio.** Registra `provenpack.com` (primera opción) y maneja el DNS en Cloudflare (gratis).
+- [ ] **Dominio en Resend.** Agrégalo y publica los registros que indica Resend: SPF, DKIM y DMARC (`_dmarc TXT "v=DMARC1; p=none; rua=mailto:…"`).
+  - Sale bien si: Resend marca el dominio como **Verified**.
+- [ ] **Clave y remitente.** Crea la API key (va a `RESEND_API_KEY`) y escribe `MAIL_FROM` con el dominio verificado (`ProvenPack <cotizaciones@provenpack.com>`).
+- [ ] **Correo de la fábrica.** `FACTORY_EMAIL` es el correo que recibe los RFQ.
 
-## 3. Resend (correo transaccional)
+## 5. Captcha (Cloudflare Turnstile, gratis)
 
-1. Crea la cuenta en <https://resend.com> y agrega el dominio.
-2. Publica en el DNS los registros que indica Resend: SPF (`TXT`), DKIM (`CNAME`/`TXT`) y un registro DMARC (`_dmarc TXT "v=DMARC1; p=none; rua=mailto:..."`).
-3. Crea una API key → `RESEND_API_KEY`. `MAIL_FROM` debe usar el dominio verificado (por ejemplo `ProvenPack <cotizaciones@provenpack.com>`).
-4. Sin `RESEND_API_KEY` la app no falla: registra los correos como `simulated` en la tabla `notifications` y en consola.
+- [ ] **Crear el sitio.** Cloudflare → Turnstile → Add site, con el dominio. La clave del sitio va a `NEXT_PUBLIC_TURNSTILE_SITE_KEY` y la secreta a `TURNSTILE_SECRET_KEY`.
+  - Sale bien si: el doctor muestra ✔ en "Captcha". Con las claves de prueba de Cloudflare da ✘ en producción.
 
-## 4. Dominio
+## 6. Secretos propios, contacto y medición
 
-1. Registra el dominio (primera opción: `provenpack.com`).
-2. Recomendado: DNS en Cloudflare (gratis). Apunta el dominio a Vercel (`CNAME` a `cname.vercel-dns.com` o los registros que indique Vercel) con el proxy de Cloudflare **desactivado** para esos registros.
-3. En Vercel → Settings → Domains agrega el dominio; actualiza `NEXT_PUBLIC_SITE_URL` y la `Site URL` de Supabase.
+- [ ] **Dos claves al azar, distintas.** Generan `AUTH_SECRET` (32 caracteres o más) y `CRON_SECRET`.
+  - Comando: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` (una vez para cada una).
+- [ ] **Contacto y sitio.** Completa `NEXT_PUBLIC_WHATSAPP_NUMBER` (el número real, no el de ejemplo), `NEXT_PUBLIC_CONTACT_EMAIL`, `ADMIN_EMAIL` y `NEXT_PUBLIC_SITE_URL=https://<dominio>`.
+- [ ] **Opcionales:** `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_META_PIXEL_ID` y `NEXT_PUBLIC_SENTRY_DSN`.
+- [ ] **Revisión final.**
+  - Comando: `pnpm run doctor --env .env.production --produccion`.
+  - Sale bien si: dice **"0 errores"**.
 
-## 5. Analytics y errores (opcionales)
+## 7. Vercel
 
-- GA4: `NEXT_PUBLIC_GA_ID`. Meta Pixel: `NEXT_PUBLIC_META_PIXEL_ID`. Si faltan, los helpers no hacen nada.
-- Sentry: `NEXT_PUBLIC_SENTRY_DSN`.
-- Turnstile (captcha invisible): `NEXT_PUBLIC_TURNSTILE_SITE_KEY` y `TURNSTILE_SECRET_KEY`.
+- [ ] **Importar el repositorio.** Importa `mharr92-hub/CUSTOMPACKS` en <https://vercel.com/new>. `vercel.json` ya define la instalación, el build y los crons.
+- [ ] **Variables de producción.** En **Settings → Environment Variables → Import .env**, pega el contenido de `.env.production`, marcando solo *Production*.
+- [ ] **Variables de previews.** Mismo lugar: pega `.env.preview`, marcando solo *Preview*.
+- [ ] **Desplegar.** Deployments → Redeploy.
+  - Sale bien si: el build termina en verde y el sitio abre.
+- [ ] **Cabeceras de seguridad.**
+  - Comando: `curl -sI https://<dominio>/`.
+  - Sale bien si: aparecen `content-security-policy`, `strict-transport-security` y `x-frame-options: DENY`.
+- [ ] **Dominio en Vercel.** Agrégalo en **Settings → Domains**. En Cloudflare, apúntalo a Vercel (`CNAME` a `cname.vercel-dns.com`) con el proxy **desactivado**.
+- [ ] **Nunca** cargues en Vercel `ALLOW_LOCAL_AUTH_LINKS`, `RATE_LIMIT_FACTOR` ni `ENABLE_ERROR_TEST_ROUTE`. Con las dos primeras, el servidor no arranca.
 
-Para generar `AUTH_SECRET` y `CRON_SECRET`:
+## 8. Tu cuenta y el equipo
 
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
-```
+- [ ] **Invitarte como admin.**
+  - Comando: `pnpm admin:invite tu-correo@… --env .env.production`.
+  - Sale bien si: llega el correo de invitación y, al abrirlo, entras al panel como **Administrador**.
+- [ ] **El resto del equipo** se invita desde **Panel → Usuarios**.
 
-## 6. Respaldos
+## 9. Cron cada 15 minutos (SLA, recordatorios, avisos)
 
-Define los secretos `BACKUP_DATABASE_URL` y `BACKUP_PASSPHRASE` en GitHub (`docs/respaldos.md`). Luego corre una vez **Actions → Respaldo diario → Run workflow** y confirma que aparece el artefacto.
+Vercel Hobby solo permite crons diarios. El frecuente lo corre Supabase Cron, sin costo.
 
-## Checklist de despliegue
+- [ ] **Instalarlo.**
+  - Comando: `pnpm cron:install --env .env.production`.
+  - Sale bien si: dice "Job provenpack-avisos instalado: */15 * * * *".
+- [ ] **Comprobarlo** a los 20 minutos.
+  - Comando: `pnpm cron:install --estado --env .env.production`.
+  - Sale bien si: aparecen corridas con estado `succeeded`.
+- [ ] **Crons diarios de Vercel.** En **Vercel → Crons** figuran 3 procesos. Ejecutar uno a mano responde 200.
 
-### A. Ensayo local (sin cuentas): `pnpm verify:deploy`
+## 10. Respaldos (GitHub, gratis)
 
-El script levanta una base nueva, aplica migraciones y seed, compila con `NODE_ENV=production` y las variables mínimas, revisa que no haya secretos en el código público, arranca `next start` y comprueba lo que sigue.
+- [ ] **Secretos de la base.** En **GitHub → Settings → Secrets and variables → Actions** crea los secretos `BACKUP_DATABASE_URL` (Session pooler, puerto 5432) y `BACKUP_PASSPHRASE` (guárdala también fuera de GitHub), y la variable `BACKUP_SCHEMAS=public`.
+- [ ] **Copia de archivos.** Crea los secretos `STORAGE_S3_*` (Supabase → Storage → Settings → S3 Connection) y `BACKUP_S3_*`, y la variable `BACKUP_S3_BUCKET` (`docs/respaldos.md`, sección 5).
+- [ ] **Probarlo.** **Actions → Respaldo diario → Run workflow**.
+  - Sale bien si: el run termina en verde y en *Artifacts* aparece `respaldo-…`. El trabajo "Copia de archivos" copia `artwork`, `documents` y `evidence`.
+  - Prueba abrirlo una vez: `gpg --decrypt respaldo.dump.gpg > respaldo.dump`.
 
-| Paso | Comprobación | Resultado (25/09/2026) |
-| --- | --- | --- |
-| Base de datos | 9 migraciones y seed sobre una base vacía; RLS en las 35 tablas | ✔ |
-| Build | `next build` en modo producción | ✔ |
-| Secretos | Ni `AUTH_SECRET` ni `CRON_SECRET` (ni sus nombres) en los 246 archivos públicos | ✔ |
-| Páginas | Inicio, catálogo, galería, cotizador, legales e ingreso responden 200 | ✔ |
-| Cabeceras | CSP con `frame-ancestors 'none'`, HSTS, `X-Frame-Options: DENY`, `nosniff`, sin `X-Powered-By` | ✔ |
-| SEO | `sitemap.xml` con el dominio de `NEXT_PUBLIC_SITE_URL`; `robots.txt` bloquea `/admin` y `/seguimiento` | ✔ |
-| Acceso | `/admin` sin sesión va al ingreso; una sesión firmada con la clave de desarrollo no entra; el CSV de reportes da 401 sin sesión | ✔ |
-| Enlaces | Un enlace de seguimiento inventado da 404; un archivo privado con token falso se rechaza | ✔ |
-| Crons | Los 3 de `vercel.json` dan 401 sin `CRON_SECRET` y 200 con él | ✔ |
+## 11. Después de desplegar (en producción)
 
-Resultado: **23/23 comprobaciones en verde**. Correr de nuevo antes de cada despliegue importante.
-
-### B. Cuentas (Mark)
-
-- [ ] **Supabase:**
-  - proyecto creado y claves copiadas (paso 1);
-  - migraciones y seed aplicados;
-  - en *Table Editor*, todas las tablas figuran con RLS;
-  - en *Storage*, `artwork`, `documents` y `evidence` son privados.
-- [ ] **Auth de Supabase:** Site URL, Redirect URLs, plantilla del enlace mágico con `token_hash` y SMTP de Resend (pasos 1.5 a 1.7).
-- [ ] **Resend:** dominio verificado (SPF, DKIM, DMARC) y API key.
-- [ ] **Vercel:** proyecto importado y variables de Production y Preview cargadas, con `AUTH_SECRET` y `CRON_SECRET` nuevas, distintas de las de prueba.
-- [ ] **Dominio** apuntando a Vercel, con `NEXT_PUBLIC_SITE_URL` y la Site URL de Supabase actualizadas.
-
-### C. Después de desplegar (en producción)
-
-- [ ] `curl -sI https://<dominio>/` muestra `content-security-policy`, `strict-transport-security` y `x-frame-options: DENY`.
-- [ ] Ingreso al panel: llega el enlace mágico al correo de admin y entra con rol Administrador.
-- [ ] Solicitud de prueba desde el celular:
+- [ ] **Ingreso al panel.** Llega el enlace mágico al correo de admin y entras con rol Administrador.
+- [ ] **Solicitud de prueba desde el celular:**
   - llega el correo de confirmación al cliente y el aviso al equipo;
   - el enlace de seguimiento abre y la ficha técnica (PDF) baja;
-  - un archivo de arte de prueba sube con barra de progreso (máximo 50 MB en Supabase Free, D-012).
-- [ ] **Vercel → Crons** muestra los 3 procesos. Ejecutar uno a mano responde 200.
-- [ ] `pnpm cron:install --estado` muestra el job `provenpack-avisos` activo y corridas con estado `succeeded`.
-- [ ] GA4 (*Tiempo real*) registra la visita; *Meta Pixel Helper* muestra `PageView` y, al enviar, `Lead`.
-- [ ] En **Configuración**: instrucciones de pago y correo del equipo. En **Plantillas**: textos revisados.
-- [ ] Respaldos activados (sección 6) y primer artefacto descargado y abierto con `gpg --decrypt`.
-- [ ] La solicitud de prueba queda **Rechazada** con motivo "Otro", para que no cuente en los reportes de conversión.
-- [ ] Criterio de salida del MVP con una solicitud real de cada segmento (`docs/lanzamiento.md`, sección 6).
+  - un archivo de arte de prueba sube con barra de progreso.
+- [ ] **Medición.** GA4 (*Tiempo real*) registra la visita y *Meta Pixel Helper* muestra `PageView` y, al enviar, `Lead`.
+- [ ] **Configuración.** Carga los datos de pago (banco, cuenta, beneficiario, correo de comprobantes) y el correo del equipo. En **Plantillas**, revisa y guarda los textos.
+- [ ] **Limpiar la prueba.** Cierra la solicitud de prueba como **Rechazada** con motivo "Otro", para que no cuente en los reportes.
+- [ ] **Criterio de salida del MVP:** una solicitud real de cada segmento (`docs/lanzamiento.md`, sección 6).
+
+## Ensayo local: qué comprueba `pnpm verify:deploy`
+
+El script levanta una base nueva, aplica migraciones y seed, compila con `NODE_ENV=production`, arranca `next start` y comprueba lo que sigue. No usa servicios externos.
+
+| Área | Comprobación |
+| --- | --- |
+| Base | Migraciones y seed sobre una base vacía; RLS en todas las tablas |
+| Copia S3 | El respaldo de archivos copia exactamente los buckets privados; cada secreto del flujo de GitHub está en `.env.example` |
+| Variables | Cada variable que lee el código está documentada en `.env.example` |
+| Cron | Los crons de `vercel.json` son diarios (límite de Hobby); existe `/api/cron/notifications` para Supabase Cron; `cron:install` se niega contra una base que no es de Supabase; cada cron da 401 sin `CRON_SECRET` y 200 con él |
+| Previews | `pnpm supabase:preview` muestra el plan sin tocar nada; el `.env.preview` que genera no lleva Resend y usa pool 1 |
+| Doctor | Un entorno de producción completo pasa; las variables de prueba y el número de WhatsApp de ejemplo fallan |
+| Build | `next build` en producción, sin secretos (ni sus nombres) en el código público, incluida la clave secreta de Turnstile |
+| Turnstile | Con las claves de prueba de Cloudflare, la clave del sitio llega al navegador y la CSP permite el script y el iframe |
+| Páginas y cabeceras | Inicio, catálogo, galería, cotizador, legales e ingreso dan 200; CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, sin `X-Powered-By` |
+| SEO | `sitemap.xml` con el dominio; `robots.txt` bloquea `/admin` y `/seguimiento` |
+| Acceso | `/admin` sin sesión va al ingreso; una sesión firmada con la clave de desarrollo no entra; reportes 401; seguimiento inventado 404; archivo privado con token falso rechazado |
+
+Resultado del 03/10/2026: **34/34 comprobaciones en verde**.

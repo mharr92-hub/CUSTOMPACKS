@@ -14,6 +14,7 @@ import {
   isPortOpen,
   isSupabaseDatabase,
   loadEnvFiles,
+  scriptDatabaseUrl,
   migrate,
   pendingMigrations,
   reset,
@@ -54,7 +55,7 @@ async function main() {
         const { spawnSync } = await import("node:child_process");
         const backup = spawnSync(process.execPath, [path.join(ROOT, "scripts", "backup.mjs")], {
           stdio: "inherit",
-          env: { ...process.env, BACKUP_DATABASE_URL: url, BACKUP_SCHEMAS: process.env.BACKUP_SCHEMAS || "public" },
+          env: { ...process.env, BACKUP_DATABASE_URL: scriptDatabaseUrl(url), BACKUP_SCHEMAS: process.env.BACKUP_SCHEMAS || "public" },
         });
         if (backup.status !== 0) throw new Error("El respaldo previo falló: no se aplicó ninguna migración. Revisa pg_dump o usa --sin-respaldo bajo tu responsabilidad.");
       }
