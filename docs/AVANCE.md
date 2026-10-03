@@ -787,3 +787,36 @@ pnpm verify:deploy             # ensayo de despliegue en local
 - `pnpm test:e2e`: 40 en verde.
 - `pnpm verify:deploy`: 23/23.
 - `pnpm audit --prod`: sin vulnerabilidades.
+
+## Tanda del 03/10/2026 · Decisiones, catálogo, textos, despliegue y operación (Bloques 1–6)
+
+Mark todavía no tiene cuentas ni el catálogo real. Esta tanda adelanta todo lo que no depende de eso.
+
+| Bloque | Qué quedó hecho |
+| --- | --- |
+| 1 · Decisiones | Pagos en partes con tolerancia de 1 % o USD 25 (D-113). RFQ sin respuesta en 48 horas hábiles: recordatorio a la fábrica y aviso al equipo (D-114). Retención: arte y evidencias 24 meses tras cerrar el pedido; comprobantes y cotizaciones, 5 años, con confirmación de admin (D-115). Ley 81: se conserva lo que llegó a pedido y se borran los borradores (D-116). ITBMS confirmado (D-102). Migración 021. |
+| 2 · Catálogo sin fotos | `catalogo/plantilla-catalogo.csv` y `plantilla-muestras.csv` prellenadas. `pnpm catalog:import` valida y carga sin borrar; `pnpm catalog:export` las regenera. `pnpm gallery:import` acepta escaneos (PDF de varias páginas, JPG grandes), recorta márgenes, pasa a WebP con miniatura y asigna códigos por nombre o con `--orden`. `docs/CATALOGO-COMO-LLENARLO.md`. Migración 022 (D-117). |
+| 3 · Textos | Plantillas PROVISIONAL corregidas sin pisar ediciones (migración 023). Textos públicos revisados. Datos de pago estructurados en Configuración, leídos por el portal y el PDF de la cotización (migración 024). `docs/TEXTOS-POR-CONFIRMAR.md` (D-118). |
+| 4 · Despliegue | `.env.example` comentado por servicio. `docs/deploy.md` como lista de verificación. `pnpm run doctor`. `pnpm supabase:preview` (no ejecutado). Scripts con `--env .env.production`. `verify:deploy` ampliado (D-119). |
+| 5 · Operación | `docs/manual-equipo.md` al día y `docs/guia-socio-comercial.md` (una página) (D-120). |
+| 6 · Verificación | Ver abajo. `docs/PENDIENTES-MARK.md` ordenado por lo que más desbloquea. |
+
+**Qué falta:** solo lo de `docs/PENDIENTES-MARK.md`: planes y dominio, cuentas, datos de pago y contacto, catálogo y fotos reales, textos legales. A eso se suma decidir el choque entre las 24 h de cotización y las 48 h de la fábrica.
+
+**Cómo probarlo**
+```bash
+pnpm lint && pnpm typecheck && pnpm test
+pnpm test:e2e
+pnpm verify:deploy
+pnpm run doctor                                   # qué falta para producción
+pnpm catalog:import catalogo/plantilla-catalogo.csv catalogo/plantilla-muestras.csv --prueba
+pnpm supabase:preview                             # plan del proyecto de previews, sin tocar nada
+```
+
+**Resultado de la verificación (03/10/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 220 pruebas en verde (+2 de respaldo que corren en CI).
+- `pnpm test:e2e`: 40 en verde.
+- `pnpm verify:deploy`: 34/34.
+- `pnpm audit --prod`: sin vulnerabilidades.
+- CI de GitHub en verde en cada bloque.
