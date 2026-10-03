@@ -627,7 +627,8 @@
         "receipt_uploaded": "El cliente subió un comprobante",
         "evidence_uploaded": "Evidencia subida",
         "rfq_sent_manually": "RFQ enviado a fábrica a mano",
-        "quote_accepted_staff": "Aceptación del cliente registrada por el equipo"
+        "quote_accepted_staff": "Aceptación del cliente registrada por el equipo",
+        "no_print_confirmed": "Pieza confirmada sin impresión"
       },
       "by": "por {name}",
       "system": "sistema",
@@ -946,7 +947,7 @@
       "leadTimeDays": "{days} días desde el anticipo y el proof aprobado",
       "estimated": "Entrega estimada",
       "toBeConfirmed": "por confirmar",
-      "artworkPending": "Falta el proof aprobado de alguna pieza impresa: no puede entrar a producción.",
+      "artworkPending": "Falta el último proof aprobado y liberado de alguna pieza impresa: no puede entrar a producción.",
       "itemsTitle": "Piezas",
       "itemLine": "{position}. {name} · {quantity} unidades",
       "timelineTitle": "Línea de tiempo",
@@ -1024,7 +1025,9 @@
       "evidenceAlt": "Evidencia de {milestone}",
       "video": "Ver video",
       "file": "Ver archivo",
-      "shipEstimate": "Embarque estimado (va en el aviso al cliente)"
+      "shipEstimate": "Embarque estimado (va en el aviso al cliente)",
+      "advicePending": "Las piezas {pieces} llegaron como «No sé, sugiéranme». Antes de producir necesitan un proof aprobado o que confirmes que van sin impresión.",
+      "confirmNoPrint": "Pieza {position}: va sin impresión"
     },
     "demo": "DEMO",
     "money": {

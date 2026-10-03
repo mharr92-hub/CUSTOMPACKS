@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   confirmEvidenceUploadAction,
+  confirmNoPrintAction,
   prepareEvidenceUploadAction,
   receiptUrlAction,
   recordMilestoneAction,
@@ -484,6 +485,25 @@ export function PaymentsPanel({
         </ul>
       ) : null}
       {canEdit ? <RecordPaymentForm orderId={orderId} defaultKind={defaultKind} suggested={suggested} today={today} currency={currency} /> : null}
+    </div>
+  );
+}
+
+/** Piezas "No sé, sugiéranme" sin proof: el equipo confirma que van sin impresión (M5). */
+export function AdvicePieces({ orderId, pieces }: { orderId: string; pieces: { itemId: string; position: number }[] }) {
+  const t = useTranslations("admin.order");
+  const { error, busy, run } = useRun();
+  return (
+    <div className="mt-3 space-y-2 rounded-md bg-signal-yellow/15 px-3 py-2 text-sm" role="status" data-testid="advice-pieces">
+      <p>{t("advicePending", { pieces: pieces.map((p) => p.position).join(", ") })}</p>
+      <div className="flex flex-wrap gap-2">
+        {pieces.map((p) => (
+          <Button key={p.itemId} type="button" size="sm" variant="outline" disabled={busy} onClick={() => void run(() => confirmNoPrintAction(orderId, p.itemId))}>
+            {t("confirmNoPrint", { position: p.position })}
+          </Button>
+        ))}
+      </div>
+      <ErrorLine error={error} />
     </div>
   );
 }

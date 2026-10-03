@@ -117,9 +117,9 @@ Aceptación:
 
 Objetivo: que ninguna pieza impresa entre a producción sin su último proof aprobado (REG-04, REG-10).
 
-- [ ] La regla de producción evalúa, pieza por pieza, la última versión del proof: tiene que estar aprobada y liberada. Una v2 pendiente bloquea aunque la v1 esté aprobada.
-- [ ] Pieza "No sé, sugiéranme": exige un proof aprobado o la marca "sin impresión" del equipo. La marca es una casilla auditada en el pedido, hasta que M13 permita definirlo en la ficha.
-- [ ] La misma regla vive en la base (función o trigger del inicio de producción) y en `lib/orders`.
+- [x] La regla de producción evalúa, pieza por pieza, la última versión del proof: tiene que estar aprobada y liberada. Una v2 pendiente bloquea aunque la v1 esté aprobada.
+- [x] Pieza "No sé, sugiéranme": exige un proof aprobado o la marca "sin impresión" del equipo. La marca es una casilla auditada en el pedido, hasta que M13 permita definirlo en la ficha.
+- [x] La misma regla vive en la base (función o trigger del inicio de producción) y en `lib/orders`.
 
 Aceptación:
 - Pruebas de base:

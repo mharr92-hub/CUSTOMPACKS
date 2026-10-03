@@ -5,6 +5,7 @@ import { assertStaff, EDITOR_ROLES } from "@/lib/auth";
 import { kickNotifications } from "@/lib/notify";
 import {
   confirmEvidenceUpload,
+  confirmNoPrint,
   evidenceUrl,
   prepareEvidenceUpload,
   receiptUrl,
@@ -112,4 +113,11 @@ export async function evidenceUrlAction(orderId: string, path: string): Promise<
 export async function receiptUrlAction(paymentId: string): Promise<string | null> {
   const user = await assertStaff();
   return receiptUrl(user, String(paymentId));
+}
+
+export async function confirmNoPrintAction(orderId: string, itemId: string): Promise<OrderResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await confirmNoPrint(user, String(orderId), String(itemId));
+  if (result.ok) refresh(orderId);
+  return result;
 }

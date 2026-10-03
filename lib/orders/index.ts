@@ -85,7 +85,10 @@ export type OrderDetail = {
   delayed: boolean;
   depositConfirmed: boolean;
   balanceConfirmed: boolean;
+  /** Último proof de cada pieza impresa aprobado y liberado: puede entrar a producción. */
   artworkReady: boolean;
+  /** Piezas "No sé, sugiéranme" sin proof ni confirmación de que van sin impresión. */
+  artworkAdvicePending: { itemId: string; position: number }[];
   items: { id: string; position: number; spec: ItemSpec; quantity: number; unitPrice: number; subtotal: number }[];
   milestones: Milestone[];
   payments: Payment[];
@@ -102,19 +105,59 @@ function isEditor(user: CurrentUser): boolean {
 // ---------------------------------------------------------------------------
 // Creación (gancho de la aceptación) y calendario
 // ---------------------------------------------------------------------------
-/** Arte listo para producir: todas las piezas impresas con proof aprobado por el cliente. */
-async function artworkStatus(tx: Tx, requestId: string): Promise<{ ready: boolean; approvedAt: Date | null; printed: number }> {
-  const items = await tx<{ id: string; spec_snapshot: ItemSpec }[]>`select id, spec_snapshot from public.quote_items where request_id = ${requestId}`;
-  const printed = items.filter((i) => i.spec_snapshot?.artwork && i.spec_snapshot.artwork !== "not_applicable" && !i.spec_snapshot.needsAdvice);
-  if (printed.length === 0) return { ready: true, approvedAt: null, printed: 0 };
-  const approvals = await tx<{ item_id: string; approved: Date | null }[]>`
-    select item_id, max(client_approved_at) as approved from public.artwork_files
-     where request_id = ${requestId} and kind = 'proof' and client_approved_at is not null and deleted_at is null
-     group by item_id`;
-  const dates = printed.map((i) => approvals.find((a) => a.item_id === i.id)?.approved ?? null);
-  if (dates.some((d) => d === null)) return { ready: false, approvedAt: null, printed: printed.length };
-  const approvedAt = new Date(Math.max(...dates.map((d) => (d as Date).getTime())));
-  return { ready: true, approvedAt, printed: printed.length };
+/**
+ * Arte de las piezas (§14, REG-04, REG-10). Cada pieza que lleva o puede
+ * llevar impresión cuenta con su ÚLTIMA versión de proof:
+ * - `ready`: aprobada por el cliente (fija el inicio del plazo);
+ * - `released`: además liberada a fábrica (condición para producir).
+ * Una pieza "No sé, sugiéranme" cuenta como impresa hasta que el equipo
+ * confirme que va sin impresión. Espejo de public.order_artwork_ready() (014).
+ */
+async function artworkStatus(
+  tx: Tx,
+  requestId: string,
+): Promise<{ ready: boolean; released: boolean; approvedAt: Date | null; printed: number; advicePending: { itemId: string; position: number }[] }> {
+  const items = await tx<{ id: string; position: number; spec_snapshot: ItemSpec; no_print_confirmed_at: Date | null }[]>`
+    select id, position, spec_snapshot, no_print_confirmed_at from public.quote_items where request_id = ${requestId}`;
+  const needsProof = items.filter((i) =>
+    i.spec_snapshot?.needsAdvice ? !i.no_print_confirmed_at : Boolean(i.spec_snapshot?.artwork) && i.spec_snapshot.artwork !== "not_applicable",
+  );
+  if (needsProof.length === 0) return { ready: true, released: true, approvedAt: null, printed: 0, advicePending: [] };
+  const proofs = await tx<{ item_id: string; status: string; approved: Date | null }[]>`
+    select distinct on (item_id) item_id, status, client_approved_at as approved
+      from public.artwork_files
+     where request_id = ${requestId} and kind = 'proof' and deleted_at is null
+     order by item_id, version desc`;
+  const latest = needsProof.map((i) => proofs.find((p) => p.item_id === i.id) ?? null);
+  const advicePending = needsProof.filter((i, k) => i.spec_snapshot?.needsAdvice && !latest[k]).map((i) => ({ itemId: i.id, position: i.position }));
+  const ready = latest.every((p) => p?.approved);
+  const released = ready && latest.every((p) => p?.status === "released");
+  const approvedAt = ready ? new Date(Math.max(...latest.map((p) => (p!.approved as Date).getTime()))) : null;
+  return { ready, released, approvedAt, printed: needsProof.length, advicePending };
+}
+
+/**
+ * La pieza "No sé, sugiéranme" va sin impresión: lo confirma el equipo y
+ * queda auditado. Desde ahí no exige proof para producir.
+ */
+export async function confirmNoPrint(user: CurrentUser, orderId: string, itemId: string): Promise<OrderResult> {
+  if (!isEditor(user)) return { ok: false, error: "forbidden" };
+  if (!UUID.test(orderId) || !UUID.test(itemId)) return { ok: false, error: "not_found" };
+  return withActor(actorFor(user), async (tx) => {
+    const [row] = await tx<{ request_id: string; position: number; advice: boolean; has_proof: boolean }[]>`
+      select i.request_id, i.position, coalesce((i.spec_snapshot ->> 'needsAdvice')::boolean, false) as advice,
+             exists (select 1 from public.artwork_files f where f.item_id = i.id and f.kind = 'proof' and f.deleted_at is null) as has_proof
+        from public.orders o join public.quote_items i on i.request_id = o.request_id
+       where o.id = ${orderId} and i.id = ${itemId}`;
+    if (!row) return { ok: false, error: "not_found" } as const;
+    if (!row.advice || row.has_proof) return { ok: false, error: "status" } as const;
+    await tx`update public.quote_items set no_print_confirmed_at = now(), no_print_confirmed_by = ${user.userId} where id = ${itemId}`;
+    await tx`
+      insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)
+      values (${row.request_id}, 'order', ${orderId}, ${user.userId}, 'system', 'no_print_confirmed', ${String(row.position)})`;
+    await recomputeSchedule(tx, orderId);
+    return { ok: true } as const;
+  });
 }
 
 /** Hito "Arte aprobado" cuando el cliente aprobó el proof de todas las piezas impresas. */
@@ -340,7 +383,8 @@ async function loadDetail(tx: Tx, where: { id?: string; requestId?: string }): P
     delayed: isDelayed(o),
     depositConfirmed: payments.some((p) => p.kind === "deposit" && p.status === "confirmed"),
     balanceConfirmed: payments.some((p) => p.kind === "balance" && p.status === "confirmed"),
-    artworkReady: art.ready,
+    artworkReady: art.released,
+    artworkAdvicePending: art.advicePending,
     items: o.lines.map((l) => {
       const item = items.find((i) => i.id === l.item_id);
       return { id: l.item_id, position: l.position, spec: item?.spec_snapshot as ItemSpec, quantity: Number(l.quantity), unitPrice: Number(l.unit_price), subtotal: Number(l.subtotal) };

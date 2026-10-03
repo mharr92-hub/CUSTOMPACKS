@@ -129,6 +129,50 @@ async function notificationsFor(requestId: string, code: string) {
     select channel, payload from public.notifications where request_id = ${requestId} and template_code = ${code} order by created_at`;
 }
 
+async function confirmDeposit(o: { orderId: string }, ops: CurrentUser) {
+  const [order] = await testSql()<{ deposit_amount: string }[]>`select deposit_amount from public.orders where id = ${o.orderId}`;
+  const paid = await orders.recordPayment(ops, o.orderId, { kind: "deposit", amount: String(order!.deposit_amount), method: "ACH", reference: `M5-${Date.now()}`, paidOn: todayInPanama() });
+  if (!paid.ok) throw new Error(`anticipo: ${paid.error}`);
+}
+
+describe("proof antes de producir (M5)", () => {
+  it("con el v1 aprobado y un v2 pendiente no entra a producción; tampoco si el proof no está liberado", async () => {
+    const o = await acceptedOrder();
+    const ops = await staff();
+    await confirmDeposit(o, ops);
+    await testSql()`
+      insert into public.artwork_files (item_id, request_id, kind, version, storage_path, file_name, format, size_bytes, status, uploaded_by_client)
+      values (${o.itemId}, ${o.requestId}, 'proof', 2, ${`requests/${o.requestId}/${o.itemId}/proof/p2-proof.pdf`}, 'proof-v2.pdf', 'pdf', 100, 'proof_sent', false)`;
+    expect(await orders.recordMilestone(ops, o.orderId, { type: "production_started" })).toEqual({ ok: false, error: "artwork" });
+    // La base también lo impide aunque se salte la aplicación.
+    await expect(testSql()`update public.orders set status = 'in_production' where id = ${o.orderId}`).rejects.toThrow(/no puede entrar a producción/);
+    // v2 aprobado pero sin liberar: todavía no.
+    const [v2] = await testSql()<{ id: string }[]>`select id from public.artwork_files where request_id = ${o.requestId} and kind = 'proof' and version = 2`;
+    await testSql()`insert into public.artwork_approvals (artwork_file_id, request_id, approved_by_name) values (${v2!.id}, ${o.requestId}, 'Paula')`;
+    expect(await orders.recordMilestone(ops, o.orderId, { type: "production_started" })).toEqual({ ok: false, error: "artwork" });
+    await testSql()`update public.artwork_files set status = 'released' where id = ${v2!.id}`;
+    expect((await orders.recordMilestone(ops, o.orderId, { type: "production_started" })).ok).toBe(true);
+  });
+
+  it("una pieza «No sé, sugiéranme» sin proof exige que el equipo confirme que va sin impresión", async () => {
+    const o = await acceptedOrder();
+    const ops = await staff();
+    await testSql()`update public.quote_items set spec_snapshot = spec_snapshot || '{"needsAdvice": true, "artwork": "not_applicable"}'::jsonb where id = ${o.itemId}`;
+    await testSql()`update public.artwork_files set deleted_at = now() where request_id = ${o.requestId}`;
+    await confirmDeposit(o, ops);
+    const detail = await orders.getOrder(ops, o.orderId);
+    expect(detail?.artworkReady).toBe(false);
+    expect(detail?.artworkAdvicePending.map((p) => p.itemId)).toEqual([o.itemId]);
+    expect(await orders.recordMilestone(ops, o.orderId, { type: "production_started" })).toEqual({ ok: false, error: "artwork" });
+    const viewer = await staff("viewer");
+    expect(await orders.confirmNoPrint(viewer, o.orderId, o.itemId)).toEqual({ ok: false, error: "forbidden" });
+    expect(await orders.confirmNoPrint(ops, o.orderId, o.itemId)).toEqual({ ok: true });
+    const [item] = await testSql()<{ by: string }[]>`select no_print_confirmed_by as by from public.quote_items where id = ${o.itemId}`;
+    expect(item?.by).toBe(ops.userId);
+    expect((await orders.recordMilestone(ops, o.orderId, { type: "production_started" })).ok).toBe(true);
+  });
+});
+
 describe("pedido al aceptar la cotización", () => {
   it("se crea con líneas, total, anticipo, saldo, plazo e hito de arte; el cliente no puede leer montos", async () => {
     const o = await acceptedOrder();

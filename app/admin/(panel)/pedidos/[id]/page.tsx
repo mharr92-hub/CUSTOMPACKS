@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { FileTextIcon } from "lucide-react";
-import { OrderTimeline, PaymentsPanel, RecordMilestoneForm, ShippingForm, type PanelMilestone } from "@/components/panel/order-panel";
+import { AdvicePieces, OrderTimeline, PaymentsPanel, RecordMilestoneForm, ShippingForm, type PanelMilestone } from "@/components/panel/order-panel";
 import { Button } from "@/components/ui/button";
 import { EDITOR_ROLES, requireStaff } from "@/lib/auth";
 import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
@@ -84,6 +84,9 @@ export default async function OrderPage(props: PageProps<"/admin/pedidos/[id]">)
         </Link>{" "}
         · {t("quote", { number: order.quoteNumber })}
       </p>
+      {canEdit && order.artworkAdvicePending.length > 0 && ["pending_deposit", "deposit_received"].includes(order.status) ? (
+        <AdvicePieces orderId={order.id} pieces={order.artworkAdvicePending} />
+      ) : null}
       {!order.artworkReady && order.status === "deposit_received" ? (
         <p className="mt-3 rounded-md bg-signal-yellow/15 px-3 py-2 text-sm" role="status">
           {t("artworkPending")}
