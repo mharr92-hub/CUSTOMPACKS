@@ -14,9 +14,11 @@ import type { PublicCatalog } from "@/lib/catalog/public";
 import { addPiece, applyPreload, editPiece, goBack, goNext, goToStep, progress, removePiece, type FlowState, type Preload, type PreloadOutcome } from "@/lib/quote/flow";
 import { resumeLink } from "@/lib/quote/links";
 import { maxQuantityBucket, optionEvents } from "@/lib/quote/option-events";
-import { hasContactData, type ItemDraft, type StepId, type WizardState } from "@/lib/quote/types";
+import { clearLocal, readLocal, writeLocal } from "@/lib/quote/local-draft";
+import { hasContactData, initialWizardState, type ItemDraft, type StepId, type WizardState } from "@/lib/quote/types";
 import { parseQuantity, validateAll, validateStep } from "@/lib/quote/validate";
 import { whatsappLink } from "@/lib/whatsapp";
+import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { WizardContext, type WizardSettings } from "./context";
 import { SaveLater } from "./save-later";
@@ -24,35 +26,6 @@ import { StepSummary } from "./step-summary";
 import { StepProduct, StepSegment } from "./steps-intro";
 import { StepArtwork, StepContact, StepQuantity } from "./steps-order";
 import { StepMaterial, StepPrint, StepSize, StepType } from "./steps-piece";
-
-const LOCAL_KEY = "provenpack:cotizador";
-
-type LocalDraft = { token: string | null; state: WizardState; savedAt: string };
-
-function readLocal(): LocalDraft | null {
-  try {
-    const raw = window.localStorage.getItem(LOCAL_KEY);
-    return raw ? (JSON.parse(raw) as LocalDraft) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeLocal(token: string | null, state: WizardState) {
-  try {
-    window.localStorage.setItem(LOCAL_KEY, JSON.stringify({ token, state, savedAt: new Date().toISOString() }));
-  } catch {
-    // almacenamiento lleno o bloqueado: el servidor sigue siendo la fuente de verdad
-  }
-}
-
-function clearLocal() {
-  try {
-    window.localStorage.removeItem(LOCAL_KEY);
-  } catch {
-    // ignorar
-  }
-}
 
 /**
  * Sin consentimiento el servidor no guarda el contacto (D-033): al recuperar,
@@ -92,6 +65,12 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
   const [notice, setNotice] = useState<Notice | null>(null);
   const { enabled: captchaEnabled, mount: mountCaptcha, getToken: getCaptchaToken } = useTurnstile(state.step === 9);
   const [undo, setUndo] = useState<{ snapshot: FlowState; n: number } | null>(null);
+  /** Fecha del borrador retomado (aviso "Retomamos tu solicitud", UX-06). */
+  const [resumedAt, setResumedAt] = useState<string | null>(null);
+  /** Pasos empujados al historial del navegador: el gesto Atrás vuelve al paso anterior (UX-02). */
+  const historyDepth = useRef(0);
+  const fromPopRef = useRef(false);
+  const lastPosition = useRef({ step: initialState.step as number, current: 0 });
   const stateRef = useRef(state);
   const tokenRef = useRef(initialToken);
   const dirtyRef = useRef(false);
@@ -116,10 +95,11 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
   useEffect(() => {
     let cancelled = false;
     const { initialIsAuthoritative, preload, catalog } = restoreInput.current;
+    // Se lee una sola vez: si la red falla, esta copia es la que se conserva (UX-11).
+    const local = initialIsAuthoritative ? null : readLocal();
     async function restore() {
       try {
         if (initialIsAuthoritative) return;
-        const local = readLocal();
         let base: WizardState | null = null;
         let baseToken: string | null = null;
         if (local?.token) {
@@ -158,12 +138,21 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
           }
         }
         setState(base);
+        if (local?.savedAt && base.step > 0) setResumedAt(local.savedAt);
         if (baseToken) {
           setToken(baseToken);
           tokenRef.current = baseToken;
         }
       } catch {
-        // sin conexión: se sigue con lo que hay en pantalla y se guarda en este dispositivo
+        // Sin conexión: se sigue con la copia de este dispositivo y su token, sin pisarla.
+        if (!cancelled && local?.state) {
+          setState(local.state);
+          if (local.state.step > 0) setResumedAt(local.savedAt);
+          if (local.token) {
+            setToken(local.token);
+            tokenRef.current = local.token;
+          }
+        }
         dirtyRef.current = true;
       } finally {
         if (!cancelled) setReady(true);
@@ -252,6 +241,40 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
     for (const e of optionEvents(prev, state, catalog)) track("wizard_option", e);
   }, [state, ready, catalog]);
 
+  // Historial del navegador: cada avance agrega una entrada y el gesto Atrás
+  // del celular vuelve al paso anterior en vez de salir del cotizador (UX-02).
+  // En la URL solo queda el número de paso en el estado, nunca el token.
+  const step = state.step;
+  const piece = state.current;
+  useEffect(() => {
+    const prev = lastPosition.current;
+    lastPosition.current = { step, current: piece };
+    if (!ready || fromPopRef.current) {
+      fromPopRef.current = false;
+      return;
+    }
+    const forward = step > prev.step || (step === prev.step && piece > prev.current);
+    if (forward) {
+      window.history.pushState({ cotizadorPaso: step }, "");
+      historyDepth.current += 1;
+    }
+  }, [step, piece, ready]);
+
+  useEffect(() => {
+    function onPop() {
+      if (historyDepth.current <= 0 || submittedRef.current) return;
+      historyDepth.current -= 1;
+      fromPopRef.current = true;
+      setShowErrors(false);
+      setUndo(null);
+      setNotice(null);
+      dirtyRef.current = true;
+      setState((s) => goBack(s));
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   // Al cambiar de paso (o de pieza en los pasos 2–5): foco en el título, arriba y evento.
   const pieceKey = state.step >= 2 && state.step <= 5 ? state.current : -1;
   useEffect(() => {
@@ -328,7 +351,23 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
   }
 
   function onBack() {
-    navigate(goBack);
+    // Con historial propio, "Atrás" usa el del navegador para que los dos sigan iguales.
+    if (historyDepth.current > 0) window.history.back();
+    else navigate(goBack);
+  }
+
+  /** "Empezar una nueva": descarta el borrador retomado en este dispositivo. */
+  function startNew() {
+    clearLocal();
+    tokenRef.current = null;
+    setToken(null);
+    dirtyRef.current = false;
+    setResumedAt(null);
+    setShowErrors(false);
+    setUndo(null);
+    setNotice(null);
+    historyDepth.current = 0;
+    setState(initialWizardState());
   }
 
   function onPicked() {
@@ -486,6 +525,19 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
           )}
         </div>
 
+        {resumedAt ? (
+          <div role="status" className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm" data-testid="wizard-resumed">
+            <p>{t("resumed", { date: formatDate(resumedAt) })}</p>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={startNew} className="font-semibold text-forest underline underline-offset-4">
+                {t("startNew")}
+              </button>
+              <button type="button" aria-label={t("preload.dismiss")} onClick={() => setResumedAt(null)} className="rounded p-0.5 hover:bg-muted">
+                <XIcon className="size-4" />
+              </button>
+            </div>
+          </div>
+        ) : null}
         {notice ? (
           <div role="status" className="mt-3 flex items-start justify-between gap-3 rounded-md border border-forest/30 bg-forest/[0.05] px-3 py-2 text-sm">
             <p>{t(`preload.${notice.outcome}`, { n: notice.piece, type: notice.type ?? "", sample: notice.sample ?? "" })}</p>

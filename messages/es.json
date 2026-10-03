@@ -1701,7 +1701,9 @@
       "added_reference": "Sumamos la muestra {sample} como referencia de la pieza {n}.",
       "existing_piece": "{type} ya está en tu solicitud (pieza {n}).",
       "dismiss": "Cerrar aviso"
-    }
+    },
+    "resumed": "Retomamos tu solicitud del {date}.",
+    "startNew": "Empezar una nueva"
   },
   "spec": {
     "none": "—",

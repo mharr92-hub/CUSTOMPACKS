@@ -231,11 +231,15 @@ test.describe("E3 · cotizador", () => {
     await expect(page.getByText("Pieza 2 de 2")).toBeVisible();
     await expect(page.getByRole("radio", { name: /Bolsa kraft con asa retorcida/ })).toBeChecked();
     await expect(page).toHaveURL(/\/cotizar$/);
-    await page.getByRole("button", { name: "Atrás" }).click();
+    // dispatchEvent: en desarrollo el botón de Next tapa la esquina inferior izquierda en el celular.
+    await page.getByRole("button", { name: "Atrás" }).dispatchEvent("click");
     await expect(page.getByText("Pieza 1 de 2")).toBeVisible();
-    await page.getByRole("button", { name: "Atrás" }).click();
-    await page.getByRole("button", { name: "Atrás" }).click();
-    await page.getByRole("button", { name: "Atrás" }).click();
+    // dispatchEvent: en desarrollo el botón de Next tapa la esquina inferior izquierda en el celular.
+    await page.getByRole("button", { name: "Atrás" }).dispatchEvent("click");
+    // dispatchEvent: en desarrollo el botón de Next tapa la esquina inferior izquierda en el celular.
+    await page.getByRole("button", { name: "Atrás" }).dispatchEvent("click");
+    // dispatchEvent: en desarrollo el botón de Next tapa la esquina inferior izquierda en el celular.
+    await page.getByRole("button", { name: "Atrás" }).dispatchEvent("click");
     await expect(page.getByRole("radio", { name: /Caja plegadiza con tapa/ })).toBeChecked();
   });
 
@@ -302,5 +306,56 @@ test.describe("E3 · cotizador", () => {
     await next(page);
     await expect(page.getByText("La cantidad debe ser un número entero mayor que 0").first()).toBeVisible();
     await expect(page.getByText("La fecha no puede ser anterior a hoy.").first()).toBeVisible();
+  });
+});
+
+test.describe("M8 · el cotizador no pierde el avance", () => {
+  async function toStep4(page: Page) {
+    await page.goto("/cotizar");
+    await pickCard(page, "Comercio");
+    await page.getByLabel("Producto", { exact: true }).fill("Galletas");
+    await next(page);
+    await pickCard(page, "Mailer de envío (tapa abatible)");
+    await next(page);
+    await pickCard(page, "Tamaño estándar");
+    await page.locator("label", { has: page.getByRole("radio", { name: /^S\d/ }) }).first().click();
+    await next(page);
+    await expectStep(page, "Material");
+  }
+
+  test("el gesto Atrás del celular vuelve al paso anterior con los datos", async ({ page }) => {
+    await toStep4(page);
+    await page.goBack();
+    await expectStep(page, "Tamaño");
+    await page.goBack();
+    await expectStep(page, "Tipo de empaque");
+    await page.goBack();
+    await expectStep(page, "Qué vas a empacar");
+    await expect(page.getByLabel("Producto", { exact: true })).toHaveValue("Galletas");
+    // El botón Atrás de la barra sigue igual.
+    await next(page);
+    await expectStep(page, "Tipo de empaque");
+    // dispatchEvent: en desarrollo el botón de Next tapa la esquina inferior izquierda en el celular.
+    await page.getByRole("button", { name: "Atrás" }).dispatchEvent("click");
+    await expectStep(page, "Qué vas a empacar");
+  });
+
+  test("si la red falla al volver, se conservan el borrador y su token; «Empezar una nueva» lo descarta", async ({ page }) => {
+    await toStep4(page);
+    await expect(page.getByText("Guardado").first()).toBeAttached({ timeout: 15_000 });
+    const before = await page.evaluate(() => JSON.parse(window.localStorage.getItem("provenpack:cotizador") ?? "{}") as { token: string | null });
+    expect(before.token).toBeTruthy();
+    // Sin red para las acciones del servidor al reabrir.
+    await page.route("**/cotizar", (route) => (route.request().method() === "POST" ? route.abort() : route.continue()));
+    await page.goto("/cotizar");
+    await expectStep(page, "Material");
+    await expect(page.getByTestId("wizard-resumed")).toBeVisible();
+    const after = await page.evaluate(() => JSON.parse(window.localStorage.getItem("provenpack:cotizador") ?? "{}") as { token: string | null; state: { step: number } });
+    expect(after.token).toBe(before.token);
+    expect(after.state.step).toBe(4);
+    await page.unroute("**/cotizar");
+    await page.getByRole("button", { name: "Empezar una nueva" }).click();
+    await expectStep(page, "Segmento");
+    await expect(page.getByTestId("wizard-resumed")).toHaveCount(0);
   });
 });

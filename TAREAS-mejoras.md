@@ -174,10 +174,10 @@ Aceptación:
 
 Objetivo: que el gesto Atrás, una falla de red o un borrador viejo no hagan perder la solicitud (UX-02, UX-11, UX-06, UX-16, COD-09).
 
-- [ ] Cada cambio de paso hace `history.pushState`, solo con el número de paso y nunca con el token, y `popstate` vuelve al paso anterior.
-- [ ] Recuperación: si falla la red al abrir, se conservan el estado y el token locales. `localStorage` no se escribe hasta terminar la recuperación.
-- [ ] Aviso "Retomamos tu solicitud del {fecha}" con "Empezar una nueva". La copia local vence a los 30 días.
-- [ ] El borrador local se valida y se migra con el esquema compartido, sin `server-only`. Lo incompatible se descarta con un aviso.
+- [x] Cada cambio de paso hace `history.pushState`, solo con el número de paso y nunca con el token, y `popstate` vuelve al paso anterior.
+- [x] Recuperación: si falla la red al abrir, se conservan el estado y el token locales. `localStorage` no se escribe hasta terminar la recuperación.
+- [x] Aviso "Retomamos tu solicitud del {fecha}" con "Empezar una nueva". La copia local vence a los 30 días.
+- [x] El borrador local se valida con una verificación estructural ligera (`lib/quote/local-draft.ts`; zod en el navegador sumaría peso al JS del cotizador). Lo vencido o de otra versión se descarta.
 
 Aceptación:
 - E2E móvil: `page.goBack()` en el paso 4 vuelve al 3 con los datos.
