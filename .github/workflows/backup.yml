@@ -24,7 +24,7 @@ jobs:
         if: env.BACKUP_DATABASE_URL == '' || env.BACKUP_PASSPHRASE == ''
         run: echo "::notice::Respaldo desactivado. Define BACKUP_DATABASE_URL y BACKUP_PASSPHRASE (docs/respaldos.md)."
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.BACKUP_DATABASE_URL != '' && env.BACKUP_PASSPHRASE != ''
 
       - name: Cliente de PostgreSQL 17
