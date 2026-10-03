@@ -124,11 +124,15 @@ Al aceptar, el pedido se crea solo. En la solicitud aparece el botón **Pedido P
 
 ![Pagos del pedido](manual/09-pedido-comprobante.png)
 
+- Arriba de la lista ves, para el anticipo y el saldo, lo **Cotizado**, lo **Pagado** y lo **Pendiente**.
 - Si el cliente sube un comprobante desde su enlace, aparece **Por confirmar**.
   1. Abre **Ver comprobante** y revisa el monto, el método y la referencia.
-  2. Pulsa **Confirmar**, o **Rechazar** si no corresponde.
-- Si el pago llegó por otro medio, usa **Registrar pago recibido** (anticipo o saldo).
-- Al confirmar el anticipo:
+  2. Revisa el **Tipo de pago** (anticipo o saldo) y corrígelo si hace falta.
+  3. Pulsa **Confirmar**, o **Rechazar** si no corresponde.
+- Si el pago llegó por otro medio, usa **Registrar pago recibido** (anticipo o saldo). La misma referencia no se puede cargar dos veces.
+- **Pagos en partes:** cada abono se registra por separado. El anticipo (o el saldo) cuenta como recibido solo cuando la suma confirmada cubre el monto; mientras tanto el pedido sigue esperando y el cliente ve "Pago parcial".
+- **Un pago mal cargado se anula** con **Anular** y un motivo; queda en el historial. Si al anularlo el anticipo deja de estar cubierto antes de producir, el pedido vuelve a **Esperando anticipo**. Después de producir no se anula: registra el ajuste con otro pago.
+- Al quedar cubierto el anticipo:
   - el pedido pasa a **Anticipo recibido**;
   - el cliente recibe la confirmación;
   - se calcula la **entrega estimada**: el plazo corre desde lo último entre el anticipo y el proof aprobado.

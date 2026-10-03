@@ -13,7 +13,14 @@ import { whatsappLink } from "@/lib/whatsapp";
 
 const day = (d: string) => formatDate(`${d}T17:00:00Z`);
 
-const PAYMENT_TONE = { none: "bg-muted", pending: "bg-signal-yellow/20", confirmed: "bg-signal-green/15", rejected: "bg-signal-red/15" } as const;
+const PAYMENT_TONE = {
+  none: "bg-muted",
+  pending: "bg-signal-yellow/20",
+  partial: "bg-signal-yellow/20",
+  confirmed: "bg-signal-green/15",
+  rejected: "bg-signal-red/15",
+  voided: "bg-muted",
+} as const;
 
 /**
  * Pedido visto por el cliente (PRD §10): etapas con fotos y QA, montos de la

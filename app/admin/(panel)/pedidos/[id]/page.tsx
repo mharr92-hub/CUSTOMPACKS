@@ -56,10 +56,9 @@ export default async function OrderPage(props: PageProps<"/admin/pedidos/[id]">)
       evidence: await Promise.all(m.evidence.map(async (e) => ({ path: e.path, kind: e.kind, name: e.name, url: await signedUrl("evidence", e.path, { expiresIn: 600 }).catch(() => null) }))),
     })),
   );
-  const paid = (kind: "deposit" | "balance") => order.payments.filter((p) => p.kind === kind && p.status === "confirmed").reduce((s, p) => s + (p.amount ?? 0), 0);
   const suggested = {
-    deposit: plain(Math.max(0, order.depositAmount - paid("deposit"))),
-    balance: plain(Math.max(0, order.balanceAmount - paid("balance"))),
+    deposit: plain(Math.max(0, order.depositAmount - order.paid.deposit)),
+    balance: plain(Math.max(0, order.balanceAmount - order.paid.balance)),
   };
   const due = order.eta ?? order.estimatedDeliveryDate;
 
@@ -111,6 +110,7 @@ export default async function OrderPage(props: PageProps<"/admin/pedidos/[id]">)
               defaultKind={order.depositConfirmed ? "balance" : "deposit"}
               today={today}
               currency={order.currency}
+              summary={{ deposit: { due: order.depositAmount, paid: order.paid.deposit }, balance: { due: order.balanceAmount, paid: order.paid.balance } }}
               payments={order.payments.map((p) => ({
                 id: p.id,
                 kind: p.kind,
@@ -123,6 +123,7 @@ export default async function OrderPage(props: PageProps<"/admin/pedidos/[id]">)
                 paidOn: p.paidOn,
                 uploadedByClient: p.uploadedByClient,
                 notes: p.notes,
+                voidedReason: p.voidedReason,
                 createdAt: p.createdAt.toISOString(),
               }))}
             />

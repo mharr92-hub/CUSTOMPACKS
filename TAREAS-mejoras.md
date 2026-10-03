@@ -240,25 +240,25 @@ Aceptación:
 
 Objetivo: que el anticipo y el saldo se den por pagados solo cuando los pagos confirmados cubren el monto (DAT-02, REG-02, PAN-02, FUT-01, REG-13, REG-06, COD-03). Depende de M5 (regla de producción).
 
-- [ ] Estado por suma:
+- [x] Estado por suma:
   - el anticipo está cubierto cuando lo confirmado es ≥ `deposit_amount` − `payment_tolerance`;
   - `payment_tolerance` es un setting PROVISIONAL, con 0 por defecto (pregunta 19 de `docs/PREGUNTAS.md`);
   - el saldo y el cierre siguen la misma regla.
-- [ ] Estado "parcial" visible en el panel y en el portal, con Cotizado, Pagado y Pendiente por tipo.
-- [ ] Al confirmar un comprobante, se elige el tipo (anticipo o saldo).
-- [ ] Anular un pago (`voided`), con motivo y auditado.
-- [ ] Índice único `(order_id, kind, reference)` cuando `reference` no es nulo.
-- [ ] Montos en centavos enteros:
+- [x] Estado "parcial" visible en el panel y en el portal, con Cotizado, Pagado y Pendiente por tipo.
+- [x] Al confirmar un comprobante, se elige el tipo (anticipo o saldo).
+- [x] Anular un pago (`voided`), con motivo y auditado.
+- [x] Índice único `(order_id, kind, reference)` cuando `reference` no es nulo.
+- [x] Montos en centavos enteros:
   - el anticipo se redondea hacia arriba al centavo;
   - el saldo es total − anticipo;
   - la regla de redondeo se registra en `docs/DECISIONES.md`.
-- [ ] En la base:
+- [x] En la base:
   - producción exige el anticipo cubierto;
   - cerrar exige el saldo cubierto;
   - los montos del pedido no se editan (un cambio pasa por una cotización nueva);
   - los pagos confirmados solo se insertan por una función `security definer`.
-- [ ] El hito y el aviso de "anticipo recibido" salen al completar el monto. Los recordatorios de saldo se cortan solo cuando el saldo está cubierto.
-- [ ] Al tocar `lib/orders/index.ts`, separar `payments.ts` y `milestones.ts` (COD-05).
+- [x] El hito y el aviso de "anticipo recibido" salen al completar el monto. Los recordatorios de saldo se cortan solo cuando el saldo está cubierto.
+- [ ] Al tocar `lib/orders/index.ts`, separar `payments.ts` y `milestones.ts` (COD-05). **No se hizo:** es un refactor sin cambio de comportamiento y queda en P-36 (primer mes), para no mezclarlo con el cambio de reglas de pago. La subida verificada sí salió a `lib/files/upload-core.ts`.
 
 Aceptación (pruebas de base):
 - Un abono de 100 sobre un anticipo de 5.000 deja el pedido esperando el anticipo, en estado parcial y sin plazo.

@@ -85,7 +85,8 @@ export type OrderState = (typeof ORDER_STATUSES)[number];
 
 export const ORDER_TRANSITIONS: Readonly<Record<OrderState, readonly OrderState[]>> = {
   pending_deposit: ["deposit_received"],
-  deposit_received: ["in_production"],
+  // Volver a "Esperando anticipo": un anticipo anulado antes de producir (M12).
+  deposit_received: ["pending_deposit", "in_production"],
   in_production: ["qa"],
   qa: ["shipped"],
   shipped: ["in_customs", "delivered"],

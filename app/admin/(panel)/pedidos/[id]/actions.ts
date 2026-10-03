@@ -12,6 +12,7 @@ import {
   recordMilestone,
   recordPayment,
   reviewPayment,
+  voidPayment,
   updateShipping,
   type MilestoneInput,
   type OrderResult,
@@ -75,10 +76,11 @@ export async function recordPaymentAction(orderId: string, input: PaymentInput):
 export async function reviewPaymentAction(
   orderId: string,
   paymentId: string,
-  input: { decision: "confirm" | "reject"; amount?: string; method?: string; reference?: string; paidOn?: string; notes?: string },
+  input: { decision: "confirm" | "reject"; amount?: string; method?: string; reference?: string; paidOn?: string; notes?: string; kind?: string },
 ): Promise<OrderResult> {
   const user = await assertStaff(EDITOR_ROLES);
   const result = await reviewPayment(user, String(paymentId), {
+    kind: input.kind ? String(input.kind) : undefined,
     decision: input.decision === "reject" ? "reject" : "confirm",
     amount: String(input.amount ?? ""),
     method: String(input.method ?? ""),
@@ -118,6 +120,13 @@ export async function receiptUrlAction(paymentId: string): Promise<string | null
 export async function confirmNoPrintAction(orderId: string, itemId: string): Promise<OrderResult> {
   const user = await assertStaff(EDITOR_ROLES);
   const result = await confirmNoPrint(user, String(orderId), String(itemId));
+  if (result.ok) refresh(orderId);
+  return result;
+}
+
+export async function voidPaymentAction(orderId: string, paymentId: string, reason: string): Promise<OrderResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await voidPayment(user, String(paymentId), String(reason ?? ""));
   if (result.ok) refresh(orderId);
   return result;
 }

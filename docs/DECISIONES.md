@@ -774,3 +774,14 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - **"Esfuerzo del cliente"** (meta ≤ 5 min): `quote_requests.completion_minutes`, desde el primer paso hasta el envío.
   - Ningún KPI, reporte ni alerta de SLA cuenta los datos de demostración (`is_demo`).
 - **Cómo cambiarla:** las definiciones viven en las consultas de reportes (`lib/panel/reports.ts`); los datos crudos no cambian.
+
+### D-110 · 03/10/2026 · Pagos conciliados por monto (M12)
+- **Duda:** cómo dar por recibido el anticipo o el saldo cuando el cliente paga en partes, sin respuesta todavía de Mark (pregunta 19).
+- **Decisión:**
+  - Un tipo de pago está **cubierto** cuando la suma de los pagos confirmados alcanza el monto menos `payment_tolerance` (setting PROVISIONAL, 0). Funciones `order_paid` y `order_kind_covered` en la base (migración 016).
+  - El hito, el cambio de estado, el aviso al cliente y el inicio del plazo llegan al quedar cubierto el anticipo; el cierre exige el saldo cubierto. La base lo hace cumplir con un trigger.
+  - El anticipo se calcula en centavos y se redondea hacia arriba; el saldo es el resto (anticipo + saldo = total).
+  - Los pagos se anulan (`voided`, con motivo) y no se borran. Anular un anticipo antes de producir devuelve el pedido a "Esperando anticipo" (nueva transición `deposit_received → pending_deposit`); después de producir se registra un ajuste.
+  - La misma referencia no se carga dos veces por pedido y tipo (índice único).
+  - Los montos del pedido no se editan; el equipo escribe pagos solo por el servidor (sin permiso directo sobre la tabla).
+- **Cómo cambiarla:** `payment_tolerance` en Configuración; reglas en la migración 016 y en `lib/orders/index.ts`.

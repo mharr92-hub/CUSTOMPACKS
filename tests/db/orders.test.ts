@@ -135,6 +135,66 @@ async function confirmDeposit(o: { orderId: string }, ops: CurrentUser) {
   if (!paid.ok) throw new Error(`anticipo: ${paid.error}`);
 }
 
+describe("pagos conciliados por monto (M12)", () => {
+  it("un abono parcial no da el anticipo por recibido; el que completa sí, y arranca el plazo", async () => {
+    const o = await acceptedOrder();
+    const ops = await staff();
+    const [order] = await testSql()<{ deposit_amount: string }[]>`select deposit_amount from public.orders where id = ${o.orderId}`;
+    const deposit = Number(order!.deposit_amount);
+    const pay = (amount: number, reference: string) =>
+      orders.recordPayment(ops, o.orderId, { kind: "deposit", amount: amount.toFixed(2), method: "ACH", reference, paidOn: todayInPanama() });
+
+    expect(await pay(100, `M12-a-${o.orderId}`)).toEqual({ ok: true });
+    let d = await orders.getOrder(ops, o.orderId);
+    expect(d?.status).toBe("pending_deposit");
+    expect(d?.depositConfirmed).toBe(false);
+    expect(d?.paid.deposit).toBe(100);
+    expect(d?.leadTimeStart).toBeNull();
+    expect(d?.milestones.map((m) => m.type)).not.toContain("deposit_received");
+    expect(await notificationsFor(o.requestId, "deposit_received")).toHaveLength(0);
+    // La base tampoco deja producir.
+    await expect(testSql()`update public.orders set status = 'deposit_received' where id = ${o.orderId}`).resolves.toBeDefined();
+    await expect(testSql()`update public.orders set status = 'in_production' where id = ${o.orderId}`).rejects.toThrow(/anticipo no está cubierto/);
+    await testSql()`update public.orders set status = 'pending_deposit' where id = ${o.orderId}`;
+
+    // Misma referencia: rechazado.
+    expect(await pay(50, `M12-a-${o.orderId}`)).toEqual({ ok: false, error: "duplicate" });
+
+    expect(await pay(Math.round((deposit - 100) * 100) / 100, `M12-b-${o.orderId}`)).toEqual({ ok: true });
+    d = await orders.getOrder(ops, o.orderId);
+    expect(d?.status).toBe("deposit_received");
+    expect(d?.depositConfirmed).toBe(true);
+    expect(d?.leadTimeStart).toBe(todayInPanama());
+    expect(await notificationsFor(o.requestId, "deposit_received")).toHaveLength(1);
+
+    // Anular un abono antes de producir devuelve el pedido a "Esperando anticipo".
+    const [b] = await testSql()<{ id: string }[]>`select id from public.payments where order_id = ${o.orderId} and reference = ${`M12-b-${o.orderId}`}`;
+    expect(await orders.voidPayment(ops, b!.id, "x")).toEqual({ ok: false, error: "reason" });
+    expect(await orders.voidPayment(ops, b!.id, "Monto mal escrito")).toEqual({ ok: true });
+    d = await orders.getOrder(ops, o.orderId);
+    expect(d?.status).toBe("pending_deposit");
+    expect(d?.paid.deposit).toBe(100);
+    expect(d?.milestones.map((m) => m.type)).not.toContain("deposit_received");
+    expect(d?.payments.find((p) => p.id === b!.id)).toMatchObject({ status: "voided", voidedReason: "Monto mal escrito" });
+  });
+
+  it("cerrar exige el saldo completo, los montos del pedido no se editan y nadie escribe pagos con su sesión", async () => {
+    const o = await acceptedOrder();
+    const ops = await staff();
+    await expect(testSql()`update public.orders set total_amount = total_amount + 1 where id = ${o.orderId}`).rejects.toThrow(/montos del pedido no se editan/);
+    await expect(
+      asActor({ kind: "user", userId: ops.userId }, (tx) => tx`insert into public.payments (order_id, kind, status, amount, confirmed_at) values (${o.orderId}, 'deposit', 'confirmed', 1, now())`),
+    ).rejects.toThrow(/permission denied/);
+  });
+
+  it("el anticipo se redondea hacia arriba al centavo y anticipo + saldo = total", () => {
+    expect(orders.depositFor(1000.01, 50)).toBe(500.01);
+    expect(Math.round((1000.01 - orders.depositFor(1000.01, 50)) * 100) / 100).toBe(500);
+    expect(orders.depositFor(999.99, 30)).toBe(300);
+    expect(orders.depositFor(100, 50)).toBe(50);
+  });
+});
+
 describe("proof antes de producir (M5)", () => {
   it("con el v1 aprobado y un v2 pendiente no entra a producción; tampoco si el proof no está liberado", async () => {
     const o = await acceptedOrder();
@@ -351,7 +411,10 @@ describe("procesos programados y recompra", () => {
   it("recuerda el saldo a los 2 y 5 días de la entrega (una vez por día) y manda la encuesta 7 días después del cierre", async () => {
     const o = await acceptedOrder({ quantity: 1000 });
     const deliveredAt = addDays(new Date(), -2);
-    // Avanza por la máquina de estados hasta "Entregado" hace 2 días.
+    // Anticipo cubierto (la base lo exige para producir) y avance hasta "Entregado" hace 2 días.
+    await testSql()`
+      insert into public.payments (order_id, kind, status, amount, confirmed_at)
+      select id, 'deposit', 'confirmed', deposit_amount, now() from public.orders where id = ${o.orderId}`;
     for (const s of ["deposit_received", "in_production", "qa", "shipped", "delivered"]) {
       await testSql()`update public.orders set status = ${s}::public.order_status where id = ${o.orderId} and status <> ${s}::public.order_status`;
     }
@@ -363,6 +426,9 @@ describe("procesos programados y recompra", () => {
     await orders.balanceReminders(new Date());
     expect(await notificationsFor(o.requestId, "balance_reminder")).toHaveLength(1); // el día 3 no toca
 
+    await testSql()`
+      insert into public.payments (order_id, kind, status, amount, confirmed_at)
+      select id, 'balance', 'confirmed', balance_amount, now() from public.orders where id = ${o.orderId}`;
     await testSql()`update public.orders set status = 'closed' where id = ${o.orderId}`;
     await testSql()`update public.orders set closed_at = ${addDays(new Date(), -6)} where id = ${o.orderId}`;
     await orders.npsSurveys(new Date());

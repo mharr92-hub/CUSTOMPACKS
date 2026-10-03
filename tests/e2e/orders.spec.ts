@@ -95,6 +95,8 @@ test.describe("E8 · Pedidos", () => {
     await expect(admin.getByTestId("order-status")).toHaveText("Esperando anticipo");
     await expect(admin.getByTestId("order-estimated")).toHaveText("por confirmar");
     const payments = admin.getByTestId("payments-panel");
+    // Resumen de cobros (M12): cotizado, pagado y pendiente por tipo.
+    await expect(payments.getByTestId("summary-deposit")).toContainText(/USD\s0\.00/);
     await payments.getByLabel("Método").last().fill("ACH");
     await payments.getByRole("button", { name: "Registrar pago" }).click();
     await expect(admin.getByTestId("order-status")).toHaveText("Anticipo recibido");
@@ -148,6 +150,7 @@ test.describe("E8 · Pedidos", () => {
     const review = admin.getByTestId("review-receipt");
     await review.getByRole("button", { name: "Confirmar" }).click();
     await expect(admin.getByTestId("payment-confirmed")).toHaveCount(2);
+    await expect(admin.getByTestId("summary-balance").locator("td").last()).toHaveText(/USD\s0\.00/);
     await recordMilestone(admin, "Pedido cerrado");
     await expect(admin.getByTestId("order-status")).toHaveText("Cerrado");
     await expect(admin.getByTestId("order-timeline").locator("[data-testid^=milestone-]")).toHaveCount(7);

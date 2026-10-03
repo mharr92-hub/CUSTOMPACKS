@@ -631,7 +631,8 @@
         "rfq_sent_manually": "RFQ enviado a fábrica a mano",
         "quote_accepted_staff": "Aceptación del cliente registrada por el equipo",
         "no_print_confirmed": "Pieza confirmada sin impresión",
-        "notification_retry": "Aviso reenviado"
+        "notification_retry": "Aviso reenviado",
+        "payment_voided": "Pago anulado"
       },
       "by": "por {name}",
       "system": "sistema",
@@ -987,12 +988,13 @@
       "paymentStatuses": {
         "pending": "Por confirmar",
         "confirmed": "Confirmado",
-        "rejected": "Rechazado"
+        "rejected": "Rechazado",
+        "voided": "Anulado"
       },
       "byClient": "comprobante del cliente",
       "receipt": "Ver comprobante",
       "recordPayment": "Registrar pago recibido",
-      "kind": "Tipo",
+      "kind": "Tipo de pago",
       "amount": "Monto",
       "method": "Método",
       "methodPlaceholder": "Transferencia, ACH, Yappy…",
@@ -1015,14 +1017,17 @@
         "forbidden": "No tienes permiso para hacer esto.",
         "not_found": "No se encontró el pedido.",
         "status": "Ese cambio no corresponde al estado actual.",
-        "artwork": "Falta el proof aprobado por el cliente: ningún pedido entra a producción sin él.",
+        "artwork": "Falta el último proof aprobado por el cliente y liberado a fábrica: ningún pedido entra a producción sin él.",
         "qa": "Completa cada punto del checklist de QA.",
         "amount": "Escribe un monto mayor que 0.",
-        "balance": "Para cerrar el pedido, primero confirma el saldo.",
+        "balance": "El saldo no está cubierto: lo confirmado no llega al monto del saldo.",
         "type": "Ese hito no corresponde al estado actual.",
         "file": "No se pudo subir el archivo.",
         "score": "Elige un puntaje de 0 a 10.",
-        "generic": "No se pudo completar. Inténtalo de nuevo."
+        "generic": "No se pudo completar. Inténtalo de nuevo.",
+        "deposit": "El anticipo no está cubierto: lo confirmado no llega al monto del anticipo.",
+        "duplicate": "Ya hay un pago con esa referencia para este pedido.",
+        "reason": "Escribe el motivo de la anulación (3 caracteres o más)."
       },
       "evidenceLimits": "Hasta {max} MB por archivo, {files} archivos por hito.",
       "evidenceAlt": "Evidencia de {milestone}",
@@ -1030,7 +1035,17 @@
       "file": "Ver archivo",
       "shipEstimate": "Embarque estimado (va en el aviso al cliente)",
       "advicePending": "Las piezas {pieces} llegaron como «No sé, sugiéranme». Antes de producir necesitan un proof aprobado o que confirmes que van sin impresión.",
-      "confirmNoPrint": "Pieza {position}: va sin impresión"
+      "confirmNoPrint": "Pieza {position}: va sin impresión",
+      "void": "Anular",
+      "voidReason": "Motivo de la anulación",
+      "voidConfirm": "Anular el pago",
+      "voidedBecause": "Anulado: {reason}",
+      "cancel": "Cancelar",
+      "summary": {
+        "due": "Cotizado",
+        "paid": "Pagado",
+        "pending": "Pendiente"
+      }
     },
     "demo": "DEMO",
     "money": {
@@ -1912,7 +1927,9 @@
         "none": "Pendiente",
         "pending": "Comprobante en revisión",
         "confirmed": "Confirmado",
-        "rejected": "Comprobante rechazado: sube uno nuevo"
+        "rejected": "Comprobante rechazado: sube uno nuevo",
+        "partial": "Pago parcial: falta completar el monto",
+        "voided": "Anulado"
       },
       "statement": "Estado de pagos (PDF)",
       "quote": "Cotización (PDF)",

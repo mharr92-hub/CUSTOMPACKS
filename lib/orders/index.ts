@@ -38,7 +38,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 export type OrderStatus = "pending_deposit" | "deposit_received" | "in_production" | "qa" | "shipped" | "in_customs" | "delivered" | "closed";
 export type MilestoneType = "deposit_received" | "artwork_approved" | "production_started" | "qa_completed" | "shipped" | "in_customs" | "delivered" | "balance_received" | "closed";
 export type PaymentKind = "deposit" | "balance";
-export type PaymentStatus = "pending" | "confirmed" | "rejected";
+export type PaymentStatus = "pending" | "confirmed" | "rejected" | "voided";
 export type Evidence = { path: string; kind: DetectedKind; name: string; size: number };
 
 export type Milestone = { id: string; type: MilestoneType; occurredAt: Date; responsible: string | null; notes: string | null; evidence: Evidence[]; qaChecklist: QaPoint[] | null };
@@ -55,6 +55,8 @@ export type Payment = {
   uploadedByClient: boolean;
   confirmedAt: Date | null;
   notes: string | null;
+  /** Motivo de la anulación (M12). */
+  voidedReason: string | null;
   createdAt: Date;
 };
 
@@ -83,8 +85,11 @@ export type OrderDetail = {
   deliveredAt: Date | null;
   closedAt: Date | null;
   delayed: boolean;
+  /** Lo confirmado cubre el anticipo / el saldo (con la tolerancia de Configuración, M12). */
   depositConfirmed: boolean;
   balanceConfirmed: boolean;
+  /** Suma confirmada por tipo. */
+  paid: { deposit: number; balance: number };
   /** Último proof de cada pieza impresa aprobado y liberado: puede entrar a producción. */
   artworkReady: boolean;
   /** Piezas "No sé, sugiéranme" sin proof ni confirmación de que van sin impresión. */
@@ -94,7 +99,9 @@ export type OrderDetail = {
   payments: Payment[];
 };
 
-export type OrderResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "artwork" | "qa" | "amount" | "balance" | "type" | "file" | "score" };
+export type OrderResult<T = object> =
+  | ({ ok: true } & T)
+  | { ok: false; error: "forbidden" | "not_found" | "status" | "artwork" | "qa" | "amount" | "balance" | "deposit" | "type" | "file" | "score" | "duplicate" | "reason" };
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -170,6 +177,19 @@ async function syncArtworkMilestone(tx: Tx, orderId: string, requestId: string):
      where not exists (select 1 from public.milestones where order_id = ${orderId} and type = 'artwork_approved')`;
 }
 
+/** Pagado por tipo y si cubre el monto del pedido (public.order_kind_covered, con tolerancia). */
+async function paymentCoverage(tx: Tx, orderId: string): Promise<{ paidDeposit: number; paidBalance: number; depositCovered: boolean; balanceCovered: boolean }> {
+  const [c] = await tx<{ paid_deposit: string; paid_balance: string; deposit_ok: boolean | null; balance_ok: boolean | null }[]>`
+    select public.order_paid(${orderId}, 'deposit') as paid_deposit, public.order_paid(${orderId}, 'balance') as paid_balance,
+           public.order_kind_covered(${orderId}, 'deposit') as deposit_ok, public.order_kind_covered(${orderId}, 'balance') as balance_ok`;
+  return {
+    paidDeposit: Number(c?.paid_deposit ?? 0),
+    paidBalance: Number(c?.paid_balance ?? 0),
+    depositCovered: Boolean(c?.deposit_ok),
+    balanceCovered: Boolean(c?.balance_ok),
+  };
+}
+
 /**
  * Fecha estimada de entrega (§14): el plazo corre desde el último de anticipo
  * confirmado y proof aprobado (sin impresión, desde el anticipo).
@@ -177,10 +197,12 @@ async function syncArtworkMilestone(tx: Tx, orderId: string, requestId: string):
 async function recomputeSchedule(tx: Tx, orderId: string): Promise<void> {
   const [o] = await tx<{ request_id: string; lead_time_days: number }[]>`select request_id, lead_time_days from public.orders where id = ${orderId}`;
   if (!o) return;
+  // El plazo corre desde que lo confirmado cubre el anticipo, no desde el primer abono (M12).
+  const covered = (await paymentCoverage(tx, orderId)).depositCovered;
   const [dep] = await tx<{ at: Date | null }[]>`
-    select min(confirmed_at) as at from public.payments where order_id = ${orderId} and kind = 'deposit' and status = 'confirmed'`;
+    select max(confirmed_at) as at from public.payments where order_id = ${orderId} and kind = 'deposit' and status = 'confirmed'`;
   const art = await artworkStatus(tx, o.request_id);
-  const depositAt = dep?.at ?? null;
+  const depositAt = covered ? (dep?.at ?? null) : null;
   const start = leadTimeStart(depositAt, art.printed === 0 ? depositAt : art.approvedAt);
   const startIso = start ? todayInPanama(start) : null;
   const estimated = startIso ? addDays(new Date(`${startIso}T12:00:00Z`), o.lead_time_days).toISOString().slice(0, 10) : null;
@@ -211,7 +233,7 @@ export async function createOrderFromQuote(tx: Tx, quoteId: string): Promise<str
     return l ? [{ item_id: l.item_id, position: l.position, quantity: Number(l.quantity), unit_price: Number(l.unit_price), subtotal: Number(l.subtotal), lead_time_days: Number(l.lead_time_days) }] : [];
   });
   const total = round2(lines.reduce((sum, l) => sum + l.subtotal, 0));
-  const deposit = round2((total * q.deposit_pct) / 100);
+  const deposit = depositFor(total, q.deposit_pct);
   const [numbered] = await tx<{ n: string }[]>`select public.next_document_number('P') as n`;
   const [req] = await tx<{ delivery_address: string | null; delivery_city: string | null }[]>`
     select delivery_address, delivery_city from public.quote_requests where id = ${q.request_id}`;
@@ -226,6 +248,15 @@ export async function createOrderFromQuote(tx: Tx, quoteId: string): Promise<str
   await syncArtworkMilestone(tx, order!.id, q.request_id);
   await recomputeSchedule(tx, order!.id);
   return order!.id;
+}
+
+/**
+ * Anticipo en centavos enteros (REG-13, D-110): se redondea hacia arriba al
+ * centavo y el saldo es el resto, así anticipo + saldo = total exacto.
+ */
+export function depositFor(total: number, pct: number): number {
+  const cents = Math.round(total * 100);
+  return Math.ceil((cents * pct) / 100 - 1e-9) / 100;
 }
 
 /** Tras aprobar un proof: si ya hay pedido, actualiza el hito de arte y la fecha estimada. */
@@ -302,8 +333,8 @@ export async function listOrders(user: CurrentUser): Promise<OrderSummary[]> {
     const rows = await tx<(DbOrder & { deposit_ok: boolean; balance_ok: boolean; pending: number })[]>`
       ${ORDER_SELECT(tx)},
       lateral (
-        select bool_or(p.kind = 'deposit' and p.status = 'confirmed') as deposit_ok,
-               bool_or(p.kind = 'balance' and p.status = 'confirmed') as balance_ok,
+        select public.order_kind_covered(o.id, 'deposit') as deposit_ok,
+               public.order_kind_covered(o.id, 'balance') as balance_ok,
                count(*) filter (where p.status = 'pending')::int as pending
           from public.payments p where p.order_id = o.id
       ) pay
@@ -350,12 +381,14 @@ async function loadDetail(tx: Tx, where: { id?: string; requestId?: string }): P
       uploaded_by_client: boolean;
       confirmed_at: Date | null;
       notes: string | null;
+      voided_reason: string | null;
       created_at: Date;
     }[]
   >`
-    select id, kind, status, amount, currency, method, reference, receipt_path, to_char(paid_on, 'YYYY-MM-DD') as paid_on, uploaded_by_client, confirmed_at, notes, created_at
+    select id, kind, status, amount, currency, method, reference, receipt_path, to_char(paid_on, 'YYYY-MM-DD') as paid_on, uploaded_by_client, confirmed_at, notes, voided_reason, created_at
       from public.payments where order_id = ${o.id} order by created_at`;
   const art = await artworkStatus(tx, o.request_id);
+  const coverage = await paymentCoverage(tx, o.id);
   return {
     id: o.id,
     number: o.number,
@@ -381,8 +414,9 @@ async function loadDetail(tx: Tx, where: { id?: string; requestId?: string }): P
     deliveredAt: o.delivered_at,
     closedAt: o.closed_at,
     delayed: isDelayed(o),
-    depositConfirmed: payments.some((p) => p.kind === "deposit" && p.status === "confirmed"),
-    balanceConfirmed: payments.some((p) => p.kind === "balance" && p.status === "confirmed"),
+    depositConfirmed: coverage.depositCovered,
+    balanceConfirmed: coverage.balanceCovered,
+    paid: { deposit: coverage.paidDeposit, balance: coverage.paidBalance },
     artworkReady: art.released,
     artworkAdvicePending: art.advicePending,
     items: o.lines.map((l) => {
@@ -411,6 +445,7 @@ async function loadDetail(tx: Tx, where: { id?: string; requestId?: string }): P
       uploadedByClient: p.uploaded_by_client,
       confirmedAt: p.confirmed_at,
       notes: p.notes,
+      voidedReason: p.voided_reason,
       createdAt: p.created_at,
     })),
   };
@@ -505,6 +540,7 @@ export async function recordMilestone(user: CurrentUser, orderId: string, input:
   if (!detail) return { ok: false, error: "not_found" };
   const type = input.type as MilestoneType;
   if (!nextMilestones(detail.status).includes(type)) return { ok: false, error: "type" };
+  if (type === "production_started" && !detail.depositConfirmed) return { ok: false, error: "deposit" };
   if (type === "production_started" && !detail.artworkReady) return { ok: false, error: "artwork" };
   if (type === "closed" && !detail.balanceConfirmed) return { ok: false, error: "balance" };
   let qa: QaPoint[] | null = null;
@@ -573,9 +609,19 @@ export async function updateShipping(user: CurrentUser, orderId: string, input: 
 // ---------------------------------------------------------------------------
 // Pagos
 // ---------------------------------------------------------------------------
+/**
+ * Tras confirmar un pago: el hito, el cambio de estado y el aviso al cliente
+ * solo llegan cuando la suma confirmada cubre el monto (M12). Un abono parcial
+ * queda registrado y el pedido sigue esperando el resto.
+ */
 async function afterPaymentConfirmed(tx: Tx, orderId: string, kind: PaymentKind, userId: string | null): Promise<{ notify: boolean }> {
   const [o] = await tx<{ status: OrderStatus; request_id: string }[]>`select status, request_id from public.orders where id = ${orderId} for update`;
   if (!o) return { notify: false };
+  const coverage = await paymentCoverage(tx, orderId);
+  if (!(kind === "deposit" ? coverage.depositCovered : coverage.balanceCovered)) {
+    await recomputeSchedule(tx, orderId);
+    return { notify: false };
+  }
   const type: MilestoneType = kind === "deposit" ? "deposit_received" : "balance_received";
   const inserted = await tx`
     insert into public.milestones (order_id, type, occurred_at, responsible)
@@ -610,9 +656,12 @@ export async function recordPayment(user: CurrentUser, orderId: string, input: P
   if (!kind) return { ok: false, error: "type" };
   if (amount === null || amount <= 0) return { ok: false, error: "amount" };
   const paidOn = /^\d{4}-\d{2}-\d{2}$/.test(input.paidOn) ? input.paidOn : todayInPanama();
-  const notify = await withActor(actorFor(user), async (tx) => {
-    const [o] = await tx<{ id: string; request_id: string; currency: string }[]>`select id, request_id, currency from public.orders where id = ${orderId}`;
+  // El equipo puede ver el pedido (RLS); la escritura la hace el servidor (M12).
+  if (!(await withActor(actorFor(user), (tx) => tx`select 1 from public.orders where id = ${orderId}`)).length) return { ok: false, error: "not_found" };
+  const notify = await withActor(serviceActor, async (tx) => {
+    const [o] = await tx<{ id: string; request_id: string; currency: string; status: OrderStatus }[]>`select id, request_id, currency, status from public.orders where id = ${orderId}`;
     if (!o) return null;
+    if (o.status === "closed") return "closed" as const;
     const [p] = await tx<{ id: string }[]>`
       insert into public.payments (order_id, kind, status, amount, currency, method, reference, paid_on, confirmed_by, confirmed_at, notes)
       values (${orderId}, ${kind}, 'confirmed', ${amount}, ${o.currency}, ${input.method.trim().slice(0, 80) || null}, ${input.reference.trim().slice(0, 120) || null},
@@ -622,38 +671,105 @@ export async function recordPayment(user: CurrentUser, orderId: string, input: P
       insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)
       values (${o.request_id}, 'payment', ${p!.id}, ${user.userId}, 'system', 'payment_confirmed', ${kind})`;
     return (await afterPaymentConfirmed(tx, orderId, kind, user.userId)).notify;
+  }).catch((error: unknown) => {
+    if (isDuplicateReference(error)) return "duplicate" as const;
+    throw error;
   });
   if (notify === null) return { ok: false, error: "not_found" };
+  if (notify === "closed") return { ok: false, error: "status" };
+  if (notify === "duplicate") return { ok: false, error: "duplicate" };
   if (notify) await notifyDeposit(orderId);
   return { ok: true };
 }
 
+/** Error de referencia repetida (índice payments_reference_unique). */
+function isDuplicateReference(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "23505";
+}
+
 /** Confirma (con monto) o rechaza un comprobante que subió el cliente. */
-export async function reviewPayment(user: CurrentUser, paymentId: string, input: { decision: "confirm" | "reject"; amount?: string; method?: string; reference?: string; paidOn?: string; notes?: string }): Promise<OrderResult> {
+export async function reviewPayment(
+  user: CurrentUser,
+  paymentId: string,
+  input: { decision: "confirm" | "reject"; amount?: string; method?: string; reference?: string; paidOn?: string; notes?: string; kind?: string },
+): Promise<OrderResult> {
   if (!isEditor(user)) return { ok: false, error: "forbidden" };
   if (!UUID.test(paymentId)) return { ok: false, error: "not_found" };
   const amount = input.decision === "confirm" ? parseMoney(input.amount ?? "") : null;
   if (input.decision === "confirm" && (amount === null || amount <= 0)) return { ok: false, error: "amount" };
-  const result = await withActor(actorFor(user), async (tx) => {
+  // Al confirmar se puede corregir el tipo (anticipo o saldo) que eligió el sistema.
+  const kindOverride = input.kind === "deposit" || input.kind === "balance" ? input.kind : null;
+  if (!(await withActor(actorFor(user), (tx) => tx`select 1 from public.payments where id = ${paymentId}`)).length) return { ok: false, error: "not_found" };
+  const result = await withActor(serviceActor, async (tx) => {
     const [p] = await tx<{ id: string; order_id: string; kind: PaymentKind; status: PaymentStatus }[]>`
       select id, order_id, kind, status from public.payments where id = ${paymentId} for update`;
     if (!p) return { error: "not_found" as const };
     if (p.status !== "pending") return { error: "status" as const };
     if (input.decision === "reject") {
-      await tx`update public.payments set status = 'rejected', notes = ${input.notes?.trim().slice(0, 1000) || null} where id = ${p.id}`;
+      await tx`update public.payments set status = 'rejected', notes = ${input.notes?.trim().slice(0, 1000) || null}, updated_by = ${user.userId} where id = ${p.id}`;
       return { orderId: p.order_id, notify: false };
     }
+    const kind = kindOverride ?? p.kind;
     await tx`
       update public.payments
-         set status = 'confirmed', amount = ${amount}, method = ${input.method?.trim().slice(0, 80) || null}, reference = ${input.reference?.trim().slice(0, 120) || null},
+         set status = 'confirmed', kind = ${kind}, amount = ${amount}, method = ${input.method?.trim().slice(0, 80) || null}, reference = ${input.reference?.trim().slice(0, 120) || null},
              paid_on = ${input.paidOn && /^\d{4}-\d{2}-\d{2}$/.test(input.paidOn) ? input.paidOn : todayInPanama()}, confirmed_by = ${user.userId}, confirmed_at = now()
        where id = ${p.id}`;
-    return { orderId: p.order_id, notify: (await afterPaymentConfirmed(tx, p.order_id, p.kind, user.userId)).notify };
+    return { orderId: p.order_id, notify: (await afterPaymentConfirmed(tx, p.order_id, kind, user.userId)).notify };
+  }).catch((error: unknown) => {
+    if (isDuplicateReference(error)) return { error: "duplicate" as const };
+    throw error;
   });
   if ("error" in result) return { ok: false, error: result.error ?? "not_found" };
   if (result.notify) await notifyDeposit(result.orderId);
   return { ok: true };
 }
+
+/**
+ * Anula un pago mal cargado (con motivo, auditado; M12). Si con eso el
+ * anticipo deja de estar cubierto antes de producir, el pedido vuelve a
+ * "Esperando anticipo"; después de producir (o con el pedido cerrado) no se
+ * anula: se registra el ajuste con otro pago.
+ */
+export async function voidPayment(user: CurrentUser, paymentId: string, reason: string): Promise<OrderResult> {
+  if (!isEditor(user)) return { ok: false, error: "forbidden" };
+  if (!UUID.test(paymentId)) return { ok: false, error: "not_found" };
+  const why = reason.trim().slice(0, 500);
+  if (why.length < 3) return { ok: false, error: "reason" };
+  if (!(await withActor(actorFor(user), (tx) => tx`select 1 from public.payments where id = ${paymentId}`)).length) return { ok: false, error: "not_found" };
+  return withActor(serviceActor, async (tx) => {
+    const [p] = await tx<{ id: string; order_id: string; kind: PaymentKind; status: PaymentStatus }[]>`
+      select id, order_id, kind, status from public.payments where id = ${paymentId} for update`;
+    if (!p) return { ok: false, error: "not_found" } as const;
+    if (p.status !== "confirmed" && p.status !== "pending") return { ok: false, error: "status" } as const;
+    const [o] = await tx<{ status: OrderStatus; request_id: string }[]>`select status, request_id from public.orders where id = ${p.order_id} for update`;
+    if (!o || o.status === "closed") return { ok: false, error: "status" } as const;
+    await tx`
+      update public.payments set status = 'voided', voided_reason = ${why}, voided_by = ${user.userId}, voided_at = now(), updated_by = ${user.userId}
+       where id = ${p.id}`;
+    const coverage = await paymentCoverage(tx, p.order_id);
+    if (p.kind === "deposit" && !coverage.depositCovered) {
+      if (o.status !== "pending_deposit" && o.status !== "deposit_received") {
+        throw new VoidBlocked();
+      }
+      if (o.status === "deposit_received") await tx`update public.orders set status = 'pending_deposit' where id = ${p.order_id}`;
+      await tx`delete from public.milestones where order_id = ${p.order_id} and type = 'deposit_received'`;
+    }
+    if (p.kind === "balance" && !coverage.balanceCovered) {
+      await tx`delete from public.milestones where order_id = ${p.order_id} and type = 'balance_received'`;
+    }
+    await recomputeSchedule(tx, p.order_id);
+    await tx`
+      insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)
+      values (${o.request_id}, 'payment', ${p.id}, ${user.userId}, 'system', 'payment_voided', ${why})`;
+    return { ok: true } as const;
+  }).catch((error: unknown) => {
+    if (error instanceof VoidBlocked) return { ok: false, error: "status" } as const;
+    throw error;
+  });
+}
+
+class VoidBlocked extends Error {}
 
 // ---------------------------------------------------------------------------
 // Archivos: evidencias de hitos (equipo) y comprobantes (cliente)
@@ -721,9 +837,7 @@ export async function confirmReceiptUpload(accessToken: string, input: { path: s
   const checked = await verify("documents", input.path, input.name, RECEIPT_KINDS);
   if ("error" in checked) return { ok: false, error: checked.error };
   await withActor(serviceActor, async (tx) => {
-    const [dep] = await tx<{ ok: boolean }[]>`
-      select exists (select 1 from public.payments where order_id = ${order.id} and kind = 'deposit' and status = 'confirmed') as ok`;
-    const kind: PaymentKind = dep?.ok ? "balance" : "deposit";
+    const kind: PaymentKind = (await paymentCoverage(tx, order.id)).depositCovered ? "balance" : "deposit";
     const [p] = await tx<{ id: string }[]>`
       insert into public.payments (order_id, kind, status, receipt_path, uploaded_by_client, notes)
       values (${order.id}, ${kind}, 'pending', ${input.path}, true, ${input.name.slice(0, 200)}) returning id`;
@@ -758,6 +872,9 @@ async function clientOrderRow(accessToken: string): Promise<{ id: string; number
   return rows[0] ?? null;
 }
 
+/** Estado de un tipo de pago para el cliente: "partial" = hay abonos confirmados que no cubren el monto. */
+export type ClientPaymentState = "none" | "pending" | "partial" | "confirmed" | "rejected";
+
 export type ClientOrder = {
   id: string;
   number: string;
@@ -768,7 +885,7 @@ export type ClientOrder = {
   eta: string | null;
   deliveredAt: Date | null;
   milestones: { id: string; type: MilestoneType; occurredAt: Date; notes: string | null; evidence: (Evidence & { url: string })[]; qa: { label: string; expected: string; result: string | null }[] | null }[];
-  payments: { deposit: PaymentStatus | "none"; balance: PaymentStatus | "none" };
+  payments: { deposit: ClientPaymentState; balance: ClientPaymentState };
   /** Montos de la cotización aceptada (D-101): se leen en el servidor tras validar el enlace. */
   amounts: { currency: string; total: number; deposit: number; balance: number; paidDeposit: number; paidBalance: number };
   /** Cada pago o comprobante, con su monto si ya está confirmado. */
@@ -801,10 +918,11 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
   // transacción aparte, nunca dentro de la anterior (DAT-01).
   const { extra, paymentRows } = await withActor(serviceActor, async (s) => {
     const extra = await s<
-      { quote_id: string; deposit_pct: number; survey: boolean; instructions: unknown; currency: string; total_amount: string; deposit_amount: string; balance_amount: string }[]
+      { quote_id: string; deposit_pct: number; survey: boolean; instructions: unknown; tolerance: unknown; currency: string; total_amount: string; deposit_amount: string; balance_amount: string }[]
     >`
       select o.quote_id, o.deposit_pct, exists (select 1 from public.surveys v where v.order_id = o.id) as survey,
              (select value from public.settings where key = 'payment_instructions') as instructions,
+             (select value from public.settings where key = 'payment_tolerance') as tolerance,
              o.currency, o.total_amount, o.deposit_amount, o.balance_amount
         from public.orders o where o.id = ${row.id}`;
     const paymentRows = await s<
@@ -814,14 +932,18 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
         from public.payments where order_id = ${row.id} order by created_at`;
     return { extra, paymentRows };
   });
-  const status = (kind: PaymentKind): PaymentStatus | "none" => {
-    const list = paymentRows.filter((p) => p.kind === kind);
-    if (list.some((p) => p.status === "confirmed")) return "confirmed";
-    if (list.some((p) => p.status === "pending")) return "pending";
-    return list.length ? "rejected" : "none";
+  const covered = (kind: PaymentKind) => {
+    const due = Number((kind === "deposit" ? extra[0]?.deposit_amount : extra[0]?.balance_amount) ?? 0);
+    return paid(kind) >= due - Number(extra[0]?.tolerance ?? 0);
   };
   const paid = (kind: PaymentKind) =>
     paymentRows.filter((p) => p.kind === kind && p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
+  const status = (kind: PaymentKind): ClientPaymentState => {
+    const list = paymentRows.filter((p) => p.kind === kind && p.status !== "voided");
+    if (list.some((p) => p.status === "confirmed")) return covered(kind) ? "confirmed" : "partial";
+    if (list.some((p) => p.status === "pending")) return "pending";
+    return list.length ? "rejected" : "none";
+  };
   return {
     id: row.id,
     number: row.number,
@@ -850,7 +972,7 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
       paidDeposit: round2(paid("deposit")),
       paidBalance: round2(paid("balance")),
     },
-    paymentList: paymentRows.map((p) => ({
+    paymentList: paymentRows.filter((p) => p.status !== "voided").map((p) => ({
       id: p.id,
       kind: p.kind,
       status: p.status,
@@ -911,7 +1033,7 @@ export async function balanceReminders(now: Date = new Date()): Promise<number> 
   const orders = await withActor(serviceActor, (tx) => tx<{ id: string; number: string; request_id: string; delivered_at: Date; balance_amount: string; currency: string }[]>`
     select o.id, o.number, o.request_id, o.delivered_at, o.balance_amount, o.currency from public.orders o
      where o.status = 'delivered' and o.delivered_at is not null and o.balance_amount > 0
-       and not exists (select 1 from public.payments p where p.order_id = o.id and p.kind = 'balance' and p.status = 'confirmed')`);
+       and not public.order_kind_covered(o.id, 'balance')`);
   let queued = 0;
   for (const o of orders) {
     const due = balanceReminderDue(o.delivered_at, now);

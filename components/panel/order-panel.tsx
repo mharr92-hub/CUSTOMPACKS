@@ -13,6 +13,7 @@ import {
   recordPaymentAction,
   reviewPaymentAction,
   updateShippingAction,
+  voidPaymentAction,
 } from "@/app/admin/(panel)/pedidos/[id]/actions";
 import { EvidenceList, type EvidenceItem } from "@/components/orders/evidence-list";
 import { MoneyHint } from "@/components/panel/money-hint";
@@ -34,7 +35,7 @@ export type PanelMilestone = { id: string; type: MilestoneType; occurredAt: stri
 export type PanelPayment = {
   id: string;
   kind: "deposit" | "balance";
-  status: "pending" | "confirmed" | "rejected";
+  status: "pending" | "confirmed" | "rejected" | "voided";
   amount: number | null;
   currency: string;
   method: string | null;
@@ -43,8 +44,12 @@ export type PanelPayment = {
   paidOn: string | null;
   uploadedByClient: boolean;
   notes: string | null;
+  voidedReason: string | null;
   createdAt: string;
 };
+
+/** Cotizado y pagado por tipo, para el resumen de cobros del pedido (M12). */
+export type PaymentSummary = { deposit: { due: number; paid: number }; balance: { due: number; paid: number } };
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -326,9 +331,17 @@ function ReviewReceipt({ orderId, payment, suggested, today }: { orderId: string
   const [method, setMethod] = useState("");
   const [reference, setReference] = useState("");
   const [paidOn, setPaidOn] = useState(today);
+  const [kind, setKind] = useState<"deposit" | "balance">(payment.kind);
   return (
     <div className="mt-2 space-y-2 rounded-md bg-muted/50 p-3" data-testid="review-receipt">
       <div className="grid grid-cols-2 gap-2">
+        <label className="col-span-2 grid gap-1 text-xs font-medium">
+          {t("kind")}
+          <select value={kind} onChange={(e) => setKind(e.target.value as "deposit" | "balance")} className="h-9 rounded-md border border-input bg-background px-2 text-sm font-normal" data-testid="review-kind">
+            <option value="deposit">{t("kinds.deposit")}</option>
+            <option value="balance">{t("kinds.balance")}</option>
+          </select>
+        </label>
         <label className="grid gap-1 text-xs font-medium">
           {t("amount")}
           <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
@@ -349,7 +362,7 @@ function ReviewReceipt({ orderId, payment, suggested, today }: { orderId: string
       </div>
       <ErrorLine error={error} />
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" disabled={busy} onClick={() => void run(() => reviewPaymentAction(orderId, payment.id, { decision: "confirm", amount, method, reference, paidOn }))}>
+        <Button type="button" size="sm" disabled={busy} onClick={() => void run(() => reviewPaymentAction(orderId, payment.id, { decision: "confirm", amount, method, reference, paidOn, kind }))}>
           {t("confirm")}
         </Button>
         <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void run(() => reviewPaymentAction(orderId, payment.id, { decision: "reject" }))}>
@@ -441,8 +454,11 @@ export function PaymentsPanel({
   defaultKind,
   today,
   currency,
+  summary,
 }: {
   orderId: string;
+  /** Cotizado y pagado por tipo. */
+  summary: PaymentSummary;
   payments: PanelPayment[];
   canEdit: boolean;
   suggested: Record<"deposit" | "balance", string>;
@@ -454,6 +470,29 @@ export function PaymentsPanel({
   const t = useTranslations("admin.order");
   return (
     <div className="space-y-4" data-testid="payments-panel">
+      <table className="w-full text-sm" data-testid="payments-summary">
+        <thead>
+          <tr className="text-left text-xs text-muted-foreground">
+            <th className="font-medium" />
+            <th className="font-medium">{t("summary.due")}</th>
+            <th className="font-medium">{t("summary.paid")}</th>
+            <th className="font-medium">{t("summary.pending")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(["deposit", "balance"] as const).map((k) => {
+            const pending = Math.max(0, Math.round((summary[k].due - summary[k].paid) * 100) / 100);
+            return (
+              <tr key={k} data-testid={`summary-${k}`}>
+                <th scope="row" className="py-1 text-left font-semibold">{t(`kinds.${k}`)}</th>
+                <td className="tabular">{formatMoney(summary[k].due, currency)}</td>
+                <td className="tabular">{formatMoney(summary[k].paid, currency)}</td>
+                <td className={cn("tabular", pending > 0 && summary[k].paid > 0 ? "font-semibold text-signal-red" : "")}>{formatMoney(pending, currency)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
       {payments.length > 0 ? (
         <ul className="divide-y divide-border rounded-md border border-border">
           {payments.map((p) => (
@@ -463,7 +502,7 @@ export function PaymentsPanel({
                 <span
                   className={cn(
                     "rounded-md px-1.5 py-0.5 text-xs font-medium",
-                    p.status === "confirmed" ? "bg-signal-green/15" : p.status === "pending" ? "bg-signal-yellow/20" : "bg-signal-red/15",
+                    p.status === "confirmed" ? "bg-signal-green/15" : p.status === "pending" ? "bg-signal-yellow/20" : p.status === "voided" ? "bg-muted line-through" : "bg-signal-red/15",
                   )}
                 >
                   {t(`paymentStatuses.${p.status}`)}
@@ -479,7 +518,9 @@ export function PaymentsPanel({
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {[p.paidOn ? day(p.paidOn) : formatDateTime(p.createdAt), p.method, p.reference].filter(Boolean).join(" · ")}
               </p>
+              {p.status === "voided" && p.voidedReason ? <p className="mt-0.5 text-xs text-muted-foreground">{t("voidedBecause", { reason: p.voidedReason })}</p> : null}
               {canEdit && p.status === "pending" ? <ReviewReceipt orderId={orderId} payment={p} suggested={suggested[p.kind]} today={today} /> : null}
+              {canEdit && (p.status === "confirmed" || p.status === "pending") ? <VoidPayment orderId={orderId} paymentId={p.id} /> : null}
             </li>
           ))}
         </ul>
@@ -504,6 +545,38 @@ export function AdvicePieces({ orderId, pieces }: { orderId: string; pieces: { i
         ))}
       </div>
       <ErrorLine error={error} />
+    </div>
+  );
+}
+
+/** Anular un pago mal cargado: con motivo, queda auditado (M12). */
+function VoidPayment({ orderId, paymentId }: { orderId: string; paymentId: string }) {
+  const t = useTranslations("admin.order");
+  const { error, busy, run } = useRun();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  if (!open) {
+    return (
+      <Button type="button" size="sm" variant="ghost" className="mt-1 h-7 px-2 text-xs" onClick={() => setOpen(true)}>
+        {t("void")}
+      </Button>
+    );
+  }
+  return (
+    <div className="mt-2 space-y-2 rounded-md border border-border p-2" data-testid="void-payment">
+      <label className="grid gap-1 text-xs font-medium">
+        {t("voidReason")}
+        <Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} />
+      </label>
+      <ErrorLine error={error} />
+      <div className="flex gap-2">
+        <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={() => void run(() => voidPaymentAction(orderId, paymentId, reason))}>
+          {t("voidConfirm")}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          {t("cancel")}
+        </Button>
+      </div>
     </div>
   );
 }
