@@ -174,6 +174,18 @@ describe("validación por paso", () => {
     s.items[0]!.printOptionId = "pr-pt";
     expect(validateStep(s, 7, ctx)).toEqual({ "items.0.artwork": "artworkRequired" });
   });
+
+  it("«Tengo el arte» exige un archivo; «Lo envío después» deja el arte pendiente (M9)", () => {
+    const s = validState();
+    s.items[0]!.printOptionId = "pr-pt";
+    s.items[0]!.artwork = "has_artwork";
+    expect(validateStep(s, 7, ctx)).toEqual({ "items.0.artwork": "artworkFileRequired" });
+    s.items[0]!.artworkFiles = [{ id: "a", name: "logo.pdf", size: 10, path: "drafts/x/a/artwork/logo.pdf", kind: "pdf" }];
+    expect(validateStep(s, 7, ctx)).toEqual({});
+    s.items[0]!.artworkFiles = [];
+    s.items[0]!.artwork = "no_artwork_yet";
+    expect(validateStep(s, 7, ctx)).toEqual({});
+  });
 });
 
 describe("navegación del wizard", () => {

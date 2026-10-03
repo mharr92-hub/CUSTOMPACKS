@@ -232,8 +232,10 @@ function LinkList({ index, item }: { index: number; item: ItemDraft }) {
 export function StepArtwork() {
   const t = useTranslations("wizard.artwork");
   const tw = useTranslations("wizard");
+  const ta = useTranslations("artwork");
   const { state, catalog, updateItem, errors } = useWizard();
   const pieceLabel = usePieceLabel();
+  const [asReference, setAsReference] = useState<string[]>([]);
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_18rem]">
       <div className="space-y-8">
@@ -261,10 +263,26 @@ export function StepArtwork() {
                       />
                     ))}
                   </div>
+                  {asReference.includes(item.key) ? (
+                    <p role="status" className="mt-3 rounded-md bg-signal-yellow/15 px-3 py-2 text-sm" data-testid="image-as-reference">
+                      {ta("imageAsReference")}
+                    </p>
+                  ) : null}
                   {item.artwork === "has_artwork" ? (
                     <div className="mt-4 space-y-2">
-                      <DraftFiles index={i} item={item} purpose="artwork" />
-                      {item.artworkFiles.length === 0 ? <p className="rounded-md bg-muted px-3 py-2 text-sm">{t("uploadLater")}</p> : null}
+                      <DraftFiles index={i} item={item} purpose="artwork" onImageAsReference={() => setAsReference((k) => (k.includes(item.key) ? k : [...k, item.key]))} />
+                      {item.artworkFiles.length === 0 ? (
+                        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-muted px-3 py-2 text-sm">
+                          <span>{t("uploadLater")}</span>
+                          <button
+                            type="button"
+                            className="font-semibold text-forest underline underline-offset-4"
+                            onClick={() => updateItem((it) => ({ ...it, artwork: "no_artwork_yet" }), i)}
+                          >
+                            {t("sendLater")}
+                          </button>
+                        </p>
+                      ) : null}
                     </div>
                   ) : null}
                 </Fieldset>

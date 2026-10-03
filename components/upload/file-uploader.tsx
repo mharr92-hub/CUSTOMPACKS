@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { CheckCircle2Icon, FileIcon, RotateCcwIcon, UploadIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ export function FileUploader({
   onUploaded,
   testId,
   limitsText,
+  onBusyChange,
 }: {
   label: string;
   hint?: string;
@@ -73,12 +74,24 @@ export function FileUploader({
   testId?: string;
   /** Texto de límites cuando no aplica "por pieza" (p. ej., evidencias de un hito). */
   limitsText?: string;
+  /** Avisa cuando empieza o termina una subida (el cotizador no avanza con subidas en curso). */
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const t = useTranslations("upload");
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const busy = rows.some((r) => r.status === "uploading" || r.status === "verifying");
+  const busyRef = useRef(onBusyChange);
+  useEffect(() => {
+    busyRef.current = onBusyChange;
+  }, [onBusyChange]);
+  useEffect(() => {
+    busyRef.current?.(busy);
+  }, [busy]);
+  useEffect(() => () => busyRef.current?.(false), []);
 
   const patch = (key: string, p: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...p } : r)));
 

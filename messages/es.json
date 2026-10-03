@@ -1550,7 +1550,8 @@
       "linkPlaceholder": "https://…",
       "addLink": "Agregar enlace",
       "removeLink": "Quitar enlace",
-      "uploadLater": "Si ahora no lo tienes a mano, envía la solicitud igual: podrás subirlo después desde tu enlace de seguimiento."
+      "uploadLater": "Sube el archivo aquí. Si ahora no lo tienes a mano, elige «Lo envío después» y te lo pedimos por tu enlace de seguimiento.",
+      "sendLater": "Lo envío después"
     },
     "contact": {
       "title": "¿A quién le enviamos la cotización?",
@@ -1686,7 +1687,8 @@
       "cityRequired": "Escribe la ciudad de entrega.",
       "addressRequired": "Escribe la dirección de entrega para estimar el flete.",
       "consentRequired": "Necesitamos tu autorización para usar tus datos en esta cotización.",
-      "typeSegment": "Este tipo no está disponible para el segmento que elegiste. Elige otro tipo o cambia el segmento en el paso 1."
+      "typeSegment": "Este tipo no está disponible para el segmento que elegiste. Elige otro tipo o cambia el segmento en el paso 1.",
+      "artworkFileRequired": "Sube al menos un archivo de arte o elige «Lo envío después»."
     },
     "resumeEmailSubject": "Tu cotización en {brand}: sigue donde la dejaste",
     "resumeEmailText": "Hola. Guardamos tu avance en el cotizador de {brand}. Para continuar abre este enlace: {link}. El enlace vale por 30 días.",
@@ -1703,7 +1705,8 @@
       "dismiss": "Cerrar aviso"
     },
     "resumed": "Retomamos tu solicitud del {date}.",
-    "startNew": "Empezar una nueva"
+    "startNew": "Empezar una nueva",
+    "waitUpload": "Espera a que termine la subida del archivo para continuar."
   },
   "spec": {
     "none": "—",
@@ -1979,7 +1982,7 @@
   },
   "artwork": {
     "title": "Arte",
-    "artworkHint": "PDF, AI, EPS o SVG. PNG y JPG solo sirven como referencia.",
+    "artworkHint": "PDF, AI, EPS o SVG. Si solo tienes PNG o JPG, súbelo igual: queda como referencia y te pedimos el vectorial.",
     "referenceHint": "Fotos (JPG, PNG, WebP) o PDF de lo que te gusta.",
     "uploadArtwork": "Archivos de arte",
     "uploadReferences": "Fotos de referencia",
@@ -2028,7 +2031,8 @@
     "observed": "Puntos a corregir",
     "approveNotice": "Al aprobar registramos la fecha, la hora, tu nombre y tu conexión.",
     "sectionTitle": "Arte y proofs",
-    "sectionIntro": "Sube aquí tu arte o una versión corregida. Revisamos cada archivo con el checklist de preprensa y te avisamos."
+    "sectionIntro": "Sube aquí tu arte o una versión corregida. Revisamos cada archivo con el checklist de preprensa y te avisamos.",
+    "imageAsReference": "Esa imagen quedó como referencia. Para imprimir necesitamos el arte en PDF, AI, EPS o SVG: te lo pediremos por tu enlace de seguimiento."
   },
   "notify": {
     "segment": {

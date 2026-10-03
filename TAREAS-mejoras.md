@@ -190,9 +190,9 @@ Aceptación:
 
 Objetivo: eliminar la causa de rojo que depende del cliente (`lib/traffic-light.ts:41-45`, UX-03, UX-04).
 
-- [ ] Con "Tengo el arte", Continuar exige al menos un archivo, o elegir "Lo envío después". Esa opción deja el arte pendiente, en amarillo.
-- [ ] PNG y JPG se aceptan como referencia, con el aviso "te pediremos el vectorial". El error de tipo dice qué formatos se aceptan.
-- [ ] Continuar y Enviar esperan a que terminen las subidas en curso, con el progreso a la vista. El resumen muestra el estado de cada archivo.
+- [x] Con "Tengo el arte", Continuar exige al menos un archivo, o elegir "Lo envío después". Esa opción pasa la pieza a "Aún no tengo arte" (arte pendiente, en amarillo).
+- [x] PNG y JPG se aceptan como referencia, con el aviso "te pediremos el vectorial". El error de tipo dice qué formatos se aceptan.
+- [x] Continuar y Enviar esperan a que terminen las subidas en curso, con el progreso a la vista. El resumen muestra el estado de cada archivo.
 
 Aceptación:
 - E2E: "Tengo el arte" sin archivo no avanza.

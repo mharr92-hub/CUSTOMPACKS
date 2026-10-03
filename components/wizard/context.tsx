@@ -22,6 +22,8 @@ export type WizardContextValue = {
   draftToken: string | null;
   /** Guarda lo pendiente y devuelve el token (null si no se pudo). */
   ensureSaved: () => Promise<string | null>;
+  /** Marca una subida en curso (por campo): Continuar y Enviar esperan a que termine (UX-04). */
+  setUploading: (key: string, busy: boolean) => void;
 };
 
 export const WizardContext = createContext<WizardContextValue | null>(null);

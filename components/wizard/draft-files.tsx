@@ -11,8 +11,13 @@ import { track } from "@/lib/analytics";
 import type { ItemDraft, UploadedFile } from "@/lib/quote/types";
 import { useWizard } from "./context";
 
+const IMAGE_EXT = ["png", "jpg", "jpeg", "webp"];
 const ACCEPT = {
-  artwork: { accept: ".pdf,.ai,.eps,.svg,application/pdf,application/postscript,image/svg+xml", extensions: ["pdf", "ai", "eps", "svg"] },
+  // PNG y JPG también se aceptan aquí: quedan como referencia y se pide el vectorial (UX-03).
+  artwork: {
+    accept: ".pdf,.ai,.eps,.svg,.png,.jpg,.jpeg,.webp,application/pdf,application/postscript,image/svg+xml,image/png,image/jpeg,image/webp",
+    extensions: ["pdf", "ai", "eps", "svg", ...IMAGE_EXT],
+  },
   reference: { accept: ".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf", extensions: ["png", "jpg", "jpeg", "webp", "pdf"] },
 } as const;
 
@@ -26,10 +31,24 @@ function formatSize(bytes: number): string {
  * directo al almacenamiento privado colgando del borrador; al enviar la
  * solicitud pasan a ella (D-046).
  */
-export function DraftFiles({ index, item, purpose }: { index: number; item: ItemDraft; purpose: "artwork" | "reference" }) {
+export function DraftFiles({
+  index,
+  item,
+  purpose,
+  onImageAsReference,
+}: {
+  index: number;
+  item: ItemDraft;
+  purpose: "artwork" | "reference";
+  /** Una imagen subida en el campo de arte quedó como referencia (el paso muestra el aviso). */
+  onImageAsReference?: () => void;
+}) {
   const t = useTranslations("artwork");
   const tu = useTranslations("upload");
-  const { updateItem, ensureSaved, draftToken, settings } = useWizard();
+  const { updateItem, ensureSaved, draftToken, settings, setUploading } = useWizard();
+  /** En el campo de arte, una imagen sube como referencia. */
+  const purposeOf = (name: string): "artwork" | "reference" =>
+    purpose === "artwork" && IMAGE_EXT.includes(name.toLowerCase().split(".").pop() ?? "") ? "reference" : purpose;
   const files = purpose === "artwork" ? item.artworkFiles : item.referencePhotos;
   const field = purpose === "artwork" ? "artworkFiles" : "referencePhotos";
   const [previews, setPreviews] = useState<Record<string, string>>({});
@@ -71,14 +90,29 @@ export function DraftFiles({ index, item, purpose }: { index: number; item: Item
           const token = await ensureSaved();
           tokenRef.current = token;
           if (!token) return { ok: false, error: "network" };
-          return prepareDraftUploadAction(token, item.key, purpose, { name: file.name, size: file.size });
+          return prepareDraftUploadAction(token, item.key, purposeOf(file.name), { name: file.name, size: file.size });
         }}
         confirm={async (input) => {
           const token = tokenRef.current;
           if (!token) return { ok: false, error: "expired" };
-          return confirmDraftUploadAction(token, item.key, purpose, input);
+          return confirmDraftUploadAction(token, item.key, purposeOf(input.name), input);
         }}
+        onBusyChange={(busy) => setUploading(`${item.key}:${purpose}`, busy)}
         onUploaded={(file, previewUrl) => {
+          if (purposeOf(file.name) !== purpose) {
+            // Imagen en el campo de arte: queda como referencia y el arte, pendiente.
+            updateItem(
+              (it) => ({
+                ...it,
+                artwork: it.artworkFiles.length === 0 ? "no_artwork_yet" : it.artwork,
+                referencePhotos: it.referencePhotos.some((x) => x.path === file.path) ? it.referencePhotos : [...it.referencePhotos, file],
+              }),
+              index,
+            );
+            onImageAsReference?.();
+            track("wizard_file_uploaded", { purpose: "reference", kind: file.kind, from: "artwork" });
+            return;
+          }
           setFiles((list) => (list.some((x) => x.path === file.path) ? list : [...list, file]));
           if (previewUrl) setPreviews((prev) => ({ ...prev, [file.path]: previewUrl }));
           track("wizard_file_uploaded", { purpose, kind: file.kind });

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { makePdf, PNG_1PX } from "./helpers";
 
 /** Botón principal de la barra inferior del wizard. */
 async function next(page: Page) {
@@ -357,5 +358,58 @@ test.describe("M8 · el cotizador no pierde el avance", () => {
     await page.getByRole("button", { name: "Empezar una nueva" }).click();
     await expectStep(page, "Segmento");
     await expect(page.getByTestId("wizard-resumed")).toHaveCount(0);
+  });
+});
+
+test.describe("M9 · arte completo a la primera", () => {
+  async function toArtwork(page: Page) {
+    await page.goto("/cotizar");
+    await pickCard(page, "Comercio");
+    await page.getByLabel("Producto", { exact: true }).fill("Velas");
+    await next(page);
+    await pickCard(page, "Mailer de envío (tapa abatible)");
+    await next(page);
+    await pickCard(page, "Tamaño estándar");
+    await page.locator("label", { has: page.getByRole("radio", { name: /^S\d/ }) }).first().click();
+    await next(page);
+    await pickCard(page, "Cartón microcorrugado (flauta E o B)");
+    await pickCard(page, "Medio");
+    await next(page);
+    await pickCard(page, "2 tintas");
+    await pickCard(page, "Por fuera");
+    await pickCard(page, "Solo logo");
+    await next(page);
+    await page.locator("#items\\.0\\.quantities\\.0").fill("3000");
+    await page.locator("#items\\.0\\.frequency").selectOption("once");
+    await next(page);
+    await expectStep(page, "Arte y referencias");
+    await pickCard(page, "Tengo el arte");
+  }
+
+  test("«Tengo el arte» sin archivo no avanza; una imagen queda como referencia y el arte pendiente", async ({ page }) => {
+    await toArtwork(page);
+    await next(page);
+    await expect(page.getByText("Sube al menos un archivo de arte o elige «Lo envío después».")).toBeVisible();
+    await expectStep(page, "Arte y referencias");
+    await page.getByLabel("Archivos de arte").setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: PNG_1PX });
+    await expect(page.getByTestId("image-as-reference")).toBeVisible();
+    await expect(page.getByRole("radio", { name: /^Aún no tengo arte/ })).toBeChecked();
+    await next(page);
+    await expectStep(page, "Contacto y entrega");
+  });
+
+  test("Continuar espera a que termine una subida lenta y el archivo no se pierde", async ({ page }) => {
+    await toArtwork(page);
+    await page.route("**/api/storage/upload**", async (route) => {
+      await new Promise((r) => setTimeout(r, 2500));
+      await route.continue();
+    });
+    await page.getByLabel("Archivos de arte").setInputFiles({ name: "arte-lento.pdf", mimeType: "application/pdf", buffer: makePdf() });
+    await next(page);
+    await expect(page.getByTestId("wait-upload")).toBeVisible();
+    await expectStep(page, "Arte y referencias");
+    await expect(page.getByRole("list", { name: "Archivos subidos" }).getByRole("listitem").filter({ hasText: "arte-lento.pdf" })).toBeVisible({ timeout: 20_000 });
+    await next(page);
+    await expectStep(page, "Contacto y entrega");
   });
 });

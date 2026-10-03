@@ -70,7 +70,7 @@ async function acceptedOrder(opts: { quantity?: number } = {}) {
         coverage: "logo",
         quantities: ["1000", "20000", ""],
         frequency: "once",
-        artwork: "has_artwork",
+        artwork: "no_artwork_yet",
       },
     ];
     break;

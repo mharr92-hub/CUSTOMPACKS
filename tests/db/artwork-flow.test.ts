@@ -55,7 +55,7 @@ async function printedState(): Promise<WizardState> {
         coverage: "logo",
         quantities: ["1000", "", ""],
         frequency: "once",
-        artwork: "has_artwork",
+        artwork: "no_artwork_yet",
       },
     ];
     break;
@@ -81,6 +81,7 @@ describe("envío con archivos del paso 7", () => {
       items: [
         {
           ...base.items[0]!,
+          artwork: "has_artwork",
           artworkFiles: [
             { id: "n1", name: "arte.pdf", size: 2048, path: okPath, kind: "pdf" },
             { id: "n9", name: "ajeno.pdf", size: 10, path: forged, kind: "pdf" },

@@ -35,6 +35,7 @@ export type ErrorKey =
   | "dateInPast"
   | "dateInvalid"
   | "artworkRequired"
+  | "artworkFileRequired"
   | "linkInvalid"
   | "nameRequired"
   | "contactRequired"
@@ -253,6 +254,8 @@ export function validateArtwork(state: WizardState, ctx: ValidationContext): Ste
   const e: StepErrors = {};
   state.items.forEach((item, i) => {
     if (itemHasPrinting(item, ctx.catalog) && !item.artwork) e[`items.${i}.artwork`] = "artworkRequired";
+    // "Tengo el arte" sin archivo dejaba la solicitud en rojo (M9): se sube o se elige "Lo envío después".
+    else if (itemHasPrinting(item, ctx.catalog) && item.artwork === "has_artwork" && item.artworkFiles.length === 0) e[`items.${i}.artwork`] = "artworkFileRequired";
     item.referenceLinks.forEach((link, j) => {
       if (link.trim() && !isValidUrl(link)) e[`items.${i}.links.${j}`] = "linkInvalid";
     });

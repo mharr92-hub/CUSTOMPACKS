@@ -65,6 +65,16 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
   const [notice, setNotice] = useState<Notice | null>(null);
   const { enabled: captchaEnabled, mount: mountCaptcha, getToken: getCaptchaToken } = useTurnstile(state.step === 9);
   const [undo, setUndo] = useState<{ snapshot: FlowState; n: number } | null>(null);
+  /** Subidas en curso por campo (UX-04). */
+  const uploadingRef = useRef(new Set<string>());
+  const [uploading, setUploadingCount] = useState(0);
+  const [waitUpload, setWaitUpload] = useState(false);
+  const setUploading = useCallback((key: string, busy: boolean) => {
+    if (busy) uploadingRef.current.add(key);
+    else uploadingRef.current.delete(key);
+    setUploadingCount(uploadingRef.current.size);
+    if (uploadingRef.current.size === 0) setWaitUpload(false);
+  }, []);
   /** Fecha del borrador retomado (aviso "Retomamos tu solicitud", UX-06). */
   const [resumedAt, setResumedAt] = useState<string | null>(null);
   /** Pasos empujados al historial del navegador: el gesto Atrás vuelve al paso anterior (UX-02). */
@@ -341,6 +351,10 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
   }
 
   function onContinue() {
+    if (uploading > 0) {
+      setWaitUpload(true);
+      return;
+    }
     if (state.step === 9) {
       void submit();
       return;
@@ -409,6 +423,10 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
 
   async function submit() {
     setSubmitError(false);
+    if (uploadingRef.current.size > 0) {
+      setWaitUpload(true);
+      return;
+    }
     const check = validateAll(state, ctx);
     if (!check.ok) {
       setBlocking({ step: check.step, item: check.item });
@@ -486,7 +504,7 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
   })();
 
   return (
-    <WizardContext.Provider value={{ state, catalog, settings, errors, today, update, updateItem, draftToken: token, ensureSaved }}>
+    <WizardContext.Provider value={{ state, catalog, settings, errors, today, update, updateItem, draftToken: token, ensureSaved, setUploading }}>
       <div className="mx-auto w-full max-w-3xl px-4 pt-4 pb-32 sm:px-6">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium text-muted-foreground">{t("progress", { index: prog.index, total: prog.total })}</p>
@@ -556,6 +574,11 @@ export function Wizard({ catalog, settings, today, initialState, initialToken, i
           </h1>
         </div>
 
+        {waitUpload && uploading > 0 ? (
+          <p role="alert" className="mt-4 rounded-md bg-signal-yellow/15 px-3 py-2 text-sm font-medium" data-testid="wait-upload">
+            {t("waitUpload")}
+          </p>
+        ) : null}
         {showErrors && Object.keys(errors).length > 0 ? (
           <p role="alert" className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
             {t("errorsTitle")}
