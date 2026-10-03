@@ -54,7 +54,9 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 
 - **Cliente y Piezas:** datos de contacto y la ficha técnica de cada pieza, con sus referencias (fotos, enlaces y muestras de la galería).
 - **Asignada a:** tomarla, pasarla a otra persona o al siguiente en turno.
-- **Estado:** elige **Pasar a**, escribe un motivo si hace falta (queda en el historial) y pulsa **Aplicar**. Solo aparecen los pasos válidos. **Rechazada** exige elegir el motivo de pérdida.
+- **Estado:** elige **Pasar a**, escribe un motivo si hace falta (queda en el historial) y pulsa **Aplicar**.
+  - A mano solo se puede pasar a **En revisión**, **Datos pendientes** y **Rechazada**. **Rechazada** exige elegir el motivo de pérdida.
+  - **RFQ enviado**, **Cotizada** y **Aceptada** se fijan solos: al enviar el RFQ (o marcarlo enviado a mano), al emitir la cotización y al registrar la aceptación. Así ninguna solicitud queda "Aceptada" sin pedido.
 - **Pedir datos faltantes:**
   - La lista se arma con lo que marca el semáforo; revísala y ajústala antes de enviar.
   - El cliente la recibe por correo y WhatsApp, y la solicitud pasa a **Datos pendientes**.
@@ -85,8 +87,11 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 ![RFQ](manual/06-rfq.png)
 
 1. **Generar RFQ**: arma un PDF y un Excel con la ficha técnica, los códigos de catálogo, las cantidades y el arte liberado, sin volver a escribir nada.
-2. **Enviar a fábrica**: sale por correo a la fábrica y la solicitud pasa a **RFQ enviado**. Si el servidor no tiene el correo de la fábrica configurado, descarga el PDF y el Excel y envíalos a mano.
+2. **Enviar a fábrica**: sale por correo a la fábrica y la solicitud pasa a **RFQ enviado**.
+   - Si lo mandaste por fuera (sin el correo de la fábrica configurado, o por WhatsApp), descarga el PDF y el Excel, envíalos y pulsa **Marcar enviado a mano**: escribe a quién y la fecha, y la solicitud pasa a **RFQ enviado**.
 3. Cuando la fábrica responda, completa **Respuesta de fábrica**: costo unitario por cantidad, moneda, días de producción y observaciones. Pulsa **Guardar respuesta**.
+   - Debajo de cada costo ves cómo se va a guardar ("= USD 5,000.00"). La coma en grupos de tres cifras es de miles; para decimales usa punto (o una coma seguida de una o dos cifras).
+   - Si la fábrica respondió en **soles (PEN)**, escribe el **tipo de cambio** (soles por 1 dólar) y su fecha. La cotización convierte cada costo a dólares y guarda el costo original.
 
 ## 7. Cotización
 
@@ -103,6 +108,8 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 - **En el portal del cliente** no aparece ningún precio: los precios están solo en el PDF que descarga. Ahí elige una cantidad por pieza y pulsa **Aceptar cotización**.
 
   ![El cliente acepta desde su enlace](manual/08-cliente-cotizacion.png)
+
+- **Si el cliente acepta por WhatsApp, correo o llamada:** en la versión enviada pulsa **Registrar aceptación del cliente**. Escribe quién aceptó, el canal, la fecha y la cantidad elegida por pieza; si tienes la captura de la conversación, súbela. Se crea el pedido igual que si hubiera aceptado en su enlace, y queda en el historial quién lo registró.
 
 - **Si el cliente pide cambios**, queda en el historial y te avisa. **Nueva versión** crea la v2, y la v1 queda reemplazada.
 - **Vencimiento:** si la vigencia pasa sin respuesta, la solicitud queda **Vencida**. El cliente recibe recordatorios 3 días y 1 día antes.

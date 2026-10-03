@@ -1,7 +1,7 @@
 import "server-only";
 import { brand } from "@/config/brand";
 import { actorFor, EDITOR_ROLES, type CurrentUser } from "@/lib/auth";
-import { serviceActor, withActor } from "@/lib/db/actor";
+import { markSystemTransition, serviceActor, withActor } from "@/lib/db/actor";
 import { getPublicCatalog, publicSetting } from "@/lib/catalog/public";
 import { getServerEnv } from "@/lib/env";
 import { serverT } from "@/lib/i18n";
@@ -44,7 +44,7 @@ export type Rfq = {
 /** Monedas en que puede responder la fábrica (lista cerrada; la fábrica está en Perú). */
 export const RFQ_CURRENCIES = ["USD", "PEN"] as const;
 
-export type RfqResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "artwork" | "no_factory_email" | "send_failed" | "costs" | "days" | "currency" | "fx"; pieces?: number[] };
+export type RfqResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "artwork" | "no_factory_email" | "send_failed" | "costs" | "days" | "currency" | "fx" | "manual_sent"; pieces?: number[] };
 
 function isEditor(user: CurrentUser): boolean {
   return user.isActive && EDITOR_ROLES.includes(user.role);
@@ -208,12 +208,42 @@ export async function sendRfq(user: CurrentUser, rfqId: string): Promise<RfqResu
     await tx`update public.factory_rfqs set sent_at = now(), sent_to = ${to} where id = ${rfq.id}`;
     const [req] = await tx<{ status: string }[]>`select status from public.quote_requests where id = ${rfq.request_id} for update`;
     if (req?.status === "in_review") {
+      await markSystemTransition(tx);
       await tx`select set_config('app.transition_reason', ${`RFQ ${number}`}, true)`;
       await tx`update public.quote_requests set status = 'rfq_sent' where id = ${rfq.request_id}`;
     }
     await tx`
       insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)
       values (${rfq.request_id}, 'factory_rfq', ${rfq.id}, ${user.userId}, 'email', 'rfq_sent', ${number})`;
+  });
+  return { ok: true };
+}
+
+/**
+ * "Marcar RFQ enviado a mano" (PAN-16): cuando el RFQ salió por fuera (sin
+ * FACTORY_EMAIL, o por WhatsApp a la fábrica), registra a quién y cuándo, y
+ * pasa la solicitud a "RFQ enviado" igual que el envío por correo.
+ */
+export async function markRfqSentManually(user: CurrentUser, rfqId: string, input: { to: string; date: string }): Promise<RfqResult> {
+  if (!isEditor(user)) return { ok: false, error: "forbidden" };
+  const rfq = await loadRfq(user, rfqId);
+  if (!rfq) return { ok: false, error: "not_found" };
+  const to = input.to.trim().slice(0, 200);
+  const date = input.date.trim();
+  if (to.length < 3 || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > todayInPanama()) return { ok: false, error: "manual_sent" };
+  const number = `${rfq.number}-v${rfq.version}`;
+  await withActor(actorFor(user), async (tx) => {
+    // 12:00 en Panamá del día indicado: la fecha que se ve en el panel es la misma que se escribió.
+    await tx`update public.factory_rfqs set sent_at = (${date}::date + time '12:00') at time zone 'America/Panama', sent_to = ${to} where id = ${rfq.id}`;
+    const [req] = await tx<{ status: string }[]>`select status from public.quote_requests where id = ${rfq.request_id} for update`;
+    if (req?.status === "in_review") {
+      await markSystemTransition(tx);
+      await tx`select set_config('app.transition_reason', ${`RFQ ${number} (a mano)`}, true)`;
+      await tx`update public.quote_requests set status = 'rfq_sent' where id = ${rfq.request_id}`;
+    }
+    await tx`
+      insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)
+      values (${rfq.request_id}, 'factory_rfq', ${rfq.id}, ${user.userId}, 'note', 'rfq_sent_manually', ${`${number} · ${to}`})`;
   });
   return { ok: true };
 }

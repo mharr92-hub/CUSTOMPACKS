@@ -75,12 +75,34 @@ test.describe("E6 · panel interno", () => {
     await sales.getByTestId("status-select").selectOption({ label: "En revisión" });
     await sales.getByRole("button", { name: "Aplicar" }).click();
     await expect(sales.getByTestId("admin-request-status")).toHaveText("En revisión");
-    await sales.getByTestId("status-select").selectOption({ label: "RFQ enviado" });
-    await sales.getByRole("button", { name: "Aplicar" }).click();
+    // "RFQ enviado" no se elige a mano (M3): sale del RFQ, aquí enviado por fuera y registrado.
+    await expect(sales.getByTestId("status-select").locator("option", { hasText: "RFQ enviado" })).toHaveCount(0);
+    await sales.getByRole("button", { name: "Generar RFQ" }).click();
+    await sales.getByRole("button", { name: "Marcar enviado a mano" }).click();
+    const markSent = sales.getByTestId("rfq-mark-sent");
+    await markSent.getByLabel("Enviado a").fill("Fábrica (WhatsApp de producción)");
+    await markSent.getByRole("button", { name: "Registrar envío" }).click();
     await expect(sales.getByTestId("admin-request-status")).toHaveText("RFQ enviado");
+    await expect(sales.getByTestId("rfq").first()).toContainText("Enviado a Fábrica (WhatsApp de producción)");
+
+    // Respuesta de fábrica, cotización y aceptación que llegó por WhatsApp (M4).
+    await sales.getByTestId("rfq-cost").first().fill("0.50");
+    await sales.getByRole("button", { name: "Guardar respuesta" }).click();
+    await expect(sales.getByTestId("rfq").first()).toContainText("Respuesta registrada");
+    await sales.getByRole("button", { name: "Preparar cotización" }).click();
+    await sales.getByTestId("quote-editor").getByRole("button", { name: "Emitir y enviar al cliente" }).click();
+    await expect(sales.getByTestId("admin-request-status")).toHaveText("Cotizada");
+    await expect(sales.getByTestId("status-select").locator("option", { hasText: "Aceptada" })).toHaveCount(0);
+    await sales.getByTestId("accept-open").click();
+    const accept = sales.getByTestId("accept-form");
+    await accept.getByLabel("Nombre de quien acepta").fill("Tomás Aguilar");
+    await expect(accept.getByTestId("accept-quantity")).toHaveValue("1500");
+    await accept.getByRole("button", { name: "Registrar aceptación y crear el pedido" }).click();
+    await expect(sales.getByTestId("admin-request-status")).toHaveText("Aceptada");
+    await expect(sales.getByTestId("timeline")).toContainText("Aceptación del cliente registrada por el equipo");
     await sales.getByLabel("Texto").fill("Llamé a Tomás: prefiere entrega los viernes.");
     await sales.getByLabel("Tipo").selectOption({ label: "Llamada" });
-    await sales.getByRole("button", { name: "Guardar" }).click();
+    await sales.getByRole("button", { name: "Guardar", exact: true }).click();
     await expect(sales.getByTestId("timeline")).toContainText("Contacto por Llamada");
     await salesCtx.close();
   });

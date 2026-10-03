@@ -85,7 +85,9 @@ describe("panel: flujo de una solicitud", () => {
 
     expect(await changeRequestStatus(sales, r.requestId, "rfq_sent")).toEqual({ ok: false, error: "transition" });
     expect(await changeRequestStatus(sales, r.requestId, "in_review", { reason: "Datos completos" })).toEqual({ ok: true });
-    expect(await changeRequestStatus(sales, r.requestId, "rfq_sent")).toEqual({ ok: true });
+    // "RFQ enviado" no se fija a mano (M3): lo hace el envío del RFQ. Aquí se simula con el servicio.
+    expect(await changeRequestStatus(sales, r.requestId, "rfq_sent")).toEqual({ ok: false, error: "transition" });
+    await testSql()`update public.quote_requests set status = 'rfq_sent' where id = ${r.requestId}`;
     expect(await clientReply(r.accessToken, "otra respuesta")).toEqual({ ok: false, error: "status" });
 
     const timeline = await getTimeline(sales, r.requestId);
@@ -98,7 +100,8 @@ describe("panel: flujo de una solicitud", () => {
   it("Rechazada exige motivo de la lista cerrada", async () => {
     const sales = await staff("sales");
     const r = await submitRequest();
-    for (const s of ["in_review", "rfq_sent", "quoted"] as const) expect(await changeRequestStatus(sales, r.requestId, s)).toEqual({ ok: true });
+    expect(await changeRequestStatus(sales, r.requestId, "in_review")).toEqual({ ok: true });
+    for (const s of ["rfq_sent", "quoted"]) await testSql()`update public.quote_requests set status = ${s}::public.request_status where id = ${r.requestId}`;
     expect(await changeRequestStatus(sales, r.requestId, "rejected")).toEqual({ ok: false, error: "loss_reason" });
     expect(await changeRequestStatus(sales, r.requestId, "rejected", { lossReason: "caro" })).toEqual({ ok: false, error: "loss_reason" });
     expect(await changeRequestStatus(sales, r.requestId, "rejected", { lossReason: "price", lossNote: "Otro proveedor 10 % más barato" })).toEqual({ ok: true });

@@ -1,7 +1,7 @@
 import "server-only";
 import { actorFor, EDITOR_ROLES, type CurrentUser } from "@/lib/auth";
 import { getPublicCatalog, publicSetting, quoteConditions, taxLabel } from "@/lib/catalog/public";
-import { serviceActor, withActor } from "@/lib/db/actor";
+import { markSystemTransition, serviceActor, withActor } from "@/lib/db/actor";
 import type { Tx } from "@/lib/db/client";
 import { formatDate } from "@/lib/format";
 import { leadTimeDaysFor, todayInPanama } from "@/lib/leadtime";
@@ -10,7 +10,9 @@ import { expiryReminderDue } from "@/lib/notify/schedule";
 import { onQuoteAccepted } from "@/lib/orders/hooks";
 import { getRequestDetail } from "@/lib/panel/requests";
 import { getRequestByToken } from "@/lib/quote/tracking";
-import { getObject, putObject, signedUrl } from "@/lib/storage";
+import { RECEIPT_EXT, RECEIPT_KINDS, safeName, slot, verify, type UploadConfirm, type UploadSlot } from "@/lib/files/upload-core";
+import { getObject, putObject, readObjectHead, signedUrl } from "@/lib/storage";
+import { fileNonce } from "@/lib/tokens";
 import { absoluteUrl } from "@/lib/urls";
 import { renderQuotePdf } from "./pdf";
 import { parseMoney, priceLine } from "./pricing";
@@ -58,7 +60,7 @@ export type Quote = {
   hasPdf: boolean;
 };
 
-export type QuoteResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "no_rfq" | "lines" | "valid_until" | "selection" | "expired" | "name" | "body" | "fx" };
+export type QuoteResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "no_rfq" | "lines" | "valid_until" | "selection" | "expired" | "name" | "body" | "fx" | "acceptance" | "evidence" };
 
 type DbLine = {
   item_id: string;
@@ -315,6 +317,7 @@ export async function issueQuote(user: CurrentUser, quoteId: string): Promise<Qu
     await tx`update public.quotes set status = 'sent', sent_at = now(), pdf_path = ${path} where id = ${quote.id}`;
     const [req] = await tx<{ status: string }[]>`select status from public.quote_requests where id = ${quote.request_id} for update`;
     if (req && req.status !== "quoted") {
+      await markSystemTransition(tx);
       await tx`select set_config('app.transition_reason', ${q.number}, true)`;
       await tx`update public.quote_requests set status = 'quoted' where id = ${quote.request_id}`;
     }
@@ -405,29 +408,132 @@ export async function acceptQuote(
   if (name.length < 3) return { ok: false, error: "name" };
   const request = await getRequestByToken(accessToken);
   if (!request || !UUID.test(quoteId)) return { ok: false, error: "not_found" };
+  return withActor(serviceActor, (tx) =>
+    acceptInTx(tx, request.id, quoteId, {
+      name,
+      selection: input.selection,
+      email: request.contactEmail,
+      ip: input.ip,
+      userAgent: input.userAgent,
+      channel: "portal",
+      recordedBy: null,
+      evidencePath: null,
+      acceptedOn: null,
+    }),
+  );
+}
+
+type AcceptChannel = "portal" | "whatsapp" | "email" | "call";
+
+/**
+ * Lo común a las dos formas de aceptar: valida la cotización y la selección,
+ * la deja aceptada (inmutable), pasa la solicitud a Aceptada y crea el pedido.
+ * Corre con el servicio, después de validar el enlace o el rol del equipo.
+ */
+async function acceptInTx(
+  tx: Tx,
+  requestId: string,
+  quoteId: string,
+  input: {
+    name: string;
+    selection: { itemId: string; quantity: number }[];
+    email: string | null;
+    ip: string | null;
+    userAgent: string | null;
+    channel: AcceptChannel;
+    recordedBy: string | null;
+    evidencePath: string | null;
+    acceptedOn: string | null;
+  },
+): Promise<QuoteResult> {
+  const [q] = await tx<DbQuote[]>`${SELECT(tx)} where id = ${quoteId} and request_id = ${requestId} for update`;
+  if (!q) return { ok: false, error: "not_found" };
+  if (q.status !== "sent") return { ok: false, error: "status" };
+  if (q.valid_until < todayInPanama()) return { ok: false, error: "expired" };
+  const items = [...new Set(q.lines.map((l) => l.item_id))];
+  const selection = items.map((itemId) => input.selection.find((s) => s.itemId === itemId));
+  const valid = selection.every((s) => s && q.lines.some((l) => l.item_id === s.itemId && Number(l.quantity) === Number(s.quantity)));
+  if (!valid || input.selection.length !== items.length) return { ok: false, error: "selection" };
+  await tx`
+    update public.quotes
+       set status = 'accepted', accepted_at = now(), accepted_by_name = ${input.name}, accepted_by_email = ${input.email},
+           accepted_ip = ${input.ip}, accepted_user_agent = ${input.userAgent?.slice(0, 300) ?? null},
+           accepted_selection = ${tx.json(selection.map((s) => ({ item_id: s!.itemId, quantity: Number(s!.quantity) })))},
+           accepted_channel = ${input.channel}, accepted_recorded_by = ${input.recordedBy}, accepted_evidence_path = ${input.evidencePath}
+     where id = ${q.id}`;
+  await tx`select set_config('app.transition_reason', ${`${q.number} · ${input.name}`}, true)`;
+  await tx`update public.quote_requests set status = 'accepted' where id = ${requestId}`;
+  const staff = input.channel !== "portal";
+  await tx`
+    insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body, payload)
+    values (${requestId}, 'quote', ${q.id}, ${input.recordedBy}, ${staff ? input.channel : "system"},
+            ${staff ? "quote_accepted_staff" : "quote_accepted"}, ${input.name},
+            ${tx.json({ ip: input.ip, number: q.number, ...(staff ? { acceptedOn: input.acceptedOn, evidence: input.evidencePath } : {}) })})`;
+  await onQuoteAccepted(tx, q.id);
+  return { ok: true };
+}
+
+export type StaffAcceptanceInput = {
+  name: string;
+  channel: string;
+  /** Día en que el cliente aceptó (AAAA-MM-DD, no futuro). */
+  date: string;
+  selection: { itemId: string; quantity: number }[];
+  /** Captura subida con prepareAcceptanceUpload/confirmAcceptanceUpload. */
+  evidencePath?: string | null;
+};
+
+/**
+ * "Registrar aceptación del cliente" (PRD §11, PAN-01): el cliente aceptó por
+ * WhatsApp, correo o llamada. Mismas reglas que la aceptación en su enlace
+ * (vigencia y una cantidad cotizada por pieza) y crea el pedido.
+ */
+export async function recordClientAcceptance(user: CurrentUser, quoteId: string, input: StaffAcceptanceInput): Promise<QuoteResult> {
+  if (!isEditor(user)) return { ok: false, error: "forbidden" };
+  if (!UUID.test(quoteId)) return { ok: false, error: "not_found" };
+  const name = input.name.trim().slice(0, 160);
+  if (name.length < 3) return { ok: false, error: "name" };
+  const channel = input.channel as AcceptChannel;
+  const date = input.date.trim();
+  if (!["whatsapp", "email", "call"].includes(channel) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > todayInPanama()) return { ok: false, error: "acceptance" };
+  // El equipo lee la cotización por RLS: se confirma el permiso antes de usar el servicio.
+  const [meta] = await withActor(actorFor(user), (tx) => tx<{ request_id: string }[]>`select request_id from public.quotes where id = ${quoteId}`);
+  if (!meta) return { ok: false, error: "not_found" };
+  const evidencePath = input.evidencePath?.trim() || null;
+  if (evidencePath && (!evidencePath.startsWith(`requests/${meta.request_id}/acceptance/`) || evidencePath.includes("..") || !(await readObjectHead("documents", evidencePath, 16)))) {
+    return { ok: false, error: "evidence" };
+  }
   return withActor(serviceActor, async (tx) => {
-    const [q] = await tx<DbQuote[]>`${SELECT(tx)} where id = ${quoteId} and request_id = ${request.id} for update`;
-    if (!q) return { ok: false, error: "not_found" } as const;
-    if (q.status !== "sent") return { ok: false, error: "status" } as const;
-    if (q.valid_until < todayInPanama()) return { ok: false, error: "expired" } as const;
-    const items = [...new Set(q.lines.map((l) => l.item_id))];
-    const selection = items.map((itemId) => input.selection.find((s) => s.itemId === itemId));
-    const valid = selection.every((s) => s && q.lines.some((l) => l.item_id === s.itemId && Number(l.quantity) === Number(s.quantity)));
-    if (!valid || input.selection.length !== items.length) return { ok: false, error: "selection" } as const;
-    await tx`
-      update public.quotes
-         set status = 'accepted', accepted_at = now(), accepted_by_name = ${name}, accepted_by_email = ${request.contactEmail},
-             accepted_ip = ${input.ip}, accepted_user_agent = ${input.userAgent?.slice(0, 300) ?? null},
-             accepted_selection = ${tx.json(selection.map((s) => ({ item_id: s!.itemId, quantity: Number(s!.quantity) })))}
-       where id = ${q.id}`;
-    await tx`select set_config('app.transition_reason', ${`${q.number} · ${name}`}, true)`;
-    await tx`update public.quote_requests set status = 'accepted' where id = ${request.id}`;
-    await tx`
-      insert into public.activities (request_id, entity_type, entity_id, channel, kind, body, payload)
-      values (${request.id}, 'quote', ${q.id}, 'system', 'quote_accepted', ${name}, ${tx.json({ ip: input.ip, number: q.number })})`;
-    await onQuoteAccepted(tx, q.id);
-    return { ok: true } as const;
+    const [r] = await tx<{ contact_email: string | null }[]>`select contact_email from public.quote_requests where id = ${meta.request_id}`;
+    return acceptInTx(tx, meta.request_id, quoteId, {
+      name,
+      selection: input.selection,
+      email: r?.contact_email ?? null,
+      ip: null,
+      userAgent: null,
+      channel,
+      recordedBy: user.userId,
+      evidencePath,
+      acceptedOn: date,
+    });
   });
+}
+
+/** Captura de la aceptación (imagen o PDF), en el bucket privado de documentos. */
+export async function prepareAcceptanceUpload(user: CurrentUser, quoteId: string, file: { name: string; size: number }): Promise<UploadSlot> {
+  if (!isEditor(user) || !UUID.test(quoteId)) return { ok: false, error: "expired" };
+  const [q] = await withActor(actorFor(user), (tx) => tx<{ request_id: string; status: QuoteStatus }[]>`select request_id, status from public.quotes where id = ${quoteId}`);
+  if (!q || q.status !== "sent") return { ok: false, error: "expired" };
+  return slot("documents", `requests/${q.request_id}/acceptance/${fileNonce()}-${safeName(file.name)}`, file.size, file.name, RECEIPT_EXT);
+}
+
+export async function confirmAcceptanceUpload(user: CurrentUser, quoteId: string, input: { path: string; name: string }): Promise<UploadConfirm> {
+  if (!isEditor(user) || !UUID.test(quoteId)) return { ok: false, error: "expired" };
+  const [q] = await withActor(actorFor(user), (tx) => tx<{ request_id: string }[]>`select request_id from public.quotes where id = ${quoteId}`);
+  if (!q || !input.path.startsWith(`requests/${q.request_id}/acceptance/`) || input.path.includes("..")) return { ok: false, error: "generic" };
+  const checked = await verify("documents", input.path, input.name, RECEIPT_KINDS);
+  if ("error" in checked) return { ok: false, error: checked.error };
+  return { ok: true, file: { id: input.path.split("/").pop() ?? input.path, name: input.name.slice(0, 200), size: checked.size, path: input.path, kind: checked.kind } };
 }
 
 /** "Pedir cambios": texto libre que queda en la solicitud y avisa al equipo. */

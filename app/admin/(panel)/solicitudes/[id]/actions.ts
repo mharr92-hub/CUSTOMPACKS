@@ -8,8 +8,20 @@ import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { assertStaff, EDITOR_ROLES } from "@/lib/auth";
 import { kickNotifications, markWhatsappSent } from "@/lib/notify";
 import { addRequestNote, assignRequest, changeRequestStatus, requestMissingData, type ActionResult } from "@/lib/panel/requests";
-import { createQuoteDraft, issueQuote, quoteFileUrl, updateQuoteDraft, type QuoteDraftInput, type QuoteResult } from "@/lib/quotes";
-import { generateRfq, recordRfqResponse, rfqFileUrl, sendRfq, type RfqResponseInput, type RfqResult } from "@/lib/rfq";
+import type { UploadConfirm, UploadSlot } from "@/lib/files/upload-core";
+import {
+  confirmAcceptanceUpload,
+  createQuoteDraft,
+  issueQuote,
+  prepareAcceptanceUpload,
+  quoteFileUrl,
+  recordClientAcceptance,
+  updateQuoteDraft,
+  type QuoteDraftInput,
+  type QuoteResult,
+  type StaffAcceptanceInput,
+} from "@/lib/quotes";
+import { generateRfq, markRfqSentManually, recordRfqResponse, rfqFileUrl, sendRfq, type RfqResponseInput, type RfqResult } from "@/lib/rfq";
 import type { RequestStatus } from "@/lib/states";
 
 /* Acciones del equipo sobre el arte de una solicitud (asignado o admin; lo valida la base). */
@@ -145,6 +157,8 @@ export async function recordRfqResponseAction(requestId: string, rfqId: string, 
   const result = await recordRfqResponse(user, String(rfqId), {
     costs: Array.isArray(input.costs) ? input.costs.map((c) => ({ itemId: String(c.itemId), quantity: Number(c.quantity), unitCost: String(c.unitCost) })) : [],
     currency: String(input.currency ?? "USD"),
+    fxRate: String(input.fxRate ?? ""),
+    fxDate: String(input.fxDate ?? ""),
     productionDays: String(input.productionDays ?? ""),
     notes: String(input.notes ?? ""),
   });
@@ -197,4 +211,37 @@ export async function issueQuoteAction(requestId: string, quoteId: string): Prom
 export async function quoteFileUrlAction(quoteId: string): Promise<string | null> {
   const user = await assertStaff();
   return quoteFileUrl(user, String(quoteId));
+}
+
+export async function markRfqSentAction(requestId: string, rfqId: string, input: { to: string; date: string }): Promise<RfqResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await markRfqSentManually(user, String(rfqId), { to: String(input.to ?? ""), date: String(input.date ?? "") });
+  if (result.ok) refresh(requestId);
+  return result;
+}
+
+export async function recordAcceptanceAction(requestId: string, quoteId: string, input: StaffAcceptanceInput): Promise<QuoteResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await recordClientAcceptance(user, String(quoteId), {
+    name: String(input.name ?? ""),
+    channel: String(input.channel ?? ""),
+    date: String(input.date ?? ""),
+    selection: Array.isArray(input.selection) ? input.selection.map((x) => ({ itemId: String(x.itemId), quantity: Number(x.quantity) })) : [],
+    evidencePath: input.evidencePath ? String(input.evidencePath) : null,
+  });
+  if (result.ok) {
+    kickNotifications();
+    refresh(requestId);
+  }
+  return result;
+}
+
+export async function prepareAcceptanceUploadAction(quoteId: string, file: { name: string; size: number }): Promise<UploadSlot> {
+  const user = await assertStaff(EDITOR_ROLES);
+  return prepareAcceptanceUpload(user, String(quoteId), { name: String(file.name).slice(0, 200), size: Number(file.size) });
+}
+
+export async function confirmAcceptanceUploadAction(quoteId: string, input: { path: string; name: string }): Promise<UploadConfirm> {
+  const user = await assertStaff(EDITOR_ROLES);
+  return confirmAcceptanceUpload(user, String(quoteId), { path: String(input.path), name: String(input.name).slice(0, 200) });
 }

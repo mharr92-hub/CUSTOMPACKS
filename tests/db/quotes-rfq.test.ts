@@ -15,7 +15,7 @@ const { submitDraft } = await import("@/lib/quote/submit");
 const { emptyItem, initialWizardState } = await import("@/lib/quote/types");
 const { changeRequestStatus } = await import("@/lib/panel/requests");
 const { generateRfq, recordRfqResponse, sendRfq } = await import("@/lib/rfq");
-const { acceptQuote, createQuoteDraft, expireQuotes, getClientQuote, issueQuote, quoteExpiryReminders, requestQuoteChanges, updateQuoteDraft } = await import("@/lib/quotes");
+const { acceptQuote, createQuoteDraft, expireQuotes, getClientQuote, issueQuote, quoteExpiryReminders, recordClientAcceptance, requestQuoteChanges, updateQuoteDraft } = await import("@/lib/quotes");
 const { processNotificationQueue } = await import("@/lib/notify");
 const { getObject } = await import("@/lib/storage");
 type CurrentUser = import("@/lib/auth").CurrentUser;
@@ -190,6 +190,47 @@ describe("cotización", () => {
       [1000, 0.4, "PEN", 1.5, 3.75],
       [20000, 300, "PEN", 1125, 3.75],
     ]);
+  });
+
+  it("el vendedor registra la aceptación que llegó por WhatsApp y se crea el pedido (M4, PRD §11)", async () => {
+    const { user, requestId, itemId } = await readyForQuote();
+    const draft = await createQuoteDraft(user, requestId);
+    if (!draft.ok) throw new Error("borrador");
+    expect((await issueQuote(user, draft.quote.id)).ok).toBe(true);
+    const today = new Date().toISOString().slice(0, 10);
+    const input = { name: "Paula Ríos", channel: "whatsapp", date: today, selection: [{ itemId, quantity: 20000 }] };
+
+    const viewerId = await createUser(`lectura-m4-${Date.now()}@test.local`, "viewer");
+    const viewer: CurrentUser = { userId: viewerId, email: null, profileId: viewerId, name: null, role: "viewer", isActive: true };
+    expect(await recordClientAcceptance(viewer, draft.quote.id, input)).toEqual({ ok: false, error: "forbidden" });
+    expect(await recordClientAcceptance(user, draft.quote.id, { ...input, channel: "fax" })).toEqual({ ok: false, error: "acceptance" });
+    expect(await recordClientAcceptance(user, draft.quote.id, { ...input, date: "2099-01-01" })).toEqual({ ok: false, error: "acceptance" });
+    expect(await recordClientAcceptance(user, draft.quote.id, { ...input, selection: [{ itemId, quantity: 7 }] })).toEqual({ ok: false, error: "selection" });
+    expect(await recordClientAcceptance(user, draft.quote.id, { ...input, evidencePath: `requests/otra/acceptance/x.png` })).toEqual({ ok: false, error: "evidence" });
+
+    expect(await recordClientAcceptance(user, draft.quote.id, input)).toEqual({ ok: true });
+    const [q] = await testSql()<{ status: string; accepted_channel: string; accepted_recorded_by: string; r: string }[]>`
+      select q.status, q.accepted_channel, q.accepted_recorded_by, r.status as r from public.quotes q join public.quote_requests r on r.id = q.request_id where q.id = ${draft.quote.id}`;
+    expect(q).toEqual({ status: "accepted", accepted_channel: "whatsapp", accepted_recorded_by: user.userId, r: "accepted" });
+    const [order] = await testSql()<{ total_amount: string }[]>`select total_amount from public.orders where request_id = ${requestId}`;
+    expect(Number(order?.total_amount)).toBeGreaterThan(0);
+    const act = await testSql()`select 1 from public.activities where request_id = ${requestId} and kind = 'quote_accepted_staff' and channel = 'whatsapp' and user_id = ${user.userId}`;
+    expect(act).toHaveLength(1);
+    // Una vez aceptada no se acepta dos veces.
+    expect(await recordClientAcceptance(user, draft.quote.id, input)).toEqual({ ok: false, error: "status" });
+  });
+
+  it("una cotización vencida no se puede registrar como aceptada", async () => {
+    const { user, requestId, itemId } = await readyForQuote();
+    const draft = await createQuoteDraft(user, requestId);
+    if (!draft.ok) throw new Error("borrador");
+    await issueQuote(user, draft.quote.id);
+    await testSql()`update public.quotes set valid_until = current_date - 1 where id = ${draft.quote.id}`;
+    const today = new Date().toISOString().slice(0, 10);
+    expect(await recordClientAcceptance(user, draft.quote.id, { name: "Paula Ríos", channel: "call", date: today, selection: [{ itemId, quantity: 1000 }] })).toEqual({
+      ok: false,
+      error: "expired",
+    });
   });
 
   it("se calcula con margen, se emite, avisa al cliente y el cliente la acepta eligiendo cantidades", async () => {

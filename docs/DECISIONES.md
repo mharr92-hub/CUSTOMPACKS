@@ -755,3 +755,12 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   Junto a cada campo de dinero el panel muestra el valor interpretado ("= USD 5,000.00"), así que una lectura distinta de la esperada se ve antes de guardar.
 - **Moneda de fábrica:** lista cerrada USD y PEN. Si no es la moneda de la cotización, el tipo de cambio (unidades de la moneda de fábrica por 1 de la cotización) y su fecha se escriben con la respuesta del RFQ; la cotización convierte y guarda el costo original.
 - **Cómo cambiarla:** `parseMoney` en `lib/quotes/pricing.ts`; monedas en `RFQ_CURRENCIES` (`lib/rfq/index.ts` y `components/panel/rfq-quote.tsx`).
+
+### D-108 · 03/10/2026 · Estados que solo fija el sistema y aceptación registrada por el equipo (M3, M4)
+- **Duda:** cómo impedir que el selector del panel deje una solicitud "Aceptada" sin pedido, sin quitarle al vendedor la aceptación que llega por WhatsApp (PRD §11).
+- **Decisión:**
+  - A mano solo se puede pasar a En revisión, Datos pendientes y Rechazada (`MANUAL_TRANSITIONS` en `lib/states.ts`).
+  - "RFQ enviado", "Cotizada" y "Aceptada" exigen que la transacción marque `app.system_transition` cuando la hace un usuario (migración 013). La marcan `sendRfq`, `markRfqSentManually` e `issueQuote`; la aceptación corre con el servicio después de validar el enlace o el rol.
+  - "Registrar aceptación del cliente" reutiliza la aceptación del portal (`acceptInTx`): mismas reglas de vigencia y cantidades, crea el pedido y guarda canal, quién la registró y la captura opcional (`quotes.accepted_channel`, `accepted_recorded_by`, `accepted_evidence_path`).
+  - La máquina del pedido quedó en `lib/states.ts` y una prueba compara las dos máquinas con la base par por par.
+- **Cómo cambiarla:** `MANUAL_TRANSITIONS` y `SYSTEM_ONLY_STATUSES` en `lib/states.ts`, y el trigger de la migración 013.

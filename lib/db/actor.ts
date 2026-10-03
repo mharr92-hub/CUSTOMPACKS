@@ -65,3 +65,13 @@ async function runInTransaction<T>(actor: Actor, fn: (tx: Tx) => Promise<T>): Pr
   });
   return result as T;
 }
+
+/**
+ * Marca la transacción como un cambio de estado hecho por el sistema (enviar
+ * el RFQ, emitir la cotización): sin esta marca, la base no deja que un
+ * usuario pase la solicitud a "RFQ enviado", "Cotizada" o "Aceptada"
+ * (migración 013).
+ */
+export async function markSystemTransition(tx: Tx): Promise<void> {
+  await tx`select set_config('app.system_transition', 'on', true)`;
+}

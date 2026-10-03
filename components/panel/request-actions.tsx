@@ -86,7 +86,15 @@ export function StatusControl({ requestId, next }: { requestId: string; next: re
   const [reason, setReason] = useState("");
   const [lossReason, setLossReason] = useState("");
   const [lossNote, setLossNote] = useState("");
-  if (next.length === 0) return <p className="text-sm text-muted-foreground">{t("noTransitions")}</p>;
+  const hint = <p className="text-xs text-muted-foreground">{t("systemStatusHint")}</p>;
+  if (next.length === 0) {
+    return (
+      <div className="space-y-1">
+        <p className="text-sm text-muted-foreground">{t("noTransitions")}</p>
+        {hint}
+      </div>
+    );
+  }
   return (
     <form
       className="space-y-2"
@@ -99,6 +107,7 @@ export function StatusControl({ requestId, next }: { requestId: string; next: re
         });
       }}
     >
+      {hint}
       <label className="grid gap-1 text-xs font-medium">
         {t("to")}
         <select value={to} onChange={(e) => setTo(e.target.value as RequestStatus)} className={select} data-testid="status-select">

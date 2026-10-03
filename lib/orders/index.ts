@@ -1,9 +1,19 @@
 import "server-only";
 import { actorFor, EDITOR_ROLES, type CurrentUser } from "@/lib/auth";
-import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
+import {
+  EVIDENCE_EXT,
+  EVIDENCE_KINDS,
+  RECEIPT_EXT,
+  RECEIPT_KINDS,
+  safeName,
+  slot,
+  verify,
+  type UploadConfirm,
+  type UploadSlot,
+} from "@/lib/files/upload-core";
 import { serviceActor, withActor } from "@/lib/db/actor";
 import type { Tx } from "@/lib/db/client";
-import { detectFileKind, type DetectedKind } from "@/lib/files/magic";
+import type { DetectedKind } from "@/lib/files/magic";
 import { formatDate } from "@/lib/format";
 import { serverT } from "@/lib/i18n";
 import { addDays, leadTimeStart, todayInPanama } from "@/lib/leadtime";
@@ -12,7 +22,7 @@ import { balanceReminderDue, npsDue } from "@/lib/notify/schedule";
 import type { ItemSpec } from "@/lib/quote/spec";
 import { getRequestByToken } from "@/lib/quote/tracking";
 import { formatMoney, parseMoney } from "@/lib/quotes/pricing";
-import { readObjectHead, removeObject, signedUploadUrl, signedUrl } from "@/lib/storage";
+import { signedUrl } from "@/lib/storage";
 import { fileNonce } from "@/lib/tokens";
 import { absoluteUrl } from "@/lib/urls";
 import { mergeQaResults, qaChecklistFromSpec, qaComplete, type QaKey, type QaPoint } from "./qa";
@@ -405,6 +415,11 @@ const STATUS_AFTER: Partial<Record<MilestoneType, OrderStatus>> = {
   closed: "closed",
 };
 
+/** Estado al que lleva un hito manual (para la prueba de paridad con la base). */
+export function statusAfterMilestone(type: MilestoneType): OrderStatus | null {
+  return STATUS_AFTER[type] ?? null;
+}
+
 export function nextMilestones(status: OrderStatus): readonly MilestoneType[] {
   return MANUAL[status];
 }
@@ -599,53 +614,11 @@ export async function reviewPayment(user: CurrentUser, paymentId: string, input:
 // ---------------------------------------------------------------------------
 // Archivos: evidencias de hitos (equipo) y comprobantes (cliente)
 // ---------------------------------------------------------------------------
+export type { UploadConfirm, UploadSlot };
 /** Evidencias por hito (fotos, video o PDF). */
 export const MAX_EVIDENCE = 30;
 /** Comprobantes del cliente pendientes de revisión, como máximo. */
 const MAX_PENDING_RECEIPTS = 5;
-const EVIDENCE_KINDS: readonly DetectedKind[] = ["png", "jpeg", "webp", "mp4", "mov", "pdf"];
-const RECEIPT_KINDS: readonly DetectedKind[] = ["png", "jpeg", "webp", "pdf"];
-const EVIDENCE_EXT = ["png", "jpg", "jpeg", "webp", "mp4", "mov", "pdf"];
-const RECEIPT_EXT = ["png", "jpg", "jpeg", "webp", "pdf"];
-
-function safeName(original: string): string {
-  const base = original.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^[-.]+/, "").slice(-80);
-  return base || "archivo";
-}
-
-export type UploadSlot = { ok: true; url: string; method: "PUT"; headers: Record<string, string>; path: string } | { ok: false; error: "tooLarge" | "tooMany" | "badType" | "expired" | "generic" };
-export type UploadConfirm = { ok: true; file: { id: string; name: string; size: number; path: string; kind: string } } | { ok: false; error: "typeMismatch" | "tooLarge" | "expired" | "network" | "generic" };
-
-async function maxBytes(): Promise<number> {
-  return uploadSettings(await getPublicCatalog()).maxMb * 1024 * 1024;
-}
-
-async function slot(bucket: "evidence" | "documents", path: string, size: number, name: string, allowed: readonly string[]): Promise<UploadSlot> {
-  const ext = name.toLowerCase().split(".").pop() ?? "";
-  if (!allowed.includes(ext)) return { ok: false, error: "badType" };
-  const max = await maxBytes();
-  if (!Number.isFinite(size) || size <= 0 || size > max) return { ok: false, error: "tooLarge" };
-  try {
-    return { ok: true, ...(await signedUploadUrl(bucket, path, { maxBytes: max, expiresIn: 3600 })), path };
-  } catch {
-    return { ok: false, error: "generic" };
-  }
-}
-
-async function verify(bucket: "evidence" | "documents", path: string, name: string, kinds: readonly DetectedKind[]): Promise<{ kind: DetectedKind; size: number } | { error: "typeMismatch" | "tooLarge" | "network" }> {
-  const head = await readObjectHead(bucket, path, 2048);
-  if (!head) return { error: "network" };
-  const kind = detectFileKind(head.head, name);
-  if (!kinds.includes(kind)) {
-    await removeObject(bucket, path).catch(() => {});
-    return { error: "typeMismatch" };
-  }
-  if (head.size > (await maxBytes())) {
-    await removeObject(bucket, path).catch(() => {});
-    return { error: "tooLarge" };
-  }
-  return { kind, size: head.size };
-}
 
 export async function prepareEvidenceUpload(user: CurrentUser, milestoneId: string, file: { name: string; size: number }): Promise<UploadSlot> {
   if (!isEditor(user) || !UUID.test(milestoneId)) return { ok: false, error: "expired" };

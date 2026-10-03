@@ -4,7 +4,7 @@ import { withActor } from "@/lib/db/actor";
 import type { Tx } from "@/lib/db/client";
 import { businessHoursBetween, parseBusinessHours, type BusinessHours } from "@/lib/notify/business-hours";
 import type { ItemSpec } from "@/lib/quote/spec";
-import { canTransition, LOSS_REASONS, type LossReason, type RequestStatus } from "@/lib/states";
+import { canManuallyTransition, LOSS_REASONS, type LossReason, type RequestStatus } from "@/lib/states";
 import type { MissingField } from "@/lib/traffic-light";
 
 /**
@@ -369,7 +369,7 @@ export async function changeRequestStatus(
   return withActor(actorFor(user), async (tx) => {
     const [current] = await tx<{ status: RequestStatus }[]>`select status from public.quote_requests where id = ${id} for update`;
     if (!current) return { ok: false, error: "not_found" } as const;
-    if (!canTransition(current.status, to)) return { ok: false, error: "transition" } as const;
+    if (!canManuallyTransition(current.status, to)) return { ok: false, error: "transition" } as const;
     await tx`select set_config('app.transition_reason', ${reason ?? ""}, true)`;
     await tx`
       update public.quote_requests

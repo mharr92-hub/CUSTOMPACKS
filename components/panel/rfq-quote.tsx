@@ -5,16 +5,21 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
+  confirmAcceptanceUploadAction,
   createQuoteDraftAction,
   generateRfqAction,
   issueQuoteAction,
+  markRfqSentAction,
+  prepareAcceptanceUploadAction,
   quoteFileUrlAction,
+  recordAcceptanceAction,
   recordRfqResponseAction,
   rfqFileUrlAction,
   sendRfqAction,
   updateQuoteDraftAction,
 } from "@/app/admin/(panel)/solicitudes/[id]/actions";
 import { MoneyHint } from "@/components/panel/money-hint";
+import { FileUploader } from "@/components/upload/file-uploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -155,10 +160,57 @@ export function RfqPanel({
               ) : null}
             </div>
           </div>
+          {canEdit && index === 0 && !rfq.sentAt ? <MarkSentForm requestId={requestId} rfqId={rfq.id} /> : null}
           {canEdit && index === 0 ? <RfqResponseForm requestId={requestId} rfq={rfq} items={items} baseCurrency={baseCurrency} /> : null}
         </article>
       ))}
     </div>
+  );
+}
+
+/** El RFQ salió por fuera (sin FACTORY_EMAIL o por WhatsApp): se registra a quién y cuándo (PAN-16). */
+function MarkSentForm({ requestId, rfqId }: { requestId: string; rfqId: string }) {
+  const t = useTranslations("admin.rfq");
+  const { error, busy, run } = useRun("admin.rfq");
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState("");
+  const [date, setDate] = useState(() => new Date().toLocaleDateString("en-CA", { timeZone: "America/Panama" }));
+  if (!open) {
+    return (
+      <Button type="button" size="sm" variant="ghost" className="mt-2" onClick={() => setOpen(true)}>
+        {t("markSent")}
+      </Button>
+    );
+  }
+  return (
+    <form
+      className="mt-3 space-y-2 border-t border-border pt-3"
+      data-testid="rfq-mark-sent"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void run(() => markRfqSentAction(requestId, rfqId, { to, date }));
+      }}
+    >
+      <p className="text-xs text-muted-foreground">{t("markSentHint")}</p>
+      <div className="grid gap-2 sm:grid-cols-[1fr_12rem]">
+        <label className="grid gap-1 text-xs font-medium">
+          {t("markSentTo")}
+          <Input value={to} onChange={(e) => setTo(e.target.value)} maxLength={200} />
+        </label>
+        <label className="grid gap-1 text-xs font-medium">
+          {t("markSentDate")}
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+      </div>
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <Button type="submit" size="sm" disabled={busy}>
+        {t("markSentSave")}
+      </Button>
+    </form>
   );
 }
 
@@ -272,6 +324,7 @@ export function QuotePanel({
   canEdit,
   canPrepare,
   taxLabel,
+  maxMb,
 }: {
   requestId: string;
   items: PanelItem[];
@@ -280,6 +333,8 @@ export function QuotePanel({
   canPrepare: boolean;
   /** Leyenda de impuestos (settings.tax_label). */
   taxLabel: string;
+  /** Tamaño máximo de archivo (settings.max_file_mb), para la captura de la aceptación. */
+  maxMb: number;
 }) {
   const t = useTranslations("admin.quote");
   const { error, busy, run } = useRun("admin.quote");
@@ -324,17 +379,142 @@ export function QuotePanel({
                       </p>
                     ) : null}
                   </div>
-                  {q.hasPdf ? (
-                    <Button type="button" size="sm" variant="outline" onClick={() => void openSigned(() => quoteFileUrlAction(q.id))}>
-                      {t("pdf")}
-                    </Button>
-                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    {q.hasPdf ? (
+                      <Button type="button" size="sm" variant="outline" onClick={() => void openSigned(() => quoteFileUrlAction(q.id))}>
+                        {t("pdf")}
+                      </Button>
+                    ) : null}
+                    {canEdit && q.status === "sent" ? <AcceptanceForm requestId={requestId} quote={q} items={items} maxMb={maxMb} /> : null}
+                  </div>
                 </li>
               ))}
           </ul>
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * "Registrar aceptación del cliente" (PRD §11): el cliente aceptó por
+ * WhatsApp, correo o llamada. Crea el pedido igual que la aceptación en su enlace.
+ */
+function AcceptanceForm({ requestId, quote, items, maxMb }: { requestId: string; quote: PanelQuote; items: PanelItem[]; maxMb: number }) {
+  const t = useTranslations("admin.quote");
+  const { error, busy, run } = useRun("admin.quote");
+  const [open, setOpen] = useState(false);
+  const pieces = [...new Set(quote.lines.map((l) => l.itemId))];
+  const quantitiesOf = (itemId: string) => quote.lines.filter((l) => l.itemId === itemId).map((l) => l.quantity);
+  const [name, setName] = useState("");
+  const [channel, setChannel] = useState<"whatsapp" | "email" | "call">("whatsapp");
+  const [date, setDate] = useState(() => new Date().toLocaleDateString("en-CA", { timeZone: "America/Panama" }));
+  const [selection, setSelection] = useState<Record<string, string>>(() =>
+    Object.fromEntries(pieces.map((id) => [id, quantitiesOf(id).length === 1 ? String(quantitiesOf(id)[0]) : ""])),
+  );
+  const [evidence, setEvidence] = useState<string | null>(null);
+  if (!open) {
+    return (
+      <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)} data-testid="accept-open">
+        {t("accept.open")}
+      </Button>
+    );
+  }
+  return (
+    <form
+      className="mt-2 w-full space-y-3 rounded-md border border-border p-3"
+      data-testid="accept-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void run(
+          () =>
+            recordAcceptanceAction(requestId, quote.id, {
+              name,
+              channel,
+              date,
+              selection: pieces.map((itemId) => ({ itemId, quantity: Number(selection[itemId] ?? 0) })),
+              evidencePath: evidence,
+            }),
+          t("accept.saved"),
+        );
+      }}
+    >
+      <p className="font-semibold">{t("accept.title")}</p>
+      <p className="text-xs text-muted-foreground">{t("accept.intro")}</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="grid gap-1 text-xs font-medium">
+          {t("accept.name")}
+          <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={160} />
+        </label>
+        <label className="grid gap-1 text-xs font-medium">
+          {t("accept.channel")}
+          <select
+            value={channel}
+            onChange={(e) => setChannel(e.target.value as "whatsapp" | "email" | "call")}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm font-normal"
+          >
+            {(["whatsapp", "email", "call"] as const).map((c) => (
+              <option key={c} value={c}>
+                {t(`accept.channels.${c}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1 text-xs font-medium">
+          {t("accept.date")}
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {pieces.map((itemId) => {
+          const item = items.find((i) => i.id === itemId);
+          return (
+            <label key={itemId} className="grid gap-1 text-xs font-medium">
+              {t("accept.quantity", { position: item?.position ?? "" })}
+              <select
+                value={selection[itemId] ?? ""}
+                onChange={(e) => setSelection((s) => ({ ...s, [itemId]: e.target.value }))}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm font-normal"
+                data-testid="accept-quantity"
+              >
+                <option value="">—</option>
+                {quantitiesOf(itemId).map((q) => (
+                  <option key={q} value={q}>
+                    {fmtInt(q)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          );
+        })}
+      </div>
+      <FileUploader
+        label={t("accept.evidence")}
+        accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+        extensions={["jpg", "jpeg", "png", "webp", "pdf"]}
+        maxMb={maxMb}
+        maxFiles={1}
+        currentCount={evidence ? 1 : 0}
+        limitsText=""
+        testId="accept-evidence"
+        requestSlot={(file) => prepareAcceptanceUploadAction(quote.id, { name: file.name, size: file.size })}
+        confirm={(input) => confirmAcceptanceUploadAction(quote.id, input)}
+        onUploaded={(file) => setEvidence(file.path)}
+      />
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" size="sm" disabled={busy}>
+          {t("accept.save")}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          {t("accept.cancel")}
+        </Button>
+      </div>
+    </form>
   );
 }
 

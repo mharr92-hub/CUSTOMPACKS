@@ -81,12 +81,12 @@ Aceptación:
 
 Objetivo: que "RFQ enviado", "Cotizada" y "Aceptada" solo ocurran a través de las acciones del sistema (REG-03, PAN-01, PAN-05, PAN-16, COD-10).
 
-- [ ] `lib/states.ts`: lista `MANUAL_TRANSITIONS` (`in_review` y `data_pending`, y `rejected` con motivo donde la máquina lo permita). El selector del panel usa solo esa lista.
-- [ ] Migración: el trigger `request_transition_allowed` solo acepta `rfq_sent`, `quoted` y `accepted` si los fija una función del sistema:
+- [x] `lib/states.ts`: lista `MANUAL_TRANSITIONS` (`in_review` y `data_pending`, y `rejected` con motivo donde la máquina lo permita). El selector del panel usa solo esa lista. La máquina del pedido también vive ahí (`ORDER_TRANSITIONS`).
+- [x] Migración: el trigger `request_transition_allowed` solo acepta `rfq_sent`, `quoted` y `accepted` si los fija una función del sistema:
   - la variable de sesión la fijan `generateRfq`/`sendRfq`, "Marcar RFQ enviado a mano", `issueQuote` y `acceptQuote`;
   - `authenticated` no puede fijarla directamente.
-- [ ] Botón "Marcar RFQ enviado a mano", con destinatario y fecha: registra `sent_at`, pasa la solicitud a RFQ enviado y deja la actividad en el historial.
-- [ ] Prueba de paridad que recorre todos los pares de estados de la solicitud y del pedido y compara TypeScript con SQL.
+- [x] Botón "Marcar RFQ enviado a mano", con destinatario y fecha: registra `sent_at`, pasa la solicitud a RFQ enviado y deja la actividad en el historial.
+- [x] Prueba de paridad que recorre todos los pares de estados de la solicitud y del pedido y compara TypeScript con SQL.
 
 Aceptación:
 - Desde el panel no se llega a Cotizada ni a Aceptada sin cotización.
@@ -99,14 +99,14 @@ Aceptación:
 
 Objetivo: el registro manual de la aceptación por WhatsApp que pide el PRD §11 (PAN-01).
 
-- [ ] En la cotización emitida, el botón "Registrar aceptación del cliente". Pide:
+- [x] En la cotización emitida, el botón "Registrar aceptación del cliente". Pide:
   - la cantidad elegida por pieza;
   - el nombre de quien acepta;
   - el canal (WhatsApp, correo o llamada);
   - la fecha;
   - una captura opcional.
-- [ ] Reutiliza `acceptQuote` con actor del equipo: crea el pedido y deja historial y auditoría con el canal. Rige la misma vigencia que para el cliente.
-- [ ] Textos en `messages/es.json`, y una sección en `docs/manual-equipo.md`.
+- [x] Reutiliza `acceptQuote` con actor del equipo: crea el pedido y deja historial y auditoría con el canal. Rige la misma vigencia que para el cliente.
+- [x] Textos en `messages/es.json`, y una sección en `docs/manual-equipo.md`.
 
 Aceptación:
 - En e2e, el vendedor registra una aceptación por WhatsApp y aparece el pedido P- con el anticipo correcto.

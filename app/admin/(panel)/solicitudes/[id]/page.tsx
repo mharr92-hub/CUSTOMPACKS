@@ -18,7 +18,7 @@ import { getRequestDetail, getTimeline, listAssignableStaff, type TimelineEntry 
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
 import { listQuotes } from "@/lib/quotes";
 import { listRfqs } from "@/lib/rfq";
-import { nextStatuses } from "@/lib/states";
+import { manualNextStatuses } from "@/lib/states";
 import { signedUrl } from "@/lib/storage";
 import { absoluteUrl } from "@/lib/urls";
 import { cn } from "@/lib/utils";
@@ -285,6 +285,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
               canEdit={canEdit}
               canPrepare={["rfq_sent", "quoted", "expired"].includes(request.status) && (rfqs.some((r) => r.respondedAt) || quotes.length > 0)}
               taxLabel={taxLabel(catalog)}
+              maxMb={uploadSettings(catalog).maxMb}
               quotes={quotes.map((q) => ({
                 id: q.id,
                 number: q.number,
@@ -360,7 +361,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
             {canEdit ? <AssignControl requestId={request.id} assignedTo={request.assignedTo} staff={staff} /> : null}
           </Section>
           <Section id="status-title" title={t("statusTitle")}>
-            {canEdit ? <StatusControl requestId={request.id} next={nextStatuses(request.status)} /> : <p className="text-sm">{ta(`statuses.${request.status}`)}</p>}
+            {canEdit ? <StatusControl requestId={request.id} next={manualNextStatuses(request.status)} /> : <p className="text-sm">{ta(`statuses.${request.status}`)}</p>}
             {request.lossReason ? <p className="mt-2 text-sm">{`${t("lossReason")}: ${ta(`lossReasons.${request.lossReason}`)}${request.lossNote ? ` · ${request.lossNote}` : ""}`}</p> : null}
           </Section>
           {canEdit ? (

@@ -625,7 +625,9 @@
         "milestone": "Hito del pedido",
         "payment_confirmed": "Pago confirmado",
         "receipt_uploaded": "El cliente subió un comprobante",
-        "evidence_uploaded": "Evidencia subida"
+        "evidence_uploaded": "Evidencia subida",
+        "rfq_sent_manually": "RFQ enviado a fábrica a mano",
+        "quote_accepted_staff": "Aceptación del cliente registrada por el equipo"
       },
       "by": "por {name}",
       "system": "sistema",
@@ -641,7 +643,8 @@
         "assignee": "Esa persona no puede recibir solicitudes.",
         "generic": "No se pudo guardar. Inténtalo de nuevo."
       },
-      "orderLink": "Pedido {number}"
+      "orderLink": "Pedido {number}",
+      "systemStatusHint": "\"RFQ enviado\", \"Cotizada\" y \"Aceptada\" se fijan solos al enviar el RFQ, emitir la cotización y registrar la aceptación."
     },
     "users": {
       "title": "Usuarios del equipo",
@@ -821,7 +824,8 @@
         "days": "El tiempo de producción va en días (1 a 365).",
         "generic": "No se pudo completar. Inténtalo de nuevo.",
         "currency": "Elige la moneda de la respuesta de fábrica.",
-        "fx": "Escribe el tipo de cambio (mayor que 0) y su fecha: la fábrica respondió en otra moneda."
+        "fx": "Escribe el tipo de cambio (mayor que 0) y su fecha: la fábrica respondió en otra moneda.",
+        "manual_sent": "Escribe a quién lo enviaste (3 caracteres o más) y una fecha que no sea futura."
       },
       "fxRate": "Tipo de cambio: {currency} por 1 {base}",
       "fxDate": "Fecha del tipo de cambio",
@@ -829,7 +833,12 @@
       "currencies": {
         "USD": "Dólares (USD)",
         "PEN": "Soles (PEN)"
-      }
+      },
+      "markSent": "Marcar enviado a mano",
+      "markSentHint": "Si mandaste el RFQ por fuera (correo propio o WhatsApp a la fábrica), regístralo aquí: la solicitud pasa a RFQ enviado.",
+      "markSentTo": "Enviado a",
+      "markSentDate": "Fecha de envío",
+      "markSentSave": "Registrar envío"
     },
     "quote": {
       "title": "Cotización",
@@ -874,10 +883,33 @@
         "lines": "Revisa las líneas: costo mayor que 0, flete de 0 o más, margen entre 0 y 94 %, plazo en días.",
         "valid_until": "La vigencia no puede ser anterior a hoy.",
         "generic": "No se pudo completar. Inténtalo de nuevo.",
-        "fx": "La respuesta de fábrica está en otra moneda y no tiene tipo de cambio: edita la respuesta del RFQ y escríbelo."
+        "fx": "La respuesta de fábrica está en otra moneda y no tiene tipo de cambio: edita la respuesta del RFQ y escríbelo.",
+        "selection": "Elige una cantidad cotizada para cada pieza.",
+        "expired": "La cotización está vencida: emite una versión nueva.",
+        "name": "Escribe el nombre de quien acepta (3 caracteres o más).",
+        "acceptance": "Revisa el canal y la fecha (no puede ser futura).",
+        "evidence": "La captura no se pudo verificar: súbela de nuevo."
       },
       "lineTitle": "{position}. {name} · {quantity} unidades",
-      "costFx": "Costo de fábrica: {original} ÷ {rate} ({date})"
+      "costFx": "Costo de fábrica: {original} ÷ {rate} ({date})",
+      "accept": {
+        "open": "Registrar aceptación del cliente",
+        "title": "Aceptación por WhatsApp, correo o llamada",
+        "intro": "Úsalo cuando el cliente aceptó fuera de su enlace. Crea el pedido igual que si hubiera aceptado en su portal.",
+        "name": "Nombre de quien acepta",
+        "channel": "Canal",
+        "channels": {
+          "whatsapp": "WhatsApp",
+          "email": "Correo",
+          "call": "Llamada"
+        },
+        "date": "Fecha de la aceptación",
+        "quantity": "Cantidad elegida · pieza {position}",
+        "evidence": "Captura de la conversación (opcional)",
+        "save": "Registrar aceptación y crear el pedido",
+        "cancel": "Cancelar",
+        "saved": "Aceptación registrada: se creó el pedido."
+      }
     },
     "order": {
       "metaTitle": "Pedido {number}",
