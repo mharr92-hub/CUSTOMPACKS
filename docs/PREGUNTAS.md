@@ -1,6 +1,6 @@
 # Preguntas para Mark
 
-Lo que el sistema necesita de Mark y no se puede decidir desde el código. Cada punto dice qué hace hoy la plataforma mientras tanto y dónde se carga la respuesta. El detalle de cuentas y contenido está en `docs/lanzamiento.md`.
+Lo que el sistema necesita de Mark y no se puede decidir desde el código. La lista de tareas completa, en orden, está en `docs/PENDIENTES-MARK.md`. Cada punto dice qué hace hoy la plataforma mientras tanto y dónde se carga la respuesta. El detalle de cuentas y contenido está en `docs/lanzamiento.md`.
 
 ## Nuevas (25/09/2026)
 

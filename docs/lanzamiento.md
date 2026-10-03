@@ -82,6 +82,8 @@ Se editan en **Panel → Configuración** (admin). Al guardar un valor, deja de 
 | **Instrucciones de pago** (`payment_instructions`) | Vacío | **Falta:** banco, cuenta, ACH, Yappy. Mientras esté vacío, el cliente ve un botón para pedirlas por WhatsApp. |
 | **Correo del equipo** (`team_notification_email`) | Vacío (usa el de admin) | **Falta:** a qué correo van los avisos internos |
 | Moneda | USD | PROVISIONAL |
+| Tolerancia de pagos (`payment_tolerance`) | 0 | PROVISIONAL: los pagos confirmados deben sumar el monto completo (pregunta 19) |
+| WhatsApp pendientes en el resumen diario (`whatsapp_pending_alert_hours`) | 2 horas hábiles | PROVISIONAL |
 
 Otras preguntas abiertas (PRD §20 y `docs/DECISIONES.md`):
 
@@ -104,13 +106,14 @@ Ninguna credencial va en el código ni en el repositorio: se cargan como variabl
 | WhatsApp del negocio | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Número con código de país, sin signos (hoy es de ejemplo) |
 | Correo de contacto | `NEXT_PUBLIC_CONTACT_EMAIL` | Hoy es de ejemplo |
 | Correo de la fábrica | `FACTORY_EMAIL` | A dónde salen los RFQ |
-| Administrador | `ADMIN_EMAIL` | El correo de Mark: queda como admin al entrar por primera vez |
+| Administrador | `ADMIN_EMAIL` | El correo de Mark. En Supabase se invita con `pnpm admin:invite correo@…` (el registro público queda cerrado); recibe el rol admin con el correo confirmado |
 | Claves internas | `AUTH_SECRET` (32+ caracteres), `CRON_SECRET` | Generar al azar (ver `docs/deploy.md`). En producción `AUTH_SECRET` es obligatoria. |
 | Google Analytics 4 | `NEXT_PUBLIC_GA_ID` | Propiedad de GA4 (`G-…`) |
 | Meta Pixel | `NEXT_PUBLIC_META_PIXEL_ID` | Business Manager |
-| Opcional: captcha | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile (gratis), si llega spam |
+| **Captcha (obligatorio en producción)** | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile (gratis). Sin él, el panel muestra un aviso rojo |
 | Opcional: errores | `NEXT_PUBLIC_SENTRY_DSN` | Proyecto de Sentry (plan gratuito) |
-| Respaldos | Secretos `BACKUP_DATABASE_URL`, `BACKUP_PASSPHRASE` en GitHub | Ver `docs/respaldos.md` |
+| Respaldos de la base | Secretos `BACKUP_DATABASE_URL`, `BACKUP_PASSPHRASE` y variable `BACKUP_SCHEMAS=public` en GitHub | Ver `docs/respaldos.md` |
+| Respaldos de archivos | Secretos `STORAGE_S3_*` (Supabase → Storage → S3) y `BACKUP_S3_*`, variable `BACKUP_S3_BUCKET` | Un almacenamiento compatible con S3 que elija Mark (`docs/respaldos.md`, sección 5) |
 
 ## 4. Equipo
 

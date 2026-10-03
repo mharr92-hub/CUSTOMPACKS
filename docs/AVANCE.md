@@ -17,7 +17,8 @@ Estado por bloque de `TAREAS.md`. Se actualiza al cerrar cada bloque.
 | E10 — Lanzamiento | ✅ Hecho (falta lo que depende de Mark: docs/lanzamiento.md) | 25/09/2026 |
 | Bloque 1 · Cierre de pendientes | ✅ Hecho | 25/09/2026 |
 | Bloque 2 · Auditoría completa | ✅ Hecho (docs/AUDITORIA.md) | 25/09/2026 |
-| Bloque 3 · Propuestas de mejora | ✅ Hecho (docs/MEJORAS.md; cola TAREAS-mejoras.md sin ejecutar) | 25/09/2026 |
+| Bloque 3 · Propuestas de mejora | ✅ Hecho (docs/MEJORAS.md) | 25/09/2026 |
+| Cola de mejoras M1–M17 | ✅ Hecha (lo pendiente es de Mark: docs/PENDIENTES-MARK.md) | 03/10/2026 |
 
 ---
 
@@ -735,3 +736,54 @@ node scripts/bundle-size.mjs http://localhost:3200 /cotizar 250   # con pnpm bui
 **Cómo revisarlo**
 - Leer el resumen y las cuatro preguntas de `docs/MEJORAS.md`.
 - En `TAREAS-mejoras.md`, quitar los bloques que no se quieran y pegar el mensaje de arranque que está al principio del archivo.
+
+---
+
+## Cola de mejoras antes del lanzamiento · M1–M17 (03/10/2026)
+
+Mark pidió ejecutar la cola `TAREAS-mejoras.md` completa. Antes se aplicaron las actualizaciones de Dependabot: React 19.3, TypeScript 6, Lighthouse 13 y acciones de GitHub. `@types/node` se mantiene en 20, y `shadcn` pasó a devDependencies, con lo que `pnpm audit --prod` queda limpio.
+
+**Qué quedó hecho**
+
+| Bloque | Resultado |
+| --- | --- |
+| M1 | Sin transacciones anidadas: el portal y la primera cotización funcionan con `DB_POOL_MAX=1`. Guarda que lo detecta. Pantallas de error con la marca. |
+| M2 | Montos leídos como en pantalla ("5,000" = cinco mil) y valor interpretado junto a cada campo. Moneda de fábrica USD o PEN, con tipo de cambio (D-107). |
+| M3 | Estados manuales limitados. RFQ enviado, Cotizada y Aceptada solo los fija el sistema (migración 013). "Marcar RFQ enviado a mano". Paridad TS–SQL. |
+| M4 | "Registrar aceptación del cliente" por WhatsApp, correo o llamada, que crea el pedido (D-108). |
+| M5 | Producción exige el último proof aprobado y liberado. Las piezas "No sé" piden proof o confirmación "sin impresión" (migración 014). |
+| M6 | Cron cada 15 minutos con Supabase Cron (`pnpm cron:install`). Reintentos con espera, el 429 no gasta intento, botón Reenviar y aviso de avisos fallidos. |
+| M7 | Embudo del cotizador, semáforo inicial y minutos de completado guardados desde el día 1. Reportes sin datos DEMO (D-109). |
+| M8 | El gesto Atrás vuelve al paso anterior. Con la red caída se conserva el borrador. Aviso "Retomamos tu solicitud" con "Empezar una nueva". |
+| M9 | "Tengo el arte" exige un archivo o "Lo envío después". PNG y JPG entran como referencia. Continuar espera las subidas. |
+| M10 | WhatsApp local de 8 dígitos (+507) y contacto en el orden natural. |
+| M11 | Guía de despliegue con los planes correctos, previews separados y `pnpm check:storage`. |
+| M12 | Pagos conciliados por monto (tolerancia PROVISIONAL 0): pago parcial, anulación, referencias únicas, montos en centavos y reglas en la base (D-110). |
+| M13 | Editar la ficha (los mismos pasos del cotizador), las cantidades y el contacto, con versiones y recálculo del semáforo. |
+| M14 | Cola `/admin/whatsapp` con contador, resumen diario por correo, avisos al cliente por los dos canales y enlace de seguimiento copiable. |
+| M15 | Topes contra abuso anónimo y registro de URLs de subida. Captcha en "Guardar y seguir". Variables de prueba prohibidas en producción. Admin por invitación (D-111). |
+| M16 | Respaldos de 30 días, mapeo de usuarios, copia de archivos con rclone y migraciones con huella (no se editan). Respaldo previo al migrar. |
+| M17 | Ley 81: buscar, exportar (JSON) y anonimizar desde el panel. Logs sin datos personales (D-112). |
+
+**Qué no se hizo (anotado en la cola)**
+- **M12:** separar `lib/orders` en `payments.ts` y `milestones.ts`. Es un refactor sin cambio de comportamiento y pasa a P-36.
+- **M17:** la exportación en PDF. El JSON cubre el derecho de acceso.
+- **M6 y M11:** las comprobaciones que piden credenciales de Supabase quedaron en `pnpm cron:install --estado` y `pnpm check:storage`, porque `verify:deploy` corre contra una base local.
+- **M15:** sin Turnstile, el sitio sigue funcionando y el panel muestra un aviso rojo, en vez de fallar (D-111).
+
+**Lo que sigue depende de Mark:** `docs/PENDIENTES-MARK.md`.
+
+**Cómo probarlo**
+```bash
+pnpm lint && pnpm typecheck
+DB_POOL_MAX=1 pnpm test        # lógica y base con una sola conexión, como en producción
+pnpm test:e2e                  # cotizador, panel, pedidos y portal (DB_POOL_MAX=1)
+pnpm verify:deploy             # ensayo de despliegue en local
+```
+
+**Resultado de la verificación (03/10/2026)**
+- `pnpm lint` y `pnpm typecheck`: en verde.
+- `pnpm test`: 200 pruebas en verde (+2 de respaldo que corren en CI).
+- `pnpm test:e2e`: 40 en verde.
+- `pnpm verify:deploy`: 23/23.
+- `pnpm audit --prod`: sin vulnerabilidades.
