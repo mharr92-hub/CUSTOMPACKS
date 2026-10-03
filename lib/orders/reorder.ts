@@ -57,6 +57,14 @@ function itemFromSpec(spec: ItemSpec, quantity: number, catalog: PublicCatalog, 
   };
 }
 
+/** Borrador de una pieza a partir de su ficha congelada, con todas sus cantidades (edición en el panel, M13). */
+export function draftFromSpec(spec: ItemSpec, catalog: PublicCatalog, key = "editar"): ItemDraft {
+  const item = itemFromSpec(spec, spec.quantities[0] ?? 0, catalog, 0);
+  const q = spec.quantities.map(String);
+  const quantities: [string, string, string] = [q[0] ?? "", q[1] ?? "", q[2] ?? ""];
+  return { ...item, key, quantities, artworkFiles: [], referencePhotos: [] };
+}
+
 export function reorderState(source: ReorderSource, catalog: PublicCatalog, now: Date = new Date()): WizardState {
   const base = initialWizardState(now);
   const lines = [...source.lines].sort((a, b) => a.position - b.position).slice(0, 20);

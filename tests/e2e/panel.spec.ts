@@ -77,6 +77,20 @@ test.describe("E6 · panel interno", () => {
     await expect(sales.getByTestId("admin-request-status")).toHaveText("En revisión");
     // "RFQ enviado" no se elige a mano (M3): sale del RFQ, aquí enviado por fuera y registrado.
     await expect(sales.getByTestId("status-select").locator("option", { hasText: "RFQ enviado" })).toHaveCount(0);
+    // M13: el vendedor define la pieza "No sé, sugiéranme" en el panel, sin salir a otra herramienta.
+    await sales.getByTestId("edit-item-open").first().click();
+    const edit = sales.getByTestId("edit-item");
+    const card = (name: RegExp) => edit.locator("label", { has: sales.getByRole("radio", { name }) }).first();
+    await card(/^Mailer de envío/).click();
+    await card(/^Tamaño estándar/).click();
+    await card(/^S\d/).click();
+    await card(/^Cartón microcorrugado/).click();
+    await card(/^Medio/).click();
+    await card(/^Sin impresión/).click();
+    await edit.getByLabel("Motivo del cambio").fill("Definido con Tomás por llamada");
+    await edit.getByRole("button", { name: "Guardar cambios" }).click();
+    await expect(sales.getByTestId("request-piece").first()).toContainText("Mailer de envío");
+    await expect(sales.getByTestId("timeline")).toContainText("Ficha de la pieza editada");
     await sales.getByRole("button", { name: "Generar RFQ" }).click();
     await sales.getByRole("button", { name: "Marcar enviado a mano" }).click();
     const markSent = sales.getByTestId("rfq-mark-sent");

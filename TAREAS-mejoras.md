@@ -274,13 +274,13 @@ Además, el e2e de pedidos muestra los montos correctos en el portal. Todo en ve
 
 Objetivo: que el vendedor complete y corrija la solicitud dentro del sistema (PAN-03, REG-04, REG-12). Depende de M7 (semáforo inicial congelado).
 
-- [ ] "Editar pieza", para ventas y admin, antes del RFQ o de la cotización. Usa el mismo catálogo, las compatibilidades (`lib/compat.ts`) y la validación del cotizador (`lib/quote/validate.ts`).
-- [ ] Cada edición crea una versión nueva de `spec_snapshot`, con autor, fecha y motivo (historial visible), y recalcula el semáforo actual.
-- [ ] Agregar o quitar cantidades por pieza.
-- [ ] Editar el contacto (nombre, empresa, WhatsApp, correo, ciudad y dirección), con auditoría.
-- [ ] Aviso si ya hay un RFQ o una cotización emitida sobre la versión anterior, con la opción de generar un RFQ nuevo.
-- [ ] El semáforo también se recalcula al subir o borrar arte y al volver a En revisión.
-- [ ] En el pedido, la marca "sin impresión" de M5 pasa a definirse en la ficha.
+- [x] "Editar pieza", para ventas y admin, antes del RFQ o de la cotización. Usa el mismo catálogo, las compatibilidades (`lib/compat.ts`) y la validación del cotizador (`lib/quote/validate.ts`).
+- [x] Cada edición crea una versión nueva de `spec_snapshot`, con autor, fecha y motivo (historial visible), y recalcula el semáforo actual.
+- [x] Agregar o quitar cantidades por pieza.
+- [x] Editar el contacto (nombre, empresa, WhatsApp, correo, ciudad y dirección), con auditoría.
+- [x] Aviso si ya hay un RFQ o una cotización emitida sobre la versión anterior, con la opción de generar un RFQ nuevo.
+- [x] El semáforo también se recalcula al subir o borrar arte y al volver a En revisión.
+- [x] En el pedido, la marca "sin impresión" de M5 pasa a definirse en la ficha.
 
 Aceptación:
 - E2E: una solicitud "No sé, sugiéranme" se completa en el panel y genera un RFQ con tipo, tamaño y material definidos.

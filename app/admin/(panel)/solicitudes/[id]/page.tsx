@@ -8,7 +8,11 @@ import { AssignControl, MissingDataControl, NoteForm, StatusControl } from "@/co
 import { QuotePanel, RfqPanel } from "@/components/panel/rfq-quote";
 import { listRequestArtwork } from "@/lib/artwork/staff";
 import { EDITOR_ROLES, requireStaff } from "@/lib/auth";
-import { getPublicCatalog, publicSetting, taxLabel, uploadSettings } from "@/lib/catalog/public";
+import { EditContact, EditItem } from "@/components/panel/edit-request";
+import { getPublicCatalog, publicSetting, quoteConditions, taxLabel, uploadSettings } from "@/lib/catalog/public";
+import { todayInPanama } from "@/lib/leadtime";
+import { draftFromSpec, reorderState } from "@/lib/orders/reorder";
+import type { ItemSpec } from "@/lib/quote/spec";
 import { getServerEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
 import { listRequestNotifications } from "@/lib/notify";
@@ -111,6 +115,18 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
     }
   }
 
+  // Edición de la ficha y del contacto (M13): hasta que el cliente acepta.
+  const editable = ["submitted", "in_review", "data_pending", "rfq_sent", "quoted", "expired"].includes(request.status);
+  const wizardSettings = { ...quoteConditions(catalog), upload: uploadSettings(catalog) };
+  const editState = (spec: ItemSpec) => ({
+    ...reorderState(
+      { segment: request.segment, company: null, contactName: "", email: null, whatsapp: null, city: null, address: null, comment: "", lines: [{ position: 1, quantity: spec.quantities[0] ?? 1, spec }] },
+      catalog,
+    ),
+    step: 2 as const,
+    current: 0,
+    items: [draftFromSpec(spec, catalog)],
+  });
   const panelItems = request.items.map((i) => ({ id: i.id, position: i.position, label: i.spec.type?.name ?? ts("typeAdvice"), quantities: i.spec.quantities }));
 
   const describe = (e: TimelineEntry): string => {
@@ -197,6 +213,19 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
                 </div>
               ))}
             </dl>
+            {canEdit && editable ? (
+              <EditContact
+                requestId={request.id}
+                initial={{
+                  name: request.contactName,
+                  company: request.companyName ?? "",
+                  email: request.contactEmail ?? "",
+                  whatsapp: request.contactWhatsapp ?? "",
+                  city: request.deliveryCity ?? "",
+                  address: request.deliveryAddress ?? "",
+                }}
+              />
+            ) : null}
           </Section>
 
           <Section id="pieces-title" title={t("piecesTitle")}>
@@ -204,7 +233,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
               {request.items.map((item) => {
                 const refs = request.references.filter((r) => r.itemId === item.id);
                 return (
-                  <article key={item.id}>
+                  <article key={item.id} data-testid="request-piece">
                     <h3 className="font-semibold">
                       {tr("piece", { n: item.position })}
                       {item.spec.type ? `: ${item.spec.type.code} · ${item.spec.type.name}` : ""}
@@ -217,6 +246,17 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
                         </div>
                       ))}
                     </dl>
+                    {canEdit && editable ? (
+                      <EditItem
+                        requestId={request.id}
+                        itemId={item.id}
+                        position={item.position}
+                        initial={editState(item.spec)}
+                        catalog={catalog}
+                        settings={wizardSettings}
+                        today={todayInPanama()}
+                      />
+                    ) : null}
                     {refs.length > 0 ? (
                       <div className="mt-3">
                         <p className="text-sm font-medium">{t("referencesTitle")}</p>

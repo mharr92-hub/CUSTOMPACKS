@@ -632,7 +632,9 @@
         "quote_accepted_staff": "Aceptación del cliente registrada por el equipo",
         "no_print_confirmed": "Pieza confirmada sin impresión",
         "notification_retry": "Aviso reenviado",
-        "payment_voided": "Pago anulado"
+        "payment_voided": "Pago anulado",
+        "item_edited": "Ficha de la pieza editada",
+        "contact_edited": "Contacto corregido"
       },
       "by": "por {name}",
       "system": "sistema",
@@ -1051,6 +1053,44 @@
     "money": {
       "interpreted": "= {value}",
       "invalid": "Revisa el número: punto para los decimales y coma para los miles (5,000.00)."
+    },
+    "edit": {
+      "editItem": "Editar pieza {n}",
+      "editContact": "Editar contacto y entrega",
+      "intro": "Completa o corrige la ficha con los mismos datos del cotizador. Se guarda una versión nueva; la anterior queda en el historial.",
+      "sections": {
+        "type": "Tipo de empaque",
+        "size": "Tamaño",
+        "material": "Material",
+        "print": "Impresión y acabados",
+        "quantity": "Cantidades"
+      },
+      "reason": "Motivo del cambio",
+      "reasonPlaceholder": "Por ejemplo: definido con el cliente por WhatsApp.",
+      "save": "Guardar cambios",
+      "cancel": "Cancelar",
+      "saved": "Cambios guardados.",
+      "warnings": {
+        "rfq": "Cambios guardados. Ya hay un RFQ con la ficha anterior: genera uno nuevo.",
+        "quote": "Cambios guardados. Ya hay una cotización con la ficha anterior: emite una versión nueva."
+      },
+      "contact": {
+        "name": "Nombre",
+        "company": "Empresa",
+        "whatsapp": "WhatsApp",
+        "email": "Correo",
+        "city": "Ciudad",
+        "address": "Dirección de entrega"
+      },
+      "errors": {
+        "forbidden": "No tienes permiso para hacer esto.",
+        "not_found": "No se encontró la solicitud.",
+        "status": "La solicitud ya no se puede editar (aceptada o rechazada).",
+        "invalid": "Revisa los campos marcados.",
+        "reason": "Escribe el motivo del cambio (3 caracteres o más).",
+        "contact": "Revisa el contacto: nombre, y un correo o un WhatsApp válidos.",
+        "generic": "No se pudo guardar. Inténtalo de nuevo."
+      }
     }
   },
   "catalog": {

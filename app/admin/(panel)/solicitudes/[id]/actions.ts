@@ -7,6 +7,7 @@ import type { ConfirmResult, SlotResult } from "@/lib/artwork/upload-types";
 import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { assertStaff, EDITOR_ROLES } from "@/lib/auth";
 import { kickNotifications, markWhatsappSent, retryNotification } from "@/lib/notify";
+import { editRequestContact, editRequestItem, type ContactInput, type EditResult } from "@/lib/panel/edit";
 import { addRequestNote, assignRequest, changeRequestStatus, requestMissingData, type ActionResult } from "@/lib/panel/requests";
 import type { UploadConfirm, UploadSlot } from "@/lib/files/upload-core";
 import {
@@ -252,4 +253,26 @@ export async function prepareAcceptanceUploadAction(quoteId: string, file: { nam
 export async function confirmAcceptanceUploadAction(quoteId: string, input: { path: string; name: string }): Promise<UploadConfirm> {
   const user = await assertStaff(EDITOR_ROLES);
   return confirmAcceptanceUpload(user, String(quoteId), { path: String(input.path), name: String(input.name).slice(0, 200) });
+}
+
+export async function editItemAction(requestId: string, itemId: string, input: { item: unknown; reason: string }): Promise<EditResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await editRequestItem(user, String(requestId), String(itemId), { item: input.item, reason: String(input.reason ?? "") });
+  if (result.ok) refresh(requestId);
+  return result;
+}
+
+export async function editContactAction(requestId: string, input: ContactInput): Promise<EditResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await editRequestContact(user, String(requestId), {
+    name: String(input.name ?? ""),
+    company: String(input.company ?? ""),
+    email: String(input.email ?? ""),
+    whatsapp: String(input.whatsapp ?? ""),
+    city: String(input.city ?? ""),
+    address: String(input.address ?? ""),
+    reason: String(input.reason ?? ""),
+  });
+  if (result.ok) refresh(requestId);
+  return result;
 }

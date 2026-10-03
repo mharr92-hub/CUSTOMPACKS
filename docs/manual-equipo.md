@@ -82,6 +82,14 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 
 6. **Liberar a fábrica**. Ningún pedido impreso entra a producción sin proof aprobado.
 
+### Completar o corregir la solicitud
+
+- **Editar pieza N** (debajo de cada pieza): los mismos pasos del cotizador (tipo, tamaño, material, impresión y cantidades) con el catálogo y las compatibilidades de siempre. Úsalo para definir una pieza que llegó como «No sé, sugiéranme» o para agregar la cantidad que el cliente pidió por WhatsApp.
+  - Escribe el motivo y guarda: la ficha anterior queda en el historial y el semáforo se recalcula.
+  - Si ya había un RFQ o una cotización con la ficha anterior, el aviso te pide generar uno nuevo.
+- **Editar contacto y entrega**: corrige nombre, empresa, WhatsApp, correo, ciudad y dirección, con motivo. Sirve también cuando el cliente pide rectificar sus datos.
+- Se puede editar hasta que el cliente acepta la cotización.
+
 ## 6. RFQ a fábrica
 
 ![RFQ](manual/06-rfq.png)

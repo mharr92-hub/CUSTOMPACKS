@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <IntlClientProvider namespaces={["common", "admin", "enums", "upload", "artwork"]}>
+    <IntlClientProvider namespaces={["common", "admin", "enums", "upload", "artwork", "wizard", "spec"]}>
       <TooltipProvider>{children}</TooltipProvider>
       <Toaster />
     </IntlClientProvider>

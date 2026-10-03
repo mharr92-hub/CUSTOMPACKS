@@ -4,6 +4,7 @@ import { withActor } from "@/lib/db/actor";
 import type { Tx } from "@/lib/db/client";
 import { businessHoursBetween, parseBusinessHours, type BusinessHours } from "@/lib/notify/business-hours";
 import type { ItemSpec } from "@/lib/quote/spec";
+import { recalcTrafficLight } from "@/lib/panel/edit";
 import { canManuallyTransition, LOSS_REASONS, type LossReason, type RequestStatus } from "@/lib/states";
 import type { MissingField } from "@/lib/traffic-light";
 
@@ -377,6 +378,8 @@ export async function changeRequestStatus(
              loss_reason = ${to === "rejected" ? lossReason : tx`loss_reason`},
              loss_note = ${to === "rejected" ? opts.lossNote?.trim().slice(0, 1000) || null : tx`loss_note`}
        where id = ${id}`;
+    // Al volver a revisión, el semáforo se pone al día con lo que llegó (REG-12).
+    if (to === "in_review") await recalcTrafficLight(tx, id);
     return { ok: true } as const;
   });
 }

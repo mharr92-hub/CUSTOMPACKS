@@ -1,4 +1,5 @@
 import "server-only";
+import { recalcTrafficLight } from "@/lib/panel/edit";
 import type { ConfirmResult, SlotResult, UploadedFile } from "./upload-types";
 import { actorFor, type CurrentUser } from "@/lib/auth";
 import { getPublicCatalog, uploadSettings } from "@/lib/catalog/public";
@@ -153,6 +154,8 @@ export async function confirmUpload(scope: UploadScope, input: { path: string; n
       insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)
       values (${owner.requestId}, 'quote_item', ${owner.itemId}, ${byStaff ? scope.user.userId : null}, 'system',
               ${scope.purpose === "proof" ? "proof_uploaded" : scope.purpose === "reference" ? "reference_uploaded" : "artwork_uploaded"}, ${file.name})`;
+    // Arte o referencia nuevos cambian el semáforo (REG-12).
+    if (scope.purpose !== "proof") await recalcTrafficLight(tx, owner.requestId);
   });
   return { ok: true, file };
 }
