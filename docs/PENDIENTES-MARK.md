@@ -9,6 +9,7 @@ Detalle de cada pregunta: `docs/PREGUNTAS.md`. Detalle técnico de cada cuenta: 
 - [ ] **Planes de pago para producción** (pregunta 20). Recomendado: Supabase Pro + Vercel Pro, unos USD 45 al mes con 100 solicitudes; Resend Pro (USD 20) cuando pases de ~200 solicitudes al mes. Vercel Hobby no permite uso comercial y Supabase Free se queda sin espacio en semanas. Precios de 2025: verifícalos.
 - [ ] **Precios en la pantalla de aceptación** (pregunta 2): hoy solo están en el PDF.
 - [ ] **¿Se cotiza fuera de Panamá?** (pregunta 13).
+- [ ] **Plazos que chocan:** la cotización al cliente se promete en 24 horas hábiles y la fábrica tiene 48 para responder el RFQ (decisión 23). Si la fábrica usa su plazo completo, la cotización se atrasa. Decide si acuerdas con la fábrica un plazo menor (por ejemplo, 12 horas hábiles; se cambia en Configuración → `factory_sla_hours`) o si cambias la promesa al cliente.
 - [x] Resueltas el 03/10/2026: pagos en partes y tolerancia (19), ITBMS (1), tiempo de respuesta de la fábrica (23), retención (21) y qué conservar al borrar datos (22). Ver D-113 a D-116.
 
 ## 2. Cuentas (gratis o según la decisión 1)

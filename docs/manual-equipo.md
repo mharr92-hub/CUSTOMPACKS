@@ -1,6 +1,6 @@
 # Manual del panel · Equipo ProvenPack
 
-Guía para el día a día en el panel interno: de la solicitud que llega al pedido cerrado. Las capturas son de la versión actual del sistema.
+Guía para el día a día en el panel interno: de la solicitud que llega al pedido cerrado. Las capturas son de la versión actual del sistema. Para el socio comercial hay una versión de una página: `docs/guia-socio-comercial.md`.
 
 - Panel: `https://<dominio>/admin`
 - Cada solicitud tiene un número `S-AAAA-NNNNN`; cada cotización, `C-AAAA-NNNNN-vN`; cada pedido, `P-AAAA-NNNNN`.
@@ -27,7 +27,7 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 1. **Bandeja:** atiende primero lo que tiene el SLA vencido y lo rojo.
 2. **Solicitudes nuevas:** tómalas ("Tomarla yo") y pásalas a **En revisión**.
 3. **Arte:** revisa el checklist, sube el proof y, cuando el cliente lo apruebe, libéralo a fábrica.
-4. **Fábrica:** genera y envía el RFQ, y registra la respuesta cuando llegue.
+4. **Fábrica:** genera y envía el RFQ, y registra la respuesta cuando llegue. Si un RFQ muestra en rojo **"Sin respuesta en el plazo de la fábrica"**, llama o escribe a la fábrica (el sistema ya le reenvió el RFQ por correo).
 5. **Cotizaciones:** prepara y emite. Revisa las que vencen pronto.
 6. **Pedidos:** confirma comprobantes, registra hitos con fotos y atiende los atrasados.
 7. **WhatsApp pendientes** (menú, con contador): todos los avisos por WhatsApp que esperan envío, de cualquier solicitud o pedido. **Abrir y marcar enviado** abre el chat con el texto listo y lo registra en un toque. Cada mañana el equipo recibe por correo un resumen con los que llevan más de 2 horas hábiles sin enviar.
@@ -41,6 +41,7 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 - **SLA, en horas hábiles** (lunes a viernes, 08:00–17:00, hora de Panamá):
   - 4 h para la primera respuesta (pasar a En revisión);
   - 24 h para cotizar, contadas desde que entra En revisión.
+  - 48 h para que la fábrica responda el RFQ, contadas desde que se envía (`factory_sla_hours`).
   - Si vence, el equipo recibe un correo.
 - **Semáforo** (qué tan completa llegó la solicitud):
   - **Rojo:** falta el tipo, la cantidad, o el arte cuando el cliente dijo tenerlo y no lo subió.
@@ -100,7 +101,12 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 1. **Generar RFQ**: arma un PDF y un Excel con la ficha técnica, los códigos de catálogo, las cantidades y el arte liberado, sin volver a escribir nada.
 2. **Enviar a fábrica**: sale por correo a la fábrica y la solicitud pasa a **RFQ enviado**.
    - Si lo mandaste por fuera (sin el correo de la fábrica configurado, o por WhatsApp), descarga el PDF y el Excel, envíalos y pulsa **Marcar enviado a mano**: escribe a quién y la fecha, y la solicitud pasa a **RFQ enviado**.
-3. Cuando la fábrica responda, completa **Respuesta de fábrica**: costo unitario por cantidad, moneda, días de producción y observaciones. Pulsa **Guardar respuesta**.
+3. **Si la fábrica no responde en 48 horas hábiles:**
+   - si el RFQ salió por correo, el sistema se lo reenvía con un recordatorio, una sola vez;
+   - el equipo recibe el aviso "RFQ sin respuesta";
+   - el RFQ muestra en rojo **"Sin respuesta en el plazo de la fábrica"** hasta que registres la respuesta;
+   - si lo mandaste a mano, el aviso te pide recordárselo por el mismo medio.
+4. Cuando la fábrica responda, completa **Respuesta de fábrica**: costo unitario por cantidad, moneda, días de producción y observaciones. Pulsa **Guardar respuesta**.
    - Debajo de cada costo ves cómo se va a guardar ("= USD 5,000.00"). La coma en grupos de tres cifras es de miles; para decimales usa punto (o una coma seguida de una o dos cifras).
    - Si la fábrica respondió en **soles (PEN)**, escribe el **tipo de cambio** (soles por 1 dólar) y su fecha. La cotización convierte cada costo a dólares y guarda el costo original.
 
@@ -141,7 +147,11 @@ Al aceptar, el pedido se crea solo. En la solicitud aparece el botón **Pedido P
   2. Revisa el **Tipo de pago** (anticipo o saldo) y corrígelo si hace falta.
   3. Pulsa **Confirmar**, o **Rechazar** si no corresponde.
 - Si el pago llegó por otro medio, usa **Registrar pago recibido** (anticipo o saldo). La misma referencia no se puede cargar dos veces.
-- **Pagos en partes:** cada abono se registra por separado. El anticipo (o el saldo) cuenta como recibido solo cuando la suma confirmada cubre el monto; mientras tanto el pedido sigue esperando y el cliente ve "Pago parcial".
+- **Pagos en partes:** cada abono se registra por separado. El anticipo (o el saldo) cuenta como recibido cuando la suma confirmada cubre el monto; mientras tanto el pedido sigue esperando y el cliente ve "Pago parcial".
+- **Comisiones bancarias:** si al cliente le descontaron una comisión, se acepta una diferencia de hasta el **1 % del monto o USD 25, lo que sea menor**. Ejemplos:
+  - Si falta USD 18 de un anticipo de USD 4,000, cuenta como cubierto.
+  - Si falta USD 30, no: pide la diferencia.
+  - El valor se cambia en Configuración (`payment_tolerance_pct` y `payment_tolerance_max`).
 - **Un pago mal cargado se anula** con **Anular** y un motivo; queda en el historial. Si al anularlo el anticipo deja de estar cubierto antes de producir, el pedido vuelve a **Esperando anticipo**. Después de producir no se anula: registra el ajuste con otro pago.
 - Al quedar cubierto el anticipo:
   - el pedido pasa a **Anticipo recibido**;
@@ -156,7 +166,7 @@ Al aceptar, el pedido se crea solo. En la solicitud aparece el botón **Pedido P
 En **Registrar hito** solo aparece el siguiente paso válido.
 
 1. **Producción iniciada:** exige el anticipo y el proof aprobado. El cliente recibe un WhatsApp.
-2. **QA en planta:**
+2. **QA en planta** (el cliente lo ve como "Verificación en planta"):
    - Marca cada punto del checklist contra la ficha aprobada: material, calibre, medidas, colores e impresión, acabado y cantidad. Usa **Observado** con comentario si algo difiere.
    - Si sabes el **Embarque estimado**, complétalo: sale en el aviso al cliente.
 3. **Fotos, video o PDF:** en cada hito, **Subir fotos, video o PDF** (hasta 30 por hito). El cliente las ve en su enlace al instante.
@@ -177,7 +187,7 @@ En **Registrar hito** solo aparece el siguiente paso válido.
 - Estado y entrega estimada.
 - Cada etapa, con fotos y el resultado de QA.
 - Total, anticipo y saldo del pedido, "más ITBMS 7 %", y el estado de cada pago.
-- Cómo pagar (texto de Configuración) y un botón para subir el comprobante.
+- **Cómo pagar:** banco, tipo de cuenta, número, beneficiario y correo de comprobantes (de Configuración), más un botón para subir el comprobante. Los mismos datos salen en el PDF de la cotización.
 - Cotización, ficha técnica y estado de pagos en PDF.
 - **Pedir de nuevo:** abre el cotizador con las mismas piezas.
 - La encuesta, al entregar o cerrar el pedido.
@@ -218,7 +228,11 @@ En **Registrar hito** solo aparece el siguiente paso válido.
   - margen por defecto, vigencia de la cotización, % de anticipo, plazos, SLA y horario hábil;
   - tamaño máximo de archivo y plazos de retención (arte, evidencias y documentos legales);
   - correo del equipo para avisos;
-  - **Instrucciones de pago** que ve el cliente (banco, cuenta, Yappy).
+  - **Datos de pago** que ve el cliente en su enlace y en el PDF de la cotización:
+    - `payment_bank_name`, `payment_account_type`, `payment_account_number`, `payment_account_holder` y `payment_receipts_email`;
+    - en `payment_instructions`, lo demás (Yappy, qué poner como referencia).
+    - Mientras estén vacíos, el cliente ve un botón para pedirlos por WhatsApp.
+  - tolerancia de pagos por comisiones (1 % o USD 25) y plazo de respuesta de la fábrica (48 horas hábiles).
   - Los valores PROVISIONAL están marcados.
 
   ![Configuración](manual/18-configuracion.png)
@@ -227,7 +241,10 @@ En **Registrar hito** solo aparece el siguiente paso válido.
 - **Datos personales (Ley 81):** cuando un cliente pide sus datos o que los borremos.
   1. Busca por su correo o su WhatsApp.
   2. **Descargar sus datos (JSON)**: todo lo que guardamos de esa persona, para enviárselo.
-  3. **Anonimizar** cada solicitud: escribe el número de la solicitud para confirmar. Se reemplazan nombre, correo, WhatsApp, dirección, comentarios e IP en todas partes y se borran su arte y sus fotos; se conservan montos, números y fichas. No se puede deshacer.
+  3. **Anonimizar** cada solicitud: escribe el número de la solicitud para confirmar. No se puede deshacer.
+     - **Siempre:** se reemplazan nombre, correo, WhatsApp, dirección, comentarios e IP en todas partes, y se borran sus borradores.
+     - **Si no llegó a pedido:** también se borran su arte, sus fotos y referencias, y las cotizaciones no aceptadas.
+     - **Si llegó a pedido:** se conservan la cotización aceptada (con el nombre de quien aceptó), el pedido, los pagos y el arte durante los plazos de retención (5 años los documentos y 24 meses el arte y las evidencias).
   4. Para corregir un dato (rectificación), usa **Editar contacto y entrega** en la solicitud.
 
   ![Archivos](manual/19-archivos.png)
@@ -238,6 +255,8 @@ En **Registrar hito** solo aparece el siguiente paso válido.
 
 - **No puedo abrir el arte de una solicitud.** Solo lo abren la persona asignada y admin. Pulsa **Tomarla yo** o pide que te la asignen.
 - **No me deja pasar a producción.** Falta el anticipo confirmado, o el proof aprobado de alguna pieza impresa. El aviso amarillo del pedido dice cuál.
+- **El cliente pagó un poco menos.** Si la diferencia es de hasta el 1 % o USD 25 (lo que sea menor), el sistema lo da por cubierto. Si es más, el pedido muestra lo pendiente: pide la diferencia.
+- **La fábrica no contesta.** A las 48 horas hábiles el sistema le reenvía el RFQ y te avisa. Si la cotización al cliente se va a pasar de 24 horas, escríbele para avisarle.
 - **El cliente dice que no ve precios.** Antes de aceptar, los precios están solo en el PDF de la cotización: pídele que lo descargue desde su enlace. Después de aceptar, su enlace muestra los montos del pedido.
 - **El cliente perdió su enlace.** Está en el correo de confirmación de su solicitud. También se lo puedes reenviar desde **Notificaciones** con **Abrir WhatsApp** en cualquier aviso.
 - **Un aviso de WhatsApp no salió.** Los WhatsApp no salen solos: ábrelo desde **Notificaciones** y márcalo como enviado.

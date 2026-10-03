@@ -928,3 +928,19 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
     - el doctor;
     - que cada variable que lee el código esté en `.env.example`.
 - **Cómo cambiarla:** reglas en `scripts/lib/doctor-rules.mjs`; pasos de previews en `scripts/supabase-preview.mjs`; comprobaciones en `scripts/verify-deploy.mjs`.
+
+### D-120 · 03/10/2026 · Manual del equipo y guía del socio comercial (Bloque 5)
+- **Decisión:**
+  - `docs/manual-equipo.md` suma lo de esta tanda:
+    - SLA de la fábrica (48 h) con su recordatorio y la marca en rojo del RFQ;
+    - tolerancia de pagos por comisiones (1 % o USD 25), con ejemplo;
+    - datos de pago estructurados;
+    - qué se conserva al anonimizar (D-116);
+    - "Verificación en planta" como la ve el cliente.
+  - `docs/guia-socio-comercial.md` (una página):
+    - cómo entra una solicitud (web, o WhatsApp con el enlace del cotizador, porque el panel no crea solicitudes en nombre del cliente);
+    - el camino de 24 horas hábiles;
+    - qué hacer con cada color del semáforo;
+    - lo que nunca se hace (precios antes del PDF, fechas antes del anticipo y del proof).
+  - **Choque de plazos.** La promesa de 24 h al cliente y las 48 h de la fábrica no calzan. Queda como decisión de Mark en `docs/PENDIENTES-MARK.md`; la guía pide a la fábrica la respuesta el mismo día y avisar al cliente antes de que venza.
+- **Cómo cambiarla:** los dos documentos; el plazo de la fábrica, en Configuración (`factory_sla_hours`).
