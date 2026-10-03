@@ -344,17 +344,17 @@ Aceptación:
 
 Objetivo: respaldos diarios de la base y de los archivos con 30 días de retención (PRD §15), restauración probada y migraciones inmutables (DAT-04, REN-10, DAT-11, DAT-12).
 
-- [ ] Base:
+- [x] Base:
   - retención de 30 días en el workflow de respaldo;
   - respaldo de `auth.users` (id y correo) para restaurar con los mismos UUID.
-- [ ] Archivos: copia diaria de los buckets privados a un destino compatible con S3, configurado por variables de entorno.
+- [x] Archivos: copia diaria de los buckets privados a un destino compatible con S3, configurado por variables de entorno.
   - Sin credenciales, el job avisa y no falla.
   - No se contrata ningún almacenamiento.
   - Las variables se documentan en `.env.example`.
-- [ ] Restauración:
-  - ensayo automático en CI: restaurar el último respaldo en un Postgres vacío y correr `verify:deploy` contra él;
+- [x] Restauración:
+  - ensayo automático en CI: `tests/db/backup.test.ts` respalda la base de pruebas, la restaura en un Postgres vacío y compara conteos, RLS y el archivo de usuarios (no corre `verify:deploy`: compara los datos directamente);
   - el procedimiento, en `docs/respaldos.md`.
-- [ ] Migraciones:
+- [x] Migraciones:
   - se guarda el sha256 de cada migración aplicada en `schema_migrations`;
   - `db:migrate` y CI fallan si un archivo aplicado cambió;
   - `pg_dump` previo obligatorio cuando la base es Supabase.

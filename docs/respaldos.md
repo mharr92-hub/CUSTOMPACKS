@@ -7,8 +7,8 @@ Guía para respaldar la base todos los días y, si se quiere, recibir los errore
 | Qué | Dónde vive | Cómo se respalda |
 | --- | --- | --- |
 | Datos del negocio: catálogo, solicitudes, cotizaciones, pedidos, pagos, plantillas, auditoría | Esquema `public` de Postgres | `scripts/backup.mjs` (pg_dump), todos los días |
-| Usuarios del equipo (correo y rol) | Esquema `auth` y tabla `profiles` | `profiles` va en `public`. Si se pierde `auth`, se vuelve a invitar a cada persona desde `/admin/usuarios` y recupera su rol. |
-| Archivos: arte, proofs, evidencias, comprobantes, PDF emitidos | Supabase Storage (en local, `.data/storage`) | Fuera de la base. Ver la sección 5. |
+| Usuarios del equipo (correo y rol) | Esquema `auth` y tabla `profiles` | `profiles` va en `public`. El id y el correo de cada usuario de `auth.users` van en `provenpack-auth-users-….json`, junto al dump, para restaurar con los mismos UUID. |
+| Archivos: arte, proofs, evidencias, comprobantes, PDF emitidos | Supabase Storage (en local, `.data/storage`) | Copia diaria con rclone a un almacenamiento compatible con S3 (sección 5). |
 
 ## 2. Respaldo manual
 
@@ -22,13 +22,13 @@ node scripts/backup.mjs
 BACKUP_DATABASE_URL="postgres://usuario:clave@host:5432/postgres" node scripts/backup.mjs
 ```
 
-El archivo queda en `.data/backups/provenpack-AAAA-MM-DD-HH-MM.dump`, en formato comprimido de pg_dump. El script borra los respaldos de más de 14 días de esa carpeta.
+El archivo queda en `.data/backups/provenpack-AAAA-MM-DD-HH-MM.dump`, en formato comprimido de pg_dump. Al lado deja `provenpack-auth-users-AAAA-MM-DD-HH-MM.json` con los usuarios. El script borra los respaldos de más de 30 días de esa carpeta (PRD §15).
 
 | Variable | Para qué | Valor por defecto |
 | --- | --- | --- |
 | `BACKUP_DATABASE_URL` | Base a respaldar | `DATABASE_URL` o la local |
 | `BACKUP_DIR` | Carpeta de destino | `.data/backups` |
-| `BACKUP_KEEP_DAYS` | Días que se conservan | `14` |
+| `BACKUP_KEEP_DAYS` | Días que se conservan | `30` |
 | `BACKUP_SCHEMAS` | Esquemas, separados por coma | Todos. En Supabase, usar `public`. |
 | `PG_DUMP` | Ruta de `pg_dump` si no está en el PATH | `pg_dump` |
 
@@ -40,7 +40,8 @@ El flujo `.github/workflows/backup.yml` corre todos los días a las 03:00 de Pan
 
 1. Hace `pg_dump` de la base.
 2. Cifra el archivo con GPG (AES-256) usando una frase de paso.
-3. Lo guarda como artefacto del run durante 14 días.
+3. Lo guarda como artefacto del run durante 30 días (PRD §15), junto al archivo de usuarios, también cifrado.
+4. En otro trabajo, copia los archivos de Storage (sección 5).
 
 Para activarlo, en GitHub ve a **Settings → Secrets and variables → Actions** y crea:
 
@@ -70,16 +71,25 @@ pg_restore --clean --if-exists --no-owner --no-privileges -d "postgres://usuario
 
 Después de restaurar, corre `pnpm db:migrate` contra esa base para aplicar las migraciones que falten, si el respaldo es anterior a alguna.
 
-La prueba `tests/db/backup.test.ts` hace el recorrido completo en CI: respalda la base de pruebas, la restaura en una base nueva y compara los conteos y que todas las tablas conserven RLS. En una máquina sin `pg_dump` 17, la prueba se omite.
+**Proyecto de Supabase nuevo:** los usuarios no vienen en el dump de `public`. Antes de restaurar `public`, vuelve a crear cada usuario de `provenpack-auth-users-….json` con el **mismo id** (desde el SQL Editor: `insert into auth.users (id, email, raw_app_meta_data, aud, role) values (...)`), para que `profiles`, solicitudes y auditoría sigan apuntando a la misma persona. Después, cada uno entra con su enlace mágico.
+
+La prueba `tests/db/backup.test.ts` hace el recorrido completo en CI, todos los días que se hace push: respalda la base de pruebas, comprueba el archivo de usuarios, la restaura en una base nueva y compara los conteos y que todas las tablas conserven RLS. En una máquina sin `pg_dump` 17, la prueba se omite.
 
 ## 5. Archivos (Storage)
 
 Los archivos no están en la base, así que pg_dump no los incluye.
 
 - **Local:** copia la carpeta `.data/storage`.
-- **Supabase:** los buckets privados (`artwork`, `documents`, `evidence`) se descargan desde el panel de Supabase (*Storage*) o con cualquier cliente compatible con S3, usando las credenciales S3 del proyecto (*Project Settings → Storage*).
+- **Supabase, todos los días (`.github/workflows/backup.yml`, trabajo "Copia de archivos"):** rclone copia los buckets privados (`artwork`, `documents`, `evidence`) a un almacenamiento compatible con S3 que elija Mark. El repositorio no contrata ninguno: mientras falten los datos, el trabajo avisa y no hace nada. Para activarlo, en GitHub (**Settings → Secrets and variables → Actions**):
+  - Origen (Supabase → *Project Settings → Storage → S3 connection*, "New access key"): secretos `STORAGE_S3_ENDPOINT`, `STORAGE_S3_ACCESS_KEY_ID` y `STORAGE_S3_SECRET_ACCESS_KEY`.
+  - Destino (el servicio que elija Mark): secretos `BACKUP_S3_ENDPOINT`, `BACKUP_S3_ACCESS_KEY_ID` y `BACKUP_S3_SECRET_ACCESS_KEY`, y la variable `BACKUP_S3_BUCKET`.
+  - Es una copia acumulativa (`rclone copy`): lo borrado en Supabase sigue en el destino. Configura allí la retención que defina Mark (pregunta 21 de `docs/PREGUNTAS.md`).
 
-Se recomienda una copia mensual. Los archivos de arte vencidos (`artwork_retention_months`) solo se marcan; se borran cuando admin lo confirma en `/admin/archivos`.
+## 5b. Migraciones
+
+- Una migración ya aplicada **no se edita**: `pnpm db:migrate` guarda el sha256 de cada archivo aplicado (`supabase_migrations.provenpack_checksums`) y falla, sin tocar nada, si uno cambió. El cambio va en una migración nueva.
+- Contra Supabase, `pnpm db:migrate` hace antes un `pg_dump` del esquema `public` (requiere `pg_dump` 17). Si el respaldo falla, no aplica nada; `--sin-respaldo` lo salta bajo tu responsabilidad.
+- Política: se corrige hacia adelante. Si una migración que cambia datos sale mal, se restaura el respaldo previo y se aplica una migración correctiva. Los archivos de arte vencidos (`artwork_retention_months`) solo se marcan; se borran cuando admin lo confirma en `/admin/archivos`.
 
 ## 6. Sentry (opcional)
 

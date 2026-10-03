@@ -12,8 +12,10 @@ import {
   ROOT,
   connect,
   isPortOpen,
+  isSupabaseDatabase,
   loadEnvFiles,
   migrate,
+  pendingMigrations,
   reset,
   seed,
   startEmbedded,
@@ -46,6 +48,16 @@ async function main() {
         fs.rmSync(path.join(ROOT, dir), { recursive: true, force: true });
       }
     } else if (command === "migrate") {
+      // Contra Supabase, respaldo previo obligatorio si hay algo que aplicar (DAT-11).
+      if ((await isSupabaseDatabase(sql)) && (await pendingMigrations(sql)).length && !process.argv.includes("--sin-respaldo")) {
+        log("respaldo previo a las migraciones (pg_dump del esquema public)…");
+        const { spawnSync } = await import("node:child_process");
+        const backup = spawnSync(process.execPath, [path.join(ROOT, "scripts", "backup.mjs")], {
+          stdio: "inherit",
+          env: { ...process.env, BACKUP_DATABASE_URL: url, BACKUP_SCHEMAS: process.env.BACKUP_SCHEMAS || "public" },
+        });
+        if (backup.status !== 0) throw new Error("El respaldo previo falló: no se aplicó ninguna migración. Revisa pg_dump o usa --sin-respaldo bajo tu responsabilidad.");
+      }
       const n = await migrate(sql, log);
       log(n ? `${n} migraciones aplicadas` : "sin migraciones pendientes");
     } else if (command === "seed") {

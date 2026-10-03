@@ -4,7 +4,7 @@
 // Variables:
 //   BACKUP_DATABASE_URL  base a respaldar (si falta, DATABASE_URL; si falta, la local :54322)
 //   BACKUP_DIR           carpeta destino (por defecto .data/backups)
-//   BACKUP_KEEP_DAYS     días que se conservan los respaldos anteriores (por defecto 14)
+//   BACKUP_KEEP_DAYS     días que se conservan los respaldos anteriores (por defecto 30, PRD §15)
 //   BACKUP_SCHEMAS       esquemas a incluir, separados por coma (por defecto, todos)
 //   PG_DUMP              ruta de pg_dump si no está en el PATH (versión ≥ la del servidor)
 // Restaurar:  pg_restore --clean --if-exists --no-owner --no-privileges -d "<url>" <archivo>.dump
@@ -15,7 +15,7 @@ import path from "node:path";
 
 const url = process.env.BACKUP_DATABASE_URL || process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:54322/postgres";
 const dir = path.resolve(process.env.BACKUP_DIR || ".data/backups");
-const keepDays = Number(process.env.BACKUP_KEEP_DAYS || 14);
+const keepDays = Number(process.env.BACKUP_KEEP_DAYS || 30);
 const schemas = (process.env.BACKUP_SCHEMAS || "")
   .split(",")
   .map((s) => s.trim())
@@ -42,10 +42,27 @@ if (result.status !== 0) {
 const size = fs.statSync(file).size;
 out(`${path.relative(process.cwd(), file)} (${(size / 1024 / 1024).toFixed(2)} MB)`);
 
+// Usuarios (id, correo y metadatos de rol): en Supabase el esquema auth no va
+// en el dump de public. Con este archivo se restaura con los mismos UUID (DAT-04).
+try {
+  const { default: postgres } = await import("postgres");
+  const sql = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
+  try {
+    const users = await sql`select id, email, raw_app_meta_data, created_at from auth.users order by created_at`;
+    const usersFile = path.join(dir, `provenpack-auth-users-${stamp}.json`);
+    fs.writeFileSync(usersFile, JSON.stringify(users, null, 1));
+    out(`${path.relative(process.cwd(), usersFile)} (${users.length} usuarios)`);
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+} catch (error) {
+  process.stderr.write(`No se pudo exportar auth.users: ${error instanceof Error ? error.message : String(error)}\n`);
+}
+
 // Conserva los últimos `keepDays` días.
 const limit = Date.now() - keepDays * 86_400_000;
 for (const name of fs.readdirSync(dir)) {
-  if (!/^provenpack-.*\.dump$/.test(name)) continue;
+  if (!/^provenpack-.*\.(dump|json)$/.test(name)) continue;
   const full = path.join(dir, name);
   if (full !== file && fs.statSync(full).mtimeMs < limit) {
     fs.rmSync(full);

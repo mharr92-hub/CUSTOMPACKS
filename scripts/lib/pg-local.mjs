@@ -2,6 +2,7 @@
 // Docker). Usa binarios reales de Postgres 17 vía `embedded-postgres` y aplica
 // un "shim" con los esquemas/roles/funciones de Supabase que usan las
 // migraciones (auth.uid(), roles anon/authenticated/service_role, storage).
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import net from "node:net";
@@ -83,12 +84,12 @@ export async function isSupabaseDatabase(sql) {
   return Boolean(row?.yes);
 }
 
-/**
- * Aplica migraciones pendientes y las registra en
- * supabase_migrations.schema_migrations (misma tabla que usa la CLI). En un
- * proyecto de Supabase no aplica el shim: solo asegura esa tabla.
- */
-export async function migrate(sql, log = () => {}) {
+/** sha256 del archivo de una migración (sin depender de los finales de línea de Windows). */
+export function migrationChecksum(body) {
+  return createHash("sha256").update(body.replace(/\r\n/g, "\n")).digest("hex");
+}
+
+async function ensureMigrationTables(sql, log) {
   if (await isSupabaseDatabase(sql)) {
     log("base de Supabase: no se aplica el shim local");
     await sql`create schema if not exists supabase_migrations`;
@@ -96,7 +97,43 @@ export async function migrate(sql, log = () => {}) {
   } else {
     await applyShim(sql);
   }
+  // Huella de cada migración aplicada (DAT-12): una migración publicada no se edita.
+  await sql`create table if not exists supabase_migrations.provenpack_checksums (version text primary key, sha256 text not null, recorded_at timestamptz not null default now())`;
+}
+
+/** Migraciones que faltan aplicar (para decidir si hace falta respaldar antes). */
+export async function pendingMigrations(sql) {
+  const exists = await sql`select to_regclass('supabase_migrations.schema_migrations') is not null as ok`;
+  if (!exists[0]?.ok) return listMigrations();
   const applied = new Set((await sql`select version from supabase_migrations.schema_migrations`).map((r) => r.version));
+  return listMigrations().filter((m) => !applied.has(m.version));
+}
+
+/**
+ * Aplica migraciones pendientes y las registra en
+ * supabase_migrations.schema_migrations (misma tabla que usa la CLI). En un
+ * proyecto de Supabase no aplica el shim: solo asegura esa tabla.
+ * Antes, comprueba que ninguna migración ya aplicada haya cambiado: si
+ * cambió, falla sin tocar nada (el cambio va en una migración nueva).
+ */
+export async function migrate(sql, log = () => {}) {
+  await ensureMigrationTables(sql, log);
+  const applied = new Set((await sql`select version from supabase_migrations.schema_migrations`).map((r) => r.version));
+  const known = new Map((await sql`select version, sha256 from supabase_migrations.provenpack_checksums`).map((r) => [r.version, r.sha256]));
+  const changed = [];
+  for (const m of listMigrations()) {
+    if (!applied.has(m.version)) continue;
+    const sum = migrationChecksum(fs.readFileSync(m.file, "utf8"));
+    const before = known.get(m.version);
+    // Bases aplicadas antes de esta comprobación: se registra la huella actual.
+    if (!before) await sql`insert into supabase_migrations.provenpack_checksums (version, sha256) values (${m.version}, ${sum}) on conflict (version) do nothing`;
+    else if (before !== sum) changed.push(`${m.version}_${m.name}`);
+  }
+  if (changed.length) {
+    throw new Error(
+      `Migraciones ya aplicadas que cambiaron: ${changed.join(", ")}. Una migración publicada no se edita: deshaz el cambio y escríbelo en una migración nueva.`,
+    );
+  }
   let count = 0;
   for (const m of listMigrations()) {
     if (applied.has(m.version)) continue;
@@ -104,6 +141,7 @@ export async function migrate(sql, log = () => {}) {
     await sql.begin(async (tx) => {
       await tx.unsafe(body);
       await tx`insert into supabase_migrations.schema_migrations (version, name) values (${m.version}, ${m.name})`;
+      await tx`insert into supabase_migrations.provenpack_checksums (version, sha256) values (${m.version}, ${migrationChecksum(body)}) on conflict (version) do update set sha256 = excluded.sha256`;
     });
     log(`migración aplicada: ${m.version}_${m.name}`);
     count++;

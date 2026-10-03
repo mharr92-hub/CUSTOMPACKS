@@ -24,3 +24,5 @@ export declare function migrate(sql: Sql, log?: (message: string) => void): Prom
 export declare function seed(sql: Sql, opts?: { adminEmail?: string }): Promise<void>;
 export declare function reset(sql: Sql, opts?: { adminEmail?: string; log?: (message: string) => void }): Promise<number>;
 export declare function loadEnvFiles(): Promise<void>;
+export declare function migrationChecksum(body: string): string;
+export declare function pendingMigrations(sql: Sql): Promise<{ version: string; name: string; file: string }[]>;

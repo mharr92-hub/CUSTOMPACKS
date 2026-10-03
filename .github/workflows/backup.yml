@@ -1,6 +1,6 @@
 name: Respaldo diario
 
-# Respaldo de la base con pg_dump, cifrado con GPG y guardado 14 días como
+# Respaldo de la base con pg_dump, cifrado con GPG y guardado 30 días (PRD §15) como
 # artefacto del run. Se activa al definir los secretos BACKUP_DATABASE_URL y
 # BACKUP_PASSPHRASE en GitHub (ver docs/respaldos.md). Sin ellos, no hace nada.
 on:
@@ -46,7 +46,8 @@ jobs:
       - name: Cifrado
         if: env.BACKUP_DATABASE_URL != '' && env.BACKUP_PASSPHRASE != ''
         run: |
-          for f in backups/*.dump; do
+          for f in backups/*.dump backups/*.json; do
+            [ -e "$f" ] || continue
             gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o "$f.gpg" "$f"
             rm "$f"
           done
@@ -56,5 +57,45 @@ jobs:
         with:
           name: respaldo-${{ github.run_id }}
           path: backups/*.gpg
-          retention-days: 14
+          retention-days: 30
           if-no-files-found: error
+
+  # Copia diaria de los archivos privados (arte, proofs, evidencias,
+  # documentos) a un almacenamiento compatible con S3 que elija Mark (M16,
+  # DAT-04). Usa el acceso S3 de Supabase Storage como origen. Sin las
+  # variables, avisa y no hace nada: no se contrata ningún servicio.
+  storage:
+    name: Copia de archivos (rclone)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SRC_ENDPOINT: ${{ secrets.STORAGE_S3_ENDPOINT }}
+      SRC_KEY: ${{ secrets.STORAGE_S3_ACCESS_KEY_ID }}
+      SRC_SECRET: ${{ secrets.STORAGE_S3_SECRET_ACCESS_KEY }}
+      DEST_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+      DEST_KEY: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+      DEST_SECRET: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+      DEST_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+    steps:
+      - name: Sin configurar
+        if: env.SRC_ENDPOINT ==  || env.DEST_ENDPOINT ==  || env.DEST_BUCKET == 
+        run: echo "::notice::Copia de archivos desactivada. Define los secretos STORAGE_S3_* y BACKUP_S3_* y la variable BACKUP_S3_BUCKET (docs/respaldos.md)."
+
+      - name: Copiar buckets privados
+        if: env.SRC_ENDPOINT !=  && env.DEST_ENDPOINT !=  && env.DEST_BUCKET != 
+        env:
+          RCLONE_CONFIG_SRC_TYPE: s3
+          RCLONE_CONFIG_SRC_PROVIDER: Other
+          RCLONE_CONFIG_SRC_ENDPOINT: ${{ secrets.STORAGE_S3_ENDPOINT }}
+          RCLONE_CONFIG_SRC_ACCESS_KEY_ID: ${{ secrets.STORAGE_S3_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_SRC_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_S3_SECRET_ACCESS_KEY }}
+          RCLONE_CONFIG_DEST_TYPE: s3
+          RCLONE_CONFIG_DEST_PROVIDER: Other
+          RCLONE_CONFIG_DEST_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          RCLONE_CONFIG_DEST_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_DEST_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+        run: |
+          curl -fsSL https://rclone.org/install.sh | sudo bash
+          for b in artwork evidence documents; do
+            rclone copy "src:$b" "dest:$DEST_BUCKET/$b" --checksum --transfers 8
+          done

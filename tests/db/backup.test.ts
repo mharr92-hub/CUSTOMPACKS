@@ -37,6 +37,12 @@ describe.skipIf(!hasTools)("respaldo diario (pg_dump)", () => {
     expect(run.status, run.stderr).toBe(0);
     const [file] = fs.readdirSync(dir).filter((f) => f.endsWith(".dump"));
     expect(file).toBeTruthy();
+    // M16: también el mapeo de usuarios (id y correo) para restaurar con los mismos UUID.
+    const [users] = fs.readdirSync(dir).filter((f) => /^provenpack-auth-users-.*.json$/.test(f));
+    expect(users).toBeTruthy();
+    const list = JSON.parse(fs.readFileSync(path.join(dir, users!), "utf8")) as { id: string; email: string }[];
+    const [count] = await testSql()<{ n: number }[]>`select count(*)::int as n from auth.users`;
+    expect(list).toHaveLength(count?.n ?? -1);
 
     const target = `restore_check_${Date.now()}`;
     await testSql().unsafe(`create database ${target}`);
