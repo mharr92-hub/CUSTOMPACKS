@@ -74,12 +74,24 @@ export const RESUME_EMAILS_PER_DAY = 3;
  * existe, ya se envió o agotó el cupo del día. Evita usar el cotizador como
  * relé de correos de la marca.
  */
-export async function claimResumeEmail(token: string): Promise<boolean> {
+/**
+ * Reserva un envío de "Guardar y seguir después" (3 por día y borrador). El
+ * enlace solo va al primer correo que se dio para ese borrador o al del
+ * contacto (M15): "email" si se pide para otra dirección.
+ */
+export async function claimResumeEmail(token: string, email: string): Promise<boolean | "email"> {
   if (!isDraftToken(token)) return false;
+  const to = email.trim().toLowerCase();
+  const [draft] = await withActor({ kind: "anon", accessToken: token }, (tx) => tx<{ resume_email: string | null; contact_email: string | null }[]>`
+    select resume_email, contact_email from public.quote_drafts where token = ${token}`);
+  if (!draft) return false;
+  const allowed = [draft.resume_email, draft.contact_email].filter((e): e is string => Boolean(e)).map((e) => e.toLowerCase());
+  if (allowed.length && !allowed.includes(to)) return "email";
   const rows = await withActor({ kind: "anon", accessToken: token }, (tx) => tx`
     update public.quote_drafts
        set resume_sent_count = case when resume_window_at is null or resume_window_at < now() - interval '24 hours' then 1 else resume_sent_count + 1 end,
-           resume_window_at = case when resume_window_at is null or resume_window_at < now() - interval '24 hours' then now() else resume_window_at end
+           resume_window_at = case when resume_window_at is null or resume_window_at < now() - interval '24 hours' then now() else resume_window_at end,
+           resume_email = coalesce(resume_email, ${to})
      where token = ${token}
        and submitted_request_id is null
        and (resume_window_at is null or resume_window_at < now() - interval '24 hours' or resume_sent_count < ${RESUME_EMAILS_PER_DAY})

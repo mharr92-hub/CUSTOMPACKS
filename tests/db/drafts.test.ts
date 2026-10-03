@@ -59,10 +59,15 @@ describe("borradores y privacidad (D-033)", () => {
 
   it("el enlace «Guardar y seguir después» tiene cupo diario por borrador", async () => {
     const { token } = await saveDraft(null, quoteState());
-    for (let i = 0; i < RESUME_EMAILS_PER_DAY; i++) expect(await claimResumeEmail(token)).toBe(true);
-    expect(await claimResumeEmail(token)).toBe(false);
+    // Si el borrador ya tiene correo de contacto, el enlace va a ese.
+    const [d] = await testSql()<{ contact_email: string | null }[]>`select contact_email from public.quote_drafts where token = ${token}`;
+    const to = d?.contact_email ?? "seguir@example.com";
+    for (let i = 0; i < RESUME_EMAILS_PER_DAY; i++) expect(await claimResumeEmail(token, to)).toBe(true);
+    expect(await claimResumeEmail(token, to)).toBe(false);
     await testSql()`update public.quote_drafts set resume_window_at = now() - interval '25 hours' where token = ${token}`;
-    expect(await claimResumeEmail(token)).toBe(true);
+    expect(await claimResumeEmail(token, to.toUpperCase())).toBe(true);
+    // M15: el enlace solo va al primer correo que se dio para ese borrador.
+    expect(await claimResumeEmail(token, "otra-persona@example.com")).toBe("email");
   });
 
   it("el cron borra los borradores vencidos sin enviar y conserva los enviados", async () => {

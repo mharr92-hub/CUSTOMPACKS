@@ -14,6 +14,8 @@ export const RATE_RULES = {
   submit: { limit: 20, windowSec: 3600 },
   /** Autoguardado del borrador por IP (se guarda 1,2 s después de cada cambio). */
   draft: { limit: 600, windowSec: 600 },
+  /** Borradores nuevos por IP (M15, SEG-01): cada uno ocupa base; los guardados del mismo borrador no cuentan. */
+  draftNew: { limit: 30, windowSec: 3600 },
   /** Correos "seguir después" por IP (además del tope de 3 por borrador). */
   resume: { limit: 10, windowSec: 3600 },
   /** Subidas (pedir URL firmada) por IP. */

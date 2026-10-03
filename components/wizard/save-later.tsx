@@ -6,6 +6,7 @@ import { BookmarkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { sendResumeLinkAction } from "@/app/cotizar/actions";
+import { useTurnstile } from "@/components/wizard/turnstile";
 import { brand } from "@/config/brand";
 import { track } from "@/lib/analytics";
 import { resumeLink } from "@/lib/quote/links";
@@ -17,7 +18,9 @@ export function SaveLater({ token, ensureSaved, defaultEmail }: { token: string 
   const t = useTranslations("wizard");
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(defaultEmail);
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "invalid" | "failed" | "limit">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "invalid" | "failed" | "limit" | "captcha" | "email">("idle");
+  // Captcha también aquí: este formulario envía correos (M15). Solo carga al abrir.
+  const { enabled: captchaEnabled, mount: mountCaptcha, getToken } = useTurnstile(open);
   const [link, setLink] = useState<string | null>(token ? resumeLink(token) : null);
   const [copied, setCopied] = useState(false);
 
@@ -43,7 +46,8 @@ export function SaveLater({ token, ensureSaved, defaultEmail }: { token: string 
         setStatus("failed");
         return;
       }
-      const result = await sendResumeLinkAction(saved, email);
+      const captchaToken = captchaEnabled ? await getToken() : null;
+      const result = await sendResumeLinkAction(saved, email, captchaToken);
       setStatus(result.ok ? "sent" : result.reason);
       track("wizard_save_later_email", { ok: result.ok });
     } catch {
@@ -80,14 +84,23 @@ export function SaveLater({ token, ensureSaved, defaultEmail }: { token: string 
               setStatus("idle");
             }}
             aria-invalid={status === "invalid" || undefined}
-            aria-describedby={status === "invalid" || status === "failed" || status === "limit" ? "save-later-error" : undefined}
+            aria-describedby={status === "invalid" || status === "failed" || status === "limit" || status === "captcha" || status === "email" ? "save-later-error" : undefined}
             className="block w-full rounded-md border border-input px-3 py-2.5 text-base aria-invalid:border-destructive"
           />
-          {status === "invalid" || status === "failed" || status === "limit" ? (
+          {status === "invalid" || status === "failed" || status === "limit" || status === "captcha" || status === "email" ? (
             <p id="save-later-error" role="alert" className="text-sm text-destructive">
-              {status === "invalid" ? t("errors.emailInvalid") : status === "limit" ? t("saveLaterLimit") : t("saveLaterFailed")}
+              {status === "invalid"
+                ? t("errors.emailInvalid")
+                : status === "limit"
+                  ? t("saveLaterLimit")
+                  : status === "captcha"
+                    ? t("saveLaterCaptcha")
+                    : status === "email"
+                      ? t("saveLaterOtherEmail")
+                      : t("saveLaterFailed")}
             </p>
           ) : null}
+          {captchaEnabled ? <div ref={mountCaptcha} /> : null}
           {status === "sent" ? (
             <p role="status" className="text-sm font-medium text-signal-green">
               {t("saveLaterSent")}

@@ -81,6 +81,27 @@ async function countItemFiles(itemId: string, purpose: UploadPurpose): Promise<n
   return row?.n ?? 0;
 }
 
+/** URLs de subida pedidas y sin confirmar, como máximo, por borrador en 24 horas. */
+const MAX_PENDING_DRAFT_SLOTS = 30;
+
+/**
+ * Borra los archivos de subidas que nunca se confirmaron (más de 24 horas):
+ * alguien pidió la URL, subió algo y no lo registró (SEG-01, REN-08).
+ */
+export async function purgeUnconfirmedUploads(): Promise<number> {
+  const rows = await withActor(serviceActor, (tx) => tx<{ id: string; bucket: string; storage_path: string }[]>`
+    select id, bucket, storage_path from public.upload_slots
+     where confirmed_at is null and created_at < now() - interval '24 hours'
+     order by created_at limit 500`);
+  let removed = 0;
+  for (const r of rows) {
+    await removeObject(r.bucket as "artwork", r.storage_path).catch(() => {});
+    await withActor(serviceActor, (tx) => tx`delete from public.upload_slots where id = ${r.id}`);
+    removed += 1;
+  }
+  return removed;
+}
+
 export async function prepareUpload(scope: UploadScope, file: { name: string; size: number }): Promise<SlotResult> {
   const { maxMb, maxFiles } = await uploadLimits();
   const ext = file.name.toLowerCase().split(".").pop() ?? "";
@@ -89,6 +110,13 @@ export async function prepareUpload(scope: UploadScope, file: { name: string; si
   const owner = await resolveOwner(scope);
   if (!owner) return { ok: false, error: "expired" };
   if (owner.existing >= maxFiles && scope.purpose !== "proof") return { ok: false, error: "tooMany" };
+  // Las URLs pedidas y no confirmadas también cuentan (SEG-01): tope por borrador.
+  if ("draftToken" in owner) {
+    const [pending] = await withActor(serviceActor, (tx) => tx<{ n: number }[]>`
+      select count(*)::int as n from public.upload_slots
+       where draft_id = ${owner.draftId} and confirmed_at is null and created_at > now() - interval '24 hours'`);
+    if ((pending?.n ?? 0) >= MAX_PENDING_DRAFT_SLOTS) return { ok: false, error: "tooMany" };
+  }
   const nonce = fileNonce();
   const path =
     "draftToken" in owner
@@ -96,6 +124,10 @@ export async function prepareUpload(scope: UploadScope, file: { name: string; si
       : requestFilePath(owner.requestId, owner.itemId, scope.purpose, nonce, file.name);
   try {
     const slot = await signedUploadUrl("artwork", path, { maxBytes: maxMb * 1024 * 1024, expiresIn: 60 * 60 });
+    if ("draftToken" in owner) {
+      await withActor(serviceActor, (tx) => tx`
+        insert into public.upload_slots (bucket, storage_path, draft_id) values ('artwork', ${path}, ${owner.draftId}) on conflict (storage_path) do nothing`);
+    }
     return { ok: true, ...slot, path };
   } catch (error) {
     log.error("no se pudo preparar la subida", { error });
@@ -134,6 +166,7 @@ export async function confirmUpload(scope: UploadScope, input: { path: string; n
       insert into public.quote_draft_files (draft_id, item_key, purpose, storage_path, file_name, format, size_bytes)
       values (${owner.draftId}, ${owner.itemKey}, ${scope.purpose}, ${input.path}, ${file.name}, ${kind}, ${head.size})
       on conflict (storage_path) do nothing`);
+    await withActor(serviceActor, (tx) => tx`update public.upload_slots set confirmed_at = now() where storage_path = ${input.path}`);
     return { ok: true, file, previewUrl: await signedUrl("artwork", input.path, { expiresIn: 300 }) };
   }
 

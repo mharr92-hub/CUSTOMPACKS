@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { adminNav } from "@/config/admin-nav";
 import { brand } from "@/config/brand";
 import type { CurrentUser } from "@/lib/auth";
+import { captchaMissingInProduction } from "@/lib/env";
 import { countFailedNotifications, countPendingWhatsapp } from "@/lib/notify";
 import { signOutAction } from "@/app/admin/actions";
 import { AdminNavLink } from "./admin-nav-link";
@@ -53,6 +54,11 @@ export async function AdminShell({ user, children }: { user: CurrentUser; childr
           </form>
         </header>
         <main id="contenido" className="flex-1 p-4 sm:p-6 lg:p-8">
+          {user.role === "admin" && captchaMissingInProduction() ? (
+            <p role="alert" className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" data-testid="captcha-missing">
+              {t("captchaMissing")}
+            </p>
+          ) : null}
           {failed > 0 ? (
             <p role="status" className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" data-testid="failed-notifications">
               {t("notifications.failedBanner", { count: failed })}

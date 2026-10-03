@@ -107,7 +107,8 @@ export async function requestStaffMagicLink(rawEmail: string, rawNext: string | 
   if (supabase) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: isAdminEmail, emailRedirectTo: absoluteUrl(`/auth/confirm?next=${encodeURIComponent(next)}`) },
+      // Nadie se crea una cuenta desde aquí (M15, SEG-06): el equipo entra por invitación (pnpm admin:invite o Panel → Usuarios).
+      options: { shouldCreateUser: false, emailRedirectTo: absoluteUrl(`/auth/confirm?next=${encodeURIComponent(next)}`) },
     });
     if (error) log.warn("enlace mágico no enviado", { email, error: error.message });
     return { ok: true, devLink: null };

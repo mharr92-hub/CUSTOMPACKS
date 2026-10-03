@@ -17,11 +17,17 @@ import { allowIp, requestIp } from "@/lib/rate-limit";
 
 export type SaveResult = { ok: true; token: string } | { ok: false; submitted?: boolean };
 
+/** Tamaño máximo del borrador (M15): de sobra para 20 piezas con sus archivos. */
+const MAX_DRAFT_BYTES = 64 * 1024;
+
 /** Autoguardado del borrador (la verdad del progreso vive en quote_drafts). */
 export async function saveDraftAction(token: string | null, payload: unknown): Promise<SaveResult> {
   const state = parseWizardState(payload);
   if (!state) return { ok: false };
+  if (JSON.stringify(state).length > MAX_DRAFT_BYTES) return { ok: false };
   if (!(await allowIp("draft"))) return { ok: false };
+  // Crear un borrador nuevo tiene su propio tope por IP (SEG-01).
+  if (!isDraftToken(token) && !(await allowIp("draftNew"))) return { ok: false };
   try {
     const result = await saveDraft(isDraftToken(token) ? token : null, state);
     if (result.status === "submitted") return { ok: false, submitted: true };
@@ -44,15 +50,19 @@ export async function loadDraftAction(token: string): Promise<LoadResult> {
   }
 }
 
-export type ResumeResult = { ok: true } | { ok: false; reason: "invalid" | "limit" | "failed" };
+export type ResumeResult = { ok: true } | { ok: false; reason: "invalid" | "limit" | "failed" | "captcha" | "email" };
 
 /** "Guardar y seguir después": envía el enlace del borrador por correo (máximo 3 por día y borrador). */
-export async function sendResumeLinkAction(token: string, email: string): Promise<ResumeResult> {
+export async function sendResumeLinkAction(token: string, email: string, captchaToken?: string | null): Promise<ResumeResult> {
   if (!isValidEmail(email)) return { ok: false, reason: "invalid" };
   if (!isDraftToken(token)) return { ok: false, reason: "failed" };
   try {
     if (!(await allowIp("resume"))) return { ok: false, reason: "limit" };
-    if (!(await claimResumeEmail(token))) return { ok: false, reason: "limit" };
+    // Captcha también aquí: este formulario envía correos de la marca (SEG-04).
+    if (!(await verifyCaptcha(typeof captchaToken === "string" ? captchaToken : null, await requestIp()))) return { ok: false, reason: "captcha" };
+    const claim = await claimResumeEmail(token, email);
+    if (claim === "email") return { ok: false, reason: "email" };
+    if (!claim) return { ok: false, reason: "limit" };
     const t = serverT("wizard");
     const link = resumeLink(token);
     const values = { brand: brand.name };

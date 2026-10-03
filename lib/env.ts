@@ -47,9 +47,27 @@ export type ServerEnv = {
 
 let cached: ServerEnv | undefined;
 
+/**
+ * Variables solo para pruebas que debilitan la seguridad: en producción
+ * (VERCEL_ENV=production) el servidor no arranca si están definidas (M15, SEG-05).
+ */
+export const TEST_ONLY_VARIABLES = ["ALLOW_LOCAL_AUTH_LINKS", "RATE_LIMIT_FACTOR"] as const;
+
+export function assertNoTestVariablesInProduction(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.VERCEL_ENV !== "production") return;
+  const present = TEST_ONLY_VARIABLES.filter((k) => (env[k] ?? "").trim() !== "");
+  if (present.length) throw new Error(`Variables solo para pruebas definidas en producción: ${present.join(", ")}. Quítalas en Vercel.`);
+}
+
+/** En producción, el cotizador público sin Turnstile queda expuesto a abuso: el panel lo avisa. */
+export function captchaMissingInProduction(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.VERCEL_ENV === "production" && (!env.TURNSTILE_SECRET_KEY?.trim() || !env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
+}
+
 /** Lee y valida las variables de entorno del servidor una sola vez. */
 export function getServerEnv(): ServerEnv {
   if (cached) return cached;
+  assertNoTestVariablesInProduction();
   const raw = schema.parse(process.env);
   const supabase =
     raw.SUPABASE_URL && raw.SUPABASE_ANON_KEY && raw.SUPABASE_SERVICE_ROLE_KEY

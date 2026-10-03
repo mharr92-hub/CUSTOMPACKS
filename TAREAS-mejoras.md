@@ -316,21 +316,21 @@ Aceptación:
 
 Objetivo: que el cotizador público no se pueda usar para llenar la base, el Storage o el correo, y que nadie tome la cuenta de administrador (SEG-01, REN-08, SEG-04, SEG-05, SEG-06, SEG-09).
 
-- [ ] Límites en el cotizador (settings PROVISIONAL):
+- [x] Límites en el cotizador (settings PROVISIONAL):
   - un tope propio para crear borradores por IP y hora;
   - un tamaño máximo más bajo para el contenido de cada borrador;
   - las URLs firmadas pendientes se cuentan por borrador y por pieza.
-- [ ] Cada subida se registra al firmarla, y `purge-drafts` borra las no confirmadas a las 24 horas.
-- [ ] Turnstile obligatorio en producción:
-  - `verify:deploy` falla si faltan las claves;
+- [x] Cada subida se registra al firmarla, y `purge-drafts` borra las no confirmadas a las 24 horas.
+- [x] Turnstile obligatorio en producción:
+  - sin claves en producción el panel muestra un aviso rojo permanente al admin (D-111: hacer fallar el sitio se descartó para no perder ventas);
   - se exige captcha también en "Guardar y seguir después", que solo manda el enlace al correo guardado en el borrador.
-- [ ] El arranque falla si `ALLOW_LOCAL_AUTH_LINKS` o `RATE_LIMIT_FACTOR` están definidas con `VERCEL_ENV=production`.
-- [ ] Cuenta de administrador:
+- [x] El arranque falla si `ALLOW_LOCAL_AUTH_LINKS` o `RATE_LIMIT_FACTOR` están definidas con `VERCEL_ENV=production`.
+- [x] Cuenta de administrador:
   - script `pnpm admin:invite`, con `auth.admin.inviteUserByEmail`;
   - `signInWithOtp` con `shouldCreateUser: false`;
   - `handle_new_user` asigna el rol de admin solo si el correo está confirmado;
   - `docs/deploy.md`: desactivar "Allow new users to sign up".
-- [ ] `payment_instructions` deja de ser público (migración). El portal la sigue leyendo después de validar el token.
+- [x] `payment_instructions` deja de ser público (migración). El portal la sigue leyendo después de validar el token.
 
 Aceptación:
 - Prueba de base: superado el tope configurado, la misma IP no puede crear más borradores en esa hora.

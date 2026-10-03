@@ -11,3 +11,10 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
     routePath: context.routePath,
   });
 };
+
+/** Al arrancar: en producción no se aceptan las variables solo para pruebas (M15, SEG-05). */
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { assertNoTestVariablesInProduction } = await import("@/lib/env");
+  assertNoTestVariablesInProduction();
+}

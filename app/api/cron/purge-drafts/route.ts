@@ -1,5 +1,6 @@
 import { isAuthorizedCron } from "@/lib/cron";
 import { log } from "@/lib/log";
+import { purgeUnconfirmedUploads } from "@/lib/artwork/uploads";
 import { purgeExpiredDrafts } from "@/lib/quote/drafts";
 import { removePrefix } from "@/lib/storage";
 
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   if (!isAuthorizedCron(request)) return new Response("No autorizado", { status: 401 });
   const tokens = await purgeExpiredDrafts();
+  const unconfirmed = await purgeUnconfirmedUploads();
+  if (unconfirmed) log.info("subidas sin confirmar borradas", { unconfirmed });
   let files = 0;
   for (const token of tokens) {
     try {

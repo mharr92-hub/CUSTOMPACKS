@@ -1107,7 +1107,8 @@
       "empty": "No hay WhatsApp pendientes.",
       "since": "desde el {date}",
       "openAndMark": "Abrir y marcar enviado"
-    }
+    },
+    "captchaMissing": "Falta configurar Turnstile (TURNSTILE_SECRET_KEY y NEXT_PUBLIC_TURNSTILE_SITE_KEY en Vercel): el cotizador público queda expuesto a abuso. Ver docs/deploy.md."
   },
   "catalog": {
     "title": "Catálogo",
@@ -1777,7 +1778,9 @@
     },
     "resumed": "Retomamos tu solicitud del {date}.",
     "startNew": "Empezar una nueva",
-    "waitUpload": "Espera a que termine la subida del archivo para continuar."
+    "waitUpload": "Espera a que termine la subida del archivo para continuar.",
+    "saveLaterCaptcha": "No pudimos verificar que eres una persona. Inténtalo de nuevo o usa WhatsApp.",
+    "saveLaterOtherEmail": "Este borrador ya tiene un correo para el enlace. Usa ese mismo, copia el enlace o envíatelo por WhatsApp."
   },
   "spec": {
     "none": "—",

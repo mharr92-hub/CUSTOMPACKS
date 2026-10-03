@@ -785,3 +785,14 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - La misma referencia no se carga dos veces por pedido y tipo (índice único).
   - Los montos del pedido no se editan; el equipo escribe pagos solo por el servidor (sin permiso directo sobre la tabla).
 - **Cómo cambiarla:** `payment_tolerance` en Configuración; reglas en la migración 016 y en `lib/orders/index.ts`.
+
+### D-111 · 03/10/2026 · Abuso anónimo y cuenta de administrador (M15)
+- **Decisión:**
+  - **Borradores:** crear uno nuevo tiene un tope propio de 30 por IP y hora (`draftNew`). Un borrador ocupa como máximo 64 KB.
+  - **Subidas:** cada URL firmada queda registrada (`upload_slots`). Un borrador tiene a lo sumo 30 sin confirmar en 24 horas, y la purga diaria borra los archivos que nunca se confirmaron.
+  - **"Guardar y seguir después":** pide captcha y solo envía el enlace al primer correo dado para ese borrador (o al del contacto).
+  - **Turnstile:** sin las claves en producción el cotizador **sigue funcionando** (no se pierden ventas), pero el panel muestra al admin un aviso rojo permanente. Hacer fallar el sitio por una variable faltante se descartó.
+  - **Variables de prueba:** `ALLOW_LOCAL_AUTH_LINKS` y `RATE_LIMIT_FACTOR` hacen fallar el arranque con `VERCEL_ENV=production`.
+  - **Administrador:** el formulario de ingreso nunca crea cuentas en Supabase (`shouldCreateUser: false`). El admin se invita con `pnpm admin:invite`, y el correo de `ADMIN_EMAIL` solo recibe el rol con el correo confirmado (migración 019). El registro público de Supabase se cierra a mano (`docs/deploy.md`).
+  - **Instrucciones de pago:** dejan de ser públicas.
+- **Cómo cambiarla:** topes en `RATE_RULES` (`lib/rate-limit.ts`), `MAX_DRAFT_BYTES` (`app/cotizar/actions.ts`) y `MAX_PENDING_DRAFT_SLOTS` (`lib/artwork/uploads.ts`).
