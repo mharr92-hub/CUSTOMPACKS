@@ -1,6 +1,20 @@
 # Despliegue — ProvenPack
 
-Pasos para llevar la plataforma de local a producción. Los pasos con cuentas reales (Supabase, Vercel, Resend, dominio) **no se han ejecutado**: requieren credenciales de Mark. Lo que se puede comprobar sin ellas se ensaya en local con `pnpm verify:deploy` (ver el checklist al final). Ningún paso obliga a contratar un plan de pago, salvo donde se indica expresamente.
+Pasos para llevar la plataforma de local a producción. Los pasos con cuentas reales (Supabase, Vercel, Resend, dominio) **no se han ejecutado**: requieren credenciales de Mark. Lo que se puede comprobar sin ellas se ensaya en local con `pnpm verify:deploy` (ver el checklist al final).
+
+## Planes para producción (decisión de Mark)
+
+Este repositorio no contrata nada. La recomendación sale de la auditoría (`docs/AUDITORIA.md`, sección 8). Los precios son los públicos conocidos hasta 2025: verifícalos antes de contratar.
+
+| Servicio | Para probar | Para operar con clientes | Por qué |
+| --- | --- | --- | --- |
+| Supabase | Free | **Pro** (≈ USD 25/mes) | Free da 1 GB de archivos y 5 GB de transferencia: con 100 solicitudes al mes se agotan en semanas. Free tampoco tiene respaldos ni acepta archivos de más de 50 MB, y se pausa tras 7 días sin uso. |
+| Vercel | Hobby | **Pro** (≈ USD 20/mes, un miembro) | Hobby es solo para uso personal no comercial. |
+| Resend | Free (3.000 correos/mes, 100 por día) | Free hasta ≈ 200 solicitudes/mes; luego Pro (≈ USD 20/mes) | El tope diario se alcanza primero en los días de más movimiento. |
+
+Total estimado: unos USD 45 al mes con 100 solicitudes, y USD 65–85 con 500 a 1.000 (más el dominio). Pregunta 20 de `docs/PREGUNTAS.md`.
+
+**Previews de Vercel:** usa un **segundo proyecto de Supabase Free** solo para Preview, sin `RESEND_API_KEY` (los correos quedan simulados) y con un `FACTORY_EMAIL` de prueba. Así un preview nunca toca la base, los archivos ni el correo de producción. En Vercel → Settings → Environment Variables, carga esas variables solo en el entorno *Preview*.
 
 ## 0. Requisitos locales
 
@@ -17,7 +31,7 @@ Comandos útiles: `pnpm db:reset` (recrea la base local), `pnpm lint`, `pnpm typ
 
 ## 1. Supabase (base de datos, Auth y Storage)
 
-1. Crea un proyecto en <https://supabase.com> (el plan Free sirve para empezar). Región sugerida: `us-east-1` (la más cercana a Panamá con Vercel `iad1`).
+1. Crea un proyecto en <https://supabase.com> (Free para probar; Pro para operar, ver arriba). Región sugerida: `us-east-1` (la más cercana a Panamá con Vercel `iad1`). Crea también el proyecto Free de previews.
 2. En **Project Settings → API** copia:
    - `Project URL` → `SUPABASE_URL`
    - `anon public` → `SUPABASE_ANON_KEY`
@@ -35,7 +49,7 @@ Comandos útiles: `pnpm db:reset` (recrea la base local), `pnpm lint`, `pnpm typ
 6. **Auth → Email Templates → Magic Link**: usa el enlace con `token_hash` para que funcione desde cualquier navegador:
    `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next={{ .RedirectTo }}`
 7. **Auth → SMTP**: configura Resend como SMTP (paso 3) para que los enlaces salgan desde el dominio propio.
-8. **Storage**: las migraciones crean los buckets. `artwork`, `evidence` y `documents` son privados (URLs firmadas); `catalog` es público (fotos del catálogo, D-015). El plan Free limita cada archivo a 50 MB; para el límite de 100 MB por archivo del PRD hace falta el plan Pro (decisión de Mark; ver D-012).
+8. **Storage**: las migraciones crean los buckets. `artwork`, `evidence` y `documents` son privados (URLs firmadas); `catalog` es público (fotos del catálogo, D-015). El plan Free limita cada archivo a 50 MB; para el límite de 100 MB por archivo del PRD hace falta el plan Pro (decisión de Mark; ver D-012). En Pro, sube el límite global en **Storage → Settings → Upload file size limit** a 100 MB o más, y comprueba con `pnpm check:storage` (con las credenciales de producción en `.env`) que los buckets privados aceptan `max_file_mb`. Mientras siga en Free, baja `max_file_mb` a 50 en Configuración.
 
 ## 2. Vercel (aplicación)
 
@@ -49,7 +63,7 @@ Comandos útiles: `pnpm db:reset` (recrea la base local), `pnpm lint`, `pnpm typ
    pnpm cron:install --quitar   # lo apaga
    ```
    La URL y el secreto quedan en Supabase Vault, no en el repositorio. Sin este paso, el SLA de 4 h y 24 h solo se revisa al abrir el panel y una vez al día (D-013).
-4. Despliega. Cada PR genera un preview automáticamente.
+5. Despliega. Cada PR genera un preview automáticamente, con las variables del entorno *Preview* (el proyecto de Supabase de pruebas).
 
 ## 3. Resend (correo transaccional)
 

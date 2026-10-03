@@ -21,6 +21,7 @@
     "build:next": "next build",
     "gallery:import": "tsx --import ./scripts/lib/script-env.mjs scripts/import-gallery.mts",
     "verify:deploy": "node scripts/verify-deploy.mjs",
+    "check:storage": "node scripts/check-storage.mjs",
     "cron:install": "node scripts/cron-install.mjs",
     "db:seed-demo": "tsx --import ./scripts/lib/script-env.mjs scripts/seed-demo.mts"
   },

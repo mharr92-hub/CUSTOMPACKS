@@ -222,13 +222,13 @@ Aceptación:
 
 Objetivo: que la guía no lleve a planes que fallan en semanas o que no permiten uso comercial (REN-11, REN-12, REN-07). No se contrata nada.
 
-- [ ] `docs/deploy.md` y `docs/lanzamiento.md`:
+- [x] `docs/deploy.md` y `docs/lanzamiento.md`:
   - la configuración recomendada: Supabase Pro + Vercel Pro;
   - el costo estimado de la auditoría §8, con la advertencia de verificar los precios;
   - la decisión pendiente de Mark (pregunta 20 de `docs/PREGUNTAS.md`).
-- [ ] El paso para subir el límite de tamaño de archivos en Supabase, según `settings.max_file_mb`.
-- [ ] Previews de Vercel con un segundo proyecto Supabase Free: sin `RESEND_API_KEY` y con un `FACTORY_EMAIL` de prueba.
-- [ ] `verify:deploy` compara el límite de tamaño de cada bucket con `max_file_mb` y avisa si no alcanza.
+- [x] El paso para subir el límite de tamaño de archivos en Supabase, según `settings.max_file_mb`.
+- [x] Previews de Vercel con un segundo proyecto Supabase Free: sin `RESEND_API_KEY` y con un `FACTORY_EMAIL` de prueba.
+- [x] `pnpm check:storage` compara el límite de tamaño de cada bucket con `max_file_mb` y avisa si no alcanza (`verify:deploy` corre contra una base local, sin buckets de Supabase).
 
 Aceptación:
 - Ningún paso de la guía deja producción en un plan de uso no comercial.

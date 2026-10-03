@@ -94,12 +94,12 @@ Otras preguntas abiertas (PRD §20 y `docs/DECISIONES.md`):
 
 ## 3. Cuentas y credenciales
 
-Ninguna credencial va en el código ni en el repositorio: se cargan como variables de entorno en Vercel, o como secretos en GitHub para los respaldos. Ningún paso requiere un plan de pago, salvo lo indicado en `docs/deploy.md`.
+Ninguna credencial va en el código ni en el repositorio: se cargan como variables de entorno en Vercel, o como secretos en GitHub para los respaldos. Este repositorio no contrata nada. Para operar con clientes se recomiendan Supabase Pro y Vercel Pro (unos USD 45 al mes con 100 solicitudes): ver "Planes para producción" en `docs/deploy.md` y la pregunta 20 de `docs/PREGUNTAS.md`.
 
 | Qué | Variable | Dónde se obtiene |
 | --- | --- | --- |
 | Dominio | `NEXT_PUBLIC_SITE_URL` | Registrar (primera opción: `provenpack.com`). DNS en Cloudflare, gratis. |
-| Supabase | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` | Proyecto nuevo (plan Free) → Project Settings |
+| Supabase | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` | Proyecto de producción (Pro recomendado) y otro Free para previews → Project Settings |
 | Correo transaccional | `RESEND_API_KEY`, `MAIL_FROM` | Cuenta de Resend y el dominio verificado (SPF, DKIM, DMARC) |
 | WhatsApp del negocio | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Número con código de país, sin signos (hoy es de ejemplo) |
 | Correo de contacto | `NEXT_PUBLIC_CONTACT_EMAIL` | Hoy es de ejemplo |
