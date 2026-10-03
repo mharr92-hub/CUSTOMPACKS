@@ -78,11 +78,11 @@ jobs:
       DEST_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
     steps:
       - name: Sin configurar
-        if: env.SRC_ENDPOINT ==  || env.DEST_ENDPOINT ==  || env.DEST_BUCKET == 
+        if: env.SRC_ENDPOINT == '' || env.DEST_ENDPOINT == '' || env.DEST_BUCKET == ''
         run: echo "::notice::Copia de archivos desactivada. Define los secretos STORAGE_S3_* y BACKUP_S3_* y la variable BACKUP_S3_BUCKET (docs/respaldos.md)."
 
       - name: Copiar buckets privados
-        if: env.SRC_ENDPOINT !=  && env.DEST_ENDPOINT !=  && env.DEST_BUCKET != 
+        if: env.SRC_ENDPOINT != '' && env.DEST_ENDPOINT != '' && env.DEST_BUCKET != ''
         env:
           RCLONE_CONFIG_SRC_TYPE: s3
           RCLONE_CONFIG_SRC_PROVIDER: Other
