@@ -319,6 +319,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
                 sentAt: r.sentAt?.toISOString() ?? null,
                 sentTo: r.sentTo,
                 respondedAt: r.respondedAt?.toISOString() ?? null,
+                remindedAt: r.remindedAt?.toISOString() ?? null,
                 costs: r.costs,
                 currency: r.currency,
                 fxRate: r.fxRate,

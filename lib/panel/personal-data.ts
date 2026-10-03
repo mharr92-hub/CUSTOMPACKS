@@ -87,32 +87,42 @@ export async function exportPersonalData(user: CurrentUser, q: string): Promise<
   });
 }
 
-export type AnonymizeResult = { ok: true; files: number } | { ok: false; error: "forbidden" | "not_found" | "confirm" };
+export type AnonymizeResult = { ok: true; files: number; converted: boolean } | { ok: false; error: "forbidden" | "not_found" | "confirm" };
+
+type AnonymizeOutcome = { converted: boolean; drafts: number; artwork: string[]; documents: string[] };
 
 /**
- * Anonimiza una solicitud (derecho de eliminación). Pide escribir el número
- * de la solicitud como confirmación. No se puede deshacer.
+ * Anonimiza una solicitud (derecho de eliminación; D-116). Pide escribir el
+ * número de la solicitud como confirmación. No se puede deshacer. Siempre se
+ * anonimiza el contacto y se borran los borradores; si la solicitud no llegó
+ * a pedido, también su arte, sus referencias y los PDF de cotizaciones no
+ * aceptadas. Si llegó a pedido, se conservan la cotización aceptada, el pedido,
+ * los pagos y el arte, que siguen la retención de D-115.
  */
 export async function anonymizeRequest(user: CurrentUser, requestId: string, confirmNumber: string): Promise<AnonymizeResult> {
   if (!isAdmin(user)) return { ok: false, error: "forbidden" };
   if (!UUID.test(requestId)) return { ok: false, error: "not_found" };
-  const paths = await withActor(actorFor(user), async (tx) => {
+  const outcome = await withActor(actorFor(user), async (tx) => {
     const [r] = await tx<{ number: string }[]>`select number from public.quote_requests where id = ${requestId}`;
     if (!r) return null;
     if (r.number !== confirmNumber.trim().toUpperCase()) return "confirm" as const;
-    const [row] = await tx<{ paths: string[] }[]>`select public.anonymize_request(${requestId}) as paths`;
-    return row?.paths ?? [];
+    const [row] = await tx<{ outcome: AnonymizeOutcome }[]>`select public.anonymize_request(${requestId}) as outcome`;
+    return row?.outcome ?? { converted: false, drafts: 0, artwork: [], documents: [] };
   });
-  if (paths === null) return { ok: false, error: "not_found" };
-  if (paths === "confirm") return { ok: false, error: "confirm" };
+  if (outcome === null) return { ok: false, error: "not_found" };
+  if (outcome === "confirm") return { ok: false, error: "confirm" };
   let files = 0;
-  for (const path of paths) {
+  const targets = [
+    ...outcome.artwork.map((path) => ["artwork", path] as const),
+    ...outcome.documents.map((path) => ["documents", path] as const),
+  ];
+  for (const [bucket, path] of targets) {
     try {
-      await removeObject("artwork", path);
+      await removeObject(bucket, path);
       files += 1;
     } catch (error) {
       log.error("no se pudo borrar un archivo al anonimizar", { error });
     }
   }
-  return { ok: true, files };
+  return { ok: true, files, converted: outcome.converted };
 }

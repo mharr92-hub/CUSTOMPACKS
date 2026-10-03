@@ -35,6 +35,7 @@ export type PanelRfq = {
   sentAt: string | null;
   sentTo: string | null;
   respondedAt: string | null;
+  remindedAt: string | null;
   costs: { itemId: string; quantity: number; unitCost: number }[];
   currency: string;
   fxRate: number | null;
@@ -145,6 +146,11 @@ export function RfqPanel({
                 {rfq.sentAt ? t("sent", { to: rfq.sentTo ?? "", date: formatDateTime(rfq.sentAt) }) : t("notSent")}
                 {rfq.respondedAt ? ` · ${t("answered", { date: formatDateTime(rfq.respondedAt) })}` : ""}
               </p>
+              {rfq.remindedAt && !rfq.respondedAt ? (
+                <p className="mt-1 rounded-md bg-signal-red/10 px-2 py-1 text-xs" data-testid="rfq-overdue">
+                  {t("overdue", { date: formatDateTime(rfq.remindedAt) })}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" size="sm" variant="outline" onClick={() => void openSigned(() => rfqFileUrlAction(rfq.id, "pdf"))}>

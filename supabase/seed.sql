@@ -171,7 +171,7 @@ insert into public.settings (key, value, value_type, description, is_public, is_
   ('quote_validity_days', '15', 'number', 'Vigencia de la cotización en días calendario.', true, true),
   ('max_file_mb', '100', 'number', 'Tamaño máximo por archivo de arte (MB).', true, true),
   ('max_files_per_item', '10', 'number', 'Máximo de archivos de arte por pieza.', true, true),
-  ('artwork_retention_months', '24', 'number', 'Meses de retención del arte tras el último pedido.', false, true),
+  ('artwork_retention_months', '24', 'number', 'Meses que se conserva el arte: desde el cierre del pedido, o desde la última actividad si la solicitud no se convirtió en pedido.', false, false),
   ('default_margin_pct', '35', 'number', 'Margen por defecto por línea de cotización (uso interno).', false, true),
   ('show_client_logos', 'false', 'boolean', 'Mostrar logos de clientes en el sitio (requiere autorización escrita).', true, true),
   ('first_response_sla_hours', '4', 'number', 'Horas hábiles para la primera respuesta a una solicitud.', false, true),

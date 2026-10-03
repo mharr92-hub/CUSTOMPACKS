@@ -1035,10 +1035,10 @@ Estas preguntas de `docs/PREGUNTAS.md` cambian cómo se ejecutan algunas propues
 
 | Pregunta | Qué afecta | Mientras tanto |
 | --- | --- | --- |
-| 1. ITBMS en los pagos | P-20 y P-37 | Montos sin impuesto, con la leyenda |
+| 1. ITBMS en los pagos | P-20 y P-37 | Resuelta: montos sin impuesto, con la leyenda (D-102) |
 | 7. Formato del RFQ | P-15 y P-25 | El mismo formato de la ficha |
-| 19. Pagos en varias partes y tolerancia | P-20 | Se suman los pagos, con tolerancia 0 |
+| 19. Pagos en varias partes y tolerancia | P-20 | Resuelta: se suman los pagos; tolerancia 1 % o USD 25 (D-113) |
 | 20. Planes pagos para producción | P-11 | Solo se documenta; no se contrata nada |
-| 21. Retención de evidencias y comprobantes | P-30 y P-31 | No se borra nada automáticamente |
-| 22. Qué conservar al anonimizar | P-31 | Se conservan los montos y los números de documento |
-| 23. Tiempo de respuesta acordado con la fábrica | P-12 | La mitad del SLA de cotización (PROVISIONAL) |
+| 21. Retención de evidencias y comprobantes | P-30 y P-31 | Resuelta: 24 meses y 5 años tras cerrar el pedido (D-115) |
+| 22. Qué conservar al anonimizar | P-31 | Resuelta: se conservan pedidos, pagos y cotizaciones aceptadas (D-116) |
+| 23. Tiempo de respuesta acordado con la fábrica | P-12 | Resuelta: 48 horas hábiles, con recordatorio (D-114) |

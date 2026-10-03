@@ -14,7 +14,7 @@ const { saveDraft } = await import("@/lib/quote/drafts");
 const { submitDraft } = await import("@/lib/quote/submit");
 const { emptyItem, initialWizardState } = await import("@/lib/quote/types");
 const { changeRequestStatus } = await import("@/lib/panel/requests");
-const { generateRfq, recordRfqResponse, sendRfq } = await import("@/lib/rfq");
+const { generateRfq, recordRfqResponse, remindOverdueRfqs, sendRfq } = await import("@/lib/rfq");
 const { acceptQuote, createQuoteDraft, expireQuotes, getClientQuote, issueQuote, quoteExpiryReminders, recordClientAcceptance, requestQuoteChanges, updateQuoteDraft } = await import("@/lib/quotes");
 const { processNotificationQueue } = await import("@/lib/notify");
 const { getObject } = await import("@/lib/storage");
@@ -143,6 +143,53 @@ describe("RFQ a fábrica", () => {
     expect(
       await recordRfqResponse(user, gen.rfq.id, { costs: [{ itemId: r.itemId, quantity: 1000, unitCost: "0.4" }], currency: "USD", productionDays: "20", notes: "" }),
     ).toEqual({ ok: false, error: "costs" });
+  });
+
+  it("si la fábrica no responde en factory_sla_hours horas hábiles, se le recuerda una vez y se avisa al equipo (D-114)", async () => {
+    const user = await sales();
+    const r = await printedRequest();
+    await changeRequestStatus(user, r.requestId, "in_review");
+    await addArtwork(r.requestId, r.itemId);
+    const gen = await generateRfq(user, r.requestId);
+    if (!gen.ok) throw new Error("RFQ");
+    expect(await sendRfq(user, gen.rfq.id)).toEqual({ ok: true });
+    const [sent] = await testSql()<{ sent_at: Date }[]>`select sent_at from public.factory_rfqs where id = ${gen.rfq.id}`;
+    const day = 24 * 3600 * 1000;
+    const remindedFor = async () =>
+      (await testSql()<{ reminded_at: Date | null }[]>`select reminded_at from public.factory_rfqs where id = ${gen.rfq.id}`)[0]?.reminded_at ?? null;
+
+    // Al día siguiente todavía está en plazo (48 horas hábiles).
+    await remindOverdueRfqs(new Date(sent!.sent_at.getTime() + day));
+    expect(await remindedFor()).toBeNull();
+
+    // Dos semanas después: recordatorio a la fábrica (simulado, sin RESEND_API_KEY) y aviso al equipo.
+    const later = new Date(sent!.sent_at.getTime() + 14 * day);
+    expect(await remindOverdueRfqs(later)).toBeGreaterThanOrEqual(1);
+    expect(await remindedFor()).toBeInstanceOf(Date);
+    const team = await testSql()<{ payload: { vars: Record<string, string> } }[]>`
+      select payload from public.notifications where request_id = ${r.requestId} and template_code = 'rfq_overdue_team'`;
+    expect(team).toHaveLength(1);
+    expect(team[0]?.payload.vars.rfq).toBe(gen.rfq.number);
+    expect(team[0]?.payload.vars.recordatorio).toMatch(/reenviamos/);
+    const [activity] = await testSql()<{ channel: string }[]>`
+      select channel from public.activities where request_id = ${r.requestId} and kind = 'rfq_overdue'`;
+    expect(activity?.channel).toBe("email");
+
+    // Una sola vez por RFQ.
+    await remindOverdueRfqs(new Date(later.getTime() + 7 * day));
+    expect(await testSql()`select 1 from public.notifications where request_id = ${r.requestId} and template_code = 'rfq_overdue_team'`).toHaveLength(1);
+
+    // Con la respuesta registrada, el panel deja de mostrarlo vencido (respondedAt).
+    const answer = await recordRfqResponse(user, gen.rfq.id, {
+      costs: [
+        { itemId: r.itemId, quantity: 1000, unitCost: "0.42" },
+        { itemId: r.itemId, quantity: 20000, unitCost: "0.30" },
+      ],
+      currency: "USD",
+      productionDays: "25",
+      notes: "",
+    });
+    expect(answer.ok).toBe(true);
   });
 });
 

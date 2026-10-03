@@ -8,6 +8,8 @@ import { serverT } from "@/lib/i18n";
 import { todayInPanama } from "@/lib/leadtime";
 import { log } from "@/lib/log";
 import { escapeHtml, sendEmail } from "@/lib/mail";
+import { enqueueNotification } from "@/lib/notify";
+import { businessHoursBetween, parseBusinessHours } from "@/lib/notify/business-hours";
 import { getRequestDetail } from "@/lib/panel/requests";
 import { parseMoney } from "@/lib/quotes/pricing";
 import { getObject, putObject, signedUrl } from "@/lib/storage";
@@ -31,6 +33,8 @@ export type Rfq = {
   sentAt: Date | null;
   sentTo: string | null;
   respondedAt: Date | null;
+  /** Recordatorio a la fábrica por no responder en factory_sla_hours (D-114). */
+  remindedAt: Date | null;
   costs: { itemId: string; quantity: number; unitCost: number }[];
   currency: string;
   /** Unidades de la moneda de fábrica por 1 de la moneda de la cotización (solo si difieren). */
@@ -58,6 +62,7 @@ type RfqRowDb = {
   sent_at: Date | null;
   sent_to: string | null;
   responded_at: Date | null;
+  reminded_at: Date | null;
   costs: { item_id: string; quantity: number; unit_cost: number }[];
   currency: string;
   fx_rate: string | null;
@@ -77,6 +82,7 @@ const toRfq = (r: RfqRowDb): Rfq => ({
   sentAt: r.sent_at,
   sentTo: r.sent_to,
   respondedAt: r.responded_at,
+  remindedAt: r.reminded_at,
   costs: (r.costs ?? []).map((c) => ({ itemId: c.item_id, quantity: Number(c.quantity), unitCost: Number(c.unit_cost) })),
   currency: r.currency,
   fxRate: r.fx_rate === null ? null : Number(r.fx_rate),
@@ -305,4 +311,71 @@ export async function rfqFileUrl(user: CurrentUser, rfqId: string, kind: "pdf" |
   const path = kind === "pdf" ? rfq?.pdf_path : rfq?.xlsx_path;
   if (!rfq || !path) return null;
   return signedUrl("documents", path, { expiresIn: 300, downloadName: path.split("/").pop() });
+}
+
+/**
+ * SLA de la fábrica (D-114): si el último RFQ de una solicitud lleva
+ * factory_sla_hours horas hábiles enviado y sin respuesta, se le reenvía a
+ * FACTORY_EMAIL con un recordatorio (solo si salió por correo a esa dirección)
+ * y se avisa al equipo. Una vez por RFQ. Lo llama el cron.
+ */
+export async function remindOverdueRfqs(now: Date = new Date()): Promise<number> {
+  const { settings, rows } = await withActor(serviceActor, async (tx) => {
+    const settings = await tx<{ key: string; value: unknown }[]>`
+      select key, value from public.settings where key in ('business_hours', 'factory_sla_hours')`;
+    const rows = await tx<{ id: string; request_id: string; version: number; number: string; sent_at: Date; sent_to: string | null; pdf_path: string | null; xlsx_path: string | null }[]>`
+      select f.id, f.request_id, f.version, r.number, f.sent_at, f.sent_to, f.pdf_path, f.xlsx_path
+        from public.factory_rfqs f join public.quote_requests r on r.id = f.request_id
+       where f.sent_at is not null and f.responded_at is null and f.reminded_at is null
+         and r.status in ('in_review', 'rfq_sent') and not r.is_demo
+         and not exists (select 1 from public.factory_rfqs n where n.request_id = f.request_id and n.version > f.version)`;
+    return { settings, rows };
+  });
+  const get = (key: string) => settings.find((s) => s.key === key)?.value;
+  const hours = parseBusinessHours(get("business_hours"));
+  const limit = Number(get("factory_sla_hours") ?? 48);
+  const factoryEmail = getServerEnv().factoryEmail;
+  const t = serverT("rfq");
+  let reminded = 0;
+  for (const r of rows) {
+    const elapsed = businessHoursBetween(r.sent_at, now, hours);
+    if (elapsed < limit) continue;
+    const number = `${r.number}-v${r.version}`;
+    let emailed = false;
+    if (factoryEmail && r.sent_to?.toLowerCase() === factoryEmail.toLowerCase() && r.pdf_path && r.xlsx_path) {
+      const [pdfFile, xlsxFile] = await Promise.all([getObject("documents", r.pdf_path), getObject("documents", r.xlsx_path)]);
+      const text = t("reminderText", { number, hours: Math.floor(elapsed) });
+      const result = await sendEmail({
+        to: factoryEmail,
+        subject: t("reminderSubject", { number, brand: brand.name }),
+        text,
+        html: `<p>${escapeHtml(text)}</p>`,
+        attachments: pdfFile && xlsxFile
+          ? [
+              { filename: `RFQ-${number}.pdf`, content: pdfFile.data, contentType: "application/pdf" },
+              { filename: `RFQ-${number}.xlsx`, content: xlsxFile.data, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+            ]
+          : [],
+      });
+      if (result.status === "failed") {
+        log.error("recordatorio de RFQ no enviado", { rfqId: r.id, error: result.error });
+        continue;
+      }
+      emailed = true;
+    }
+    await withActor(serviceActor, async (tx) => {
+      await tx`update public.factory_rfqs set reminded_at = ${now} where id = ${r.id}`;
+      await tx`
+        insert into public.activities (request_id, entity_type, entity_id, channel, kind, body)
+        values (${r.request_id}, 'factory_rfq', ${r.id}, ${emailed ? "email" : "system"}, 'rfq_overdue', ${number})`;
+    });
+    await enqueueNotification("rfq_overdue", r.request_id, {
+      entityType: "factory_rfq",
+      entityId: r.id,
+      vars: { horas: Math.floor(elapsed), rfq: number, recordatorio: emailed ? t("reminderSent") : t("reminderManual") },
+      dedupe: `rfq_overdue:${r.id}`,
+    });
+    reminded += 1;
+  }
+  return reminded;
 }

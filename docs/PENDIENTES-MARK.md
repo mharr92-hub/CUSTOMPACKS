@@ -7,12 +7,9 @@ Detalle de cada pregunta: `docs/PREGUNTAS.md`. Detalle técnico de cada cuenta: 
 ## 1. Decisiones (responder antes de abrir cuentas)
 
 - [ ] **Planes de pago para producción** (pregunta 20). Recomendado: Supabase Pro + Vercel Pro, unos USD 45 al mes con 100 solicitudes; Resend Pro (USD 20) cuando pases de ~200 solicitudes al mes. Vercel Hobby no permite uso comercial y Supabase Free se queda sin espacio en semanas. Precios de 2025: verifícalos.
-- [ ] **Pagos** (pregunta 19): ¿el anticipo o el saldo se pueden pagar en varias transferencias? ¿Qué diferencia aceptas por comisiones? Hoy la tolerancia es 0 (Configuración → `payment_tolerance`).
-- [ ] **ITBMS** (pregunta 1): ¿el anticipo y el saldo se cobran con el 7 % incluido o el impuesto va en factura aparte?
 - [ ] **Precios en la pantalla de aceptación** (pregunta 2): hoy solo están en el PDF.
-- [ ] **Tiempo de respuesta de la fábrica al RFQ** (pregunta 23).
-- [ ] **Retención** de fotos de QA y comprobantes (pregunta 21), y **qué conservar al borrar datos** de un cliente (pregunta 22).
 - [ ] **¿Se cotiza fuera de Panamá?** (pregunta 13).
+- [x] Resueltas el 03/10/2026: pagos en partes y tolerancia (19), ITBMS (1), tiempo de respuesta de la fábrica (23), retención (21) y qué conservar al borrar datos (22). Ver D-113 a D-116.
 
 ## 2. Cuentas (gratis o según la decisión 1)
 
@@ -42,7 +39,7 @@ Detalle de cada pregunta: `docs/PREGUNTAS.md`. Detalle técnico de cada cuenta: 
 - [ ] **Catálogo real** (PRD §20): tipos, tamaños, papeles, calibres, impresión, acabados, atributos y compatibilidades, con fotos (pregunta 4). Hoy todo es PROVISIONAL.
 - [ ] **Fotos de las 200 muestras** con su código: `pnpm gallery:import <carpeta>` (pregunta 5).
 - [ ] **Instrucciones de pago** (banco, cuenta, ACH, Yappy) y **correo del equipo** para avisos internos (preguntas 9 y 10).
-- [ ] **Confirmar o cambiar los valores PROVISIONAL** de Configuración: margen, vigencia, umbral 30/45 días, SLA y horario hábil, tolerancia de pagos, horas del resumen de WhatsApp (preguntas 6 y 15).
+- [ ] **Confirmar o cambiar los valores PROVISIONAL** de Configuración: margen, vigencia, umbral 30/45 días, SLA y horario hábil, horas del resumen de WhatsApp (preguntas 6 y 15).
 - [ ] **Revisar los textos PROVISIONAL de las plantillas** de correo y WhatsApp (15 originales y 8 nuevos de los avisos por los dos canales). Al guardarlos dejan de ser provisionales (pregunta 16).
 - [ ] **Formato del RFQ** que prefiere la fábrica (pregunta 7) y si el plazo incluye tránsito y aduana (pregunta 8).
 - [ ] **Textos legales:** razón social, RUC, tolerancias, muestras físicas y revisión de un abogado de la política de privacidad y los términos (Ley 81; preguntas 11 y 12).
@@ -55,5 +52,5 @@ Detalle de cada pregunta: `docs/PREGUNTAS.md`. Detalle técnico de cada cuenta: 
 
 ## 6. Primer mes (cuando haya datos reales)
 
-- [ ] Decidir qué mejoras de `docs/MEJORAS.md` siguen. Las del primer mes son P-12 a P-19, P-24 a P-29, P-32 a P-34 y P-36; están ordenadas por impacto. Recomendación: primero el recordatorio del RFQ a la fábrica (P-12), la bandeja "Requiere acción" (P-24) y el tablero de los 11 KPI (P-32), que ya tiene los datos guardados desde el primer día.
+- [ ] Decidir qué mejoras de `docs/MEJORAS.md` siguen. Las del primer mes son P-12 a P-19, P-24 a P-29, P-32 a P-34 y P-36; están ordenadas por impacto. Recomendación: primero la bandeja "Requiere acción" (P-24) y el tablero de los 11 KPI (P-32), que ya tiene los datos guardados desde el primer día.
 - [ ] A los 60 días, calibrar las metas de PRD §3 con esos datos.

@@ -215,14 +215,14 @@ En **Registrar hito** solo aparece el siguiente paso válido.
 
 - **Configuración:**
   - margen por defecto, vigencia de la cotización, % de anticipo, plazos, SLA y horario hábil;
-  - tamaño máximo de archivo y meses de retención del arte;
+  - tamaño máximo de archivo y plazos de retención (arte, evidencias y documentos legales);
   - correo del equipo para avisos;
   - **Instrucciones de pago** que ve el cliente (banco, cuenta, Yappy).
   - Los valores PROVISIONAL están marcados.
 
   ![Configuración](manual/18-configuracion.png)
 
-- **Archivos:** arte vencido según la retención. Se marca solo; se borra cuando admin lo confirma.
+- **Archivos:** arte, evidencias de QA y documentos (comprobantes, cotizaciones) con la retención vencida: 24 meses tras cerrar el pedido el arte y las evidencias, 5 años los documentos. Se marcan solos; se borran cuando admin lo confirma.
 - **Datos personales (Ley 81):** cuando un cliente pide sus datos o que los borremos.
   1. Busca por su correo o su WhatsApp.
   2. **Descargar sus datos (JSON)**: todo lo que guardamos de esa persona, para enviárselo.

@@ -78,16 +78,18 @@ Se editan en **Panel → Configuración** (admin). Al guardar un valor, deja de 
 | Horario hábil (`business_hours`) | Lun–vie 08:00–17:00 | PROVISIONAL |
 | Recordatorios de vigencia / saldo | 3 y 1 días antes / 2 y 5 días después | PROVISIONAL |
 | Encuesta NPS (`nps_delay_days`) | 7 días después del cierre | PROVISIONAL |
-| Retención del arte (`artwork_retention_months`) | 24 meses | PROVISIONAL (propuesta del PRD) |
+| Retención del arte y de las evidencias de QA (`artwork_retention_months`, `evidence_retention_months`) | 24 meses tras cerrar el pedido | Decidido por Mark (D-115) |
+| Retención de comprobantes y cotizaciones aceptadas (`legal_documents_retention_years`) | 5 años tras cerrar el pedido | Decidido por Mark (D-115) |
+| Tiempo de respuesta de la fábrica (`factory_sla_hours`) | 48 horas hábiles | Decidido por Mark (D-114) |
 | **Instrucciones de pago** (`payment_instructions`) | Vacío | **Falta:** banco, cuenta, ACH, Yappy. Mientras esté vacío, el cliente ve un botón para pedirlas por WhatsApp. |
 | **Correo del equipo** (`team_notification_email`) | Vacío (usa el de admin) | **Falta:** a qué correo van los avisos internos |
 | Moneda | USD | PROVISIONAL |
-| Tolerancia de pagos (`payment_tolerance`) | 0 | PROVISIONAL: los pagos confirmados deben sumar el monto completo (pregunta 19) |
+| Tolerancia de pagos (`payment_tolerance_pct`, `payment_tolerance_max`) | 1 % o USD 25, lo que sea menor | Decidido por Mark (D-113) |
 | WhatsApp pendientes en el resumen diario (`whatsapp_pending_alert_hours`) | 2 horas hábiles | PROVISIONAL |
 
 Otras preguntas abiertas (PRD §20 y `docs/DECISIONES.md`):
 
-- **Impuestos:** resuelto. Precios sin ITBMS con la leyenda "más ITBMS 7 %", editable en Configuración > `tax_label` (D-102). Queda una duda en `docs/PREGUNTAS.md`.
+- **Impuestos:** resuelto. Precios sin ITBMS con la leyenda "más ITBMS 7 %", editable en Configuración > `tax_label` (D-102). Mark lo confirmó el 03/10/2026.
 - **RFQ:** formato exacto que prefiere la fábrica. Se ajusta en `config/rfq-format.ts`, sin tocar lo demás.
 - **Plazo de entrega:** si incluye tránsito, aduana y entrega local; lugar de entrega estándar.
 - **Condiciones de los términos:** tolerancias de cantidad y color; política de muestras físicas; diseño de arte como servicio y su tarifa.

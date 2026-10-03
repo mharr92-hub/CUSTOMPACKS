@@ -918,11 +918,11 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
   // transacción aparte, nunca dentro de la anterior (DAT-01).
   const { extra, paymentRows } = await withActor(serviceActor, async (s) => {
     const extra = await s<
-      { quote_id: string; deposit_pct: number; survey: boolean; instructions: unknown; tolerance: unknown; currency: string; total_amount: string; deposit_amount: string; balance_amount: string }[]
+      { quote_id: string; deposit_pct: number; survey: boolean; instructions: unknown; deposit_covered: boolean; balance_covered: boolean; currency: string; total_amount: string; deposit_amount: string; balance_amount: string }[]
     >`
       select o.quote_id, o.deposit_pct, exists (select 1 from public.surveys v where v.order_id = o.id) as survey,
              (select value from public.settings where key = 'payment_instructions') as instructions,
-             (select value from public.settings where key = 'payment_tolerance') as tolerance,
+             public.order_kind_covered(o.id, 'deposit') as deposit_covered, public.order_kind_covered(o.id, 'balance') as balance_covered,
              o.currency, o.total_amount, o.deposit_amount, o.balance_amount
         from public.orders o where o.id = ${row.id}`;
     const paymentRows = await s<
@@ -932,10 +932,8 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
         from public.payments where order_id = ${row.id} order by created_at`;
     return { extra, paymentRows };
   });
-  const covered = (kind: PaymentKind) => {
-    const due = Number((kind === "deposit" ? extra[0]?.deposit_amount : extra[0]?.balance_amount) ?? 0);
-    return paid(kind) >= due - Number(extra[0]?.tolerance ?? 0);
-  };
+  // Misma regla que la base (tolerancia por comisiones de D-113).
+  const covered = (kind: PaymentKind) => Boolean(kind === "deposit" ? extra[0]?.deposit_covered : extra[0]?.balance_covered);
   const paid = (kind: PaymentKind) =>
     paymentRows.filter((p) => p.kind === kind && p.status === "confirmed").reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
   const status = (kind: PaymentKind): ClientPaymentState => {

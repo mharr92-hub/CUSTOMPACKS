@@ -19,7 +19,7 @@ const orders = await import("@/lib/orders");
 const { reorderState } = await import("@/lib/orders/reorder");
 const { putObject } = await import("@/lib/storage");
 const { todayInPanama, addDays } = await import("@/lib/leadtime");
-const { flagExpiredArtwork } = await import("@/lib/artwork/retention");
+const { confirmRecordDeletion, flagExpiredArtwork, flagExpiredRecords, listFlaggedRecords } = await import("@/lib/artwork/retention");
 type CurrentUser = import("@/lib/auth").CurrentUser;
 type WizardState = import("@/lib/quote/types").WizardState;
 
@@ -185,6 +185,28 @@ describe("pagos conciliados por monto (M12)", () => {
     await expect(
       asActor({ kind: "user", userId: ops.userId }, (tx) => tx`insert into public.payments (order_id, kind, status, amount, confirmed_at) values (${o.orderId}, 'deposit', 'confirmed', 1, now())`),
     ).rejects.toThrow(/permission denied/);
+  });
+
+  it("tolerancia por comisiones: 1 % del monto o USD 25, lo que sea menor (D-113)", async () => {
+    const [t] = await testSql()<{ small: string; big: string }[]>`select public.payment_tolerance(1000) as small, public.payment_tolerance(10000) as big`;
+    expect(Number(t!.small)).toBe(10);
+    expect(Number(t!.big)).toBe(25);
+
+    const o = await acceptedOrder();
+    const ops = await staff();
+    const [order] = await testSql()<{ deposit_amount: string }[]>`select deposit_amount from public.orders where id = ${o.orderId}`;
+    const deposit = Number(order!.deposit_amount);
+    const tolerance = Math.min(deposit / 100, 25);
+    const pay = (amount: number, reference: string) =>
+      orders.recordPayment(ops, o.orderId, { kind: "deposit", amount: amount.toFixed(2), method: "ACH", reference, paidOn: todayInPanama() });
+    // Falta más que la tolerancia: abono parcial.
+    expect(await pay(deposit - tolerance - 1, `TOL-a-${o.orderId}`)).toEqual({ ok: true });
+    expect((await orders.getOrder(ops, o.orderId))?.status).toBe("pending_deposit");
+    expect((await orders.getClientOrder(o.accessToken))?.payments.deposit).toBe("partial");
+    // Un segundo abono deja la diferencia dentro de la tolerancia: anticipo recibido.
+    expect(await pay(1.5, `TOL-b-${o.orderId}`)).toEqual({ ok: true });
+    expect((await orders.getOrder(ops, o.orderId))?.status).toBe("deposit_received");
+    expect((await orders.getClientOrder(o.accessToken))?.payments.deposit).toBe("confirmed");
   });
 
   it("el anticipo se redondea hacia arriba al centavo y anticipo + saldo = total", () => {
@@ -457,28 +479,70 @@ describe("procesos programados y recompra", () => {
     expect(await orders.getReorderSource("y".repeat(43))).toBeNull();
   });
 
-  it("la retención del arte cuenta la actividad del pedido: no marca el arte de un pedido con movimiento reciente", async () => {
+  it("retención (D-115): arte y evidencias 24 meses tras cerrar el pedido; comprobantes y cotizaciones, 5 años", async () => {
     const o = await acceptedOrder({ quantity: 1000 });
     const old = addDays(new Date(), -30 * 31);
-    // Fechas viejas sin pasar por los triggers (la auditoría conserva created_at).
+    const veryOld = addDays(new Date(), -366 * 6);
+    // Fechas viejas sin pasar por los triggers.
     await testSql().begin(async (tx) => {
       await tx`set local session_replication_role = replica`;
-      await tx`update public.quote_requests set submitted_at = ${old}, status_changed_at = ${old} where id = ${o.requestId}`;
-      await tx`update public.artwork_files set created_at = ${old} where request_id = ${o.requestId}`;
-      await tx`update public.orders set status_changed_at = ${old}, created_at = ${old} where id = ${o.orderId}`;
-      await tx`update public.milestones set occurred_at = ${old} where order_id = ${o.orderId}`;
+      await tx`update public.quote_requests set submitted_at = ${veryOld}, status_changed_at = ${veryOld} where id = ${o.requestId}`;
+      await tx`update public.artwork_files set created_at = ${veryOld} where request_id = ${o.requestId}`;
     });
-    // Un hito de hace un mes mantiene vivo el arte.
-    await testSql()`insert into public.milestones (order_id, type, occurred_at) values (${o.orderId}, 'deposit_received', now() - interval '30 days')`;
+    const evidencePath = `orders/${o.orderId}/m/foto-qa.jpg`;
+    const [m] = await testSql()<{ id: string }[]>`
+      insert into public.milestones (order_id, type, occurred_at, evidence)
+      values (${o.orderId}, 'qa_completed', ${veryOld}, ${testSql().json([{ path: evidencePath, kind: "jpeg", name: "foto-qa.jpg", size: 10 }])})
+      returning id`;
+    const receiptPath = `orders/${o.orderId}/receipts/r.pdf`;
+    const [p] = await testSql()<{ id: string }[]>`
+      insert into public.payments (order_id, kind, status, amount, receipt_path) values (${o.orderId}, 'deposit', 'pending', null, ${receiptPath}) returning id`;
+    await putObject("evidence", evidencePath, JPEG, "image/jpeg");
+    await putObject("documents", receiptPath, PDF, "application/pdf");
+
+    // Pedido abierto: nada vence, aunque la solicitud sea vieja.
     await flagExpiredArtwork();
-    const [kept] = await testSql()<{ flagged: Date | null }[]>`select retention_flagged_at as flagged from public.artwork_files where request_id = ${o.requestId}`;
-    expect(kept?.flagged).toBeNull();
-    // Sin actividad reciente, se marca (no se borra).
-    await testSql()`update public.milestones set occurred_at = ${old} where order_id = ${o.orderId}`;
+    await flagExpiredRecords();
+    const artworkFlag = async () =>
+      (await testSql()<{ flagged: Date | null }[]>`select retention_flagged_at as flagged from public.artwork_files where request_id = ${o.requestId}`)[0]?.flagged ?? null;
+    const records = async () => testSql()<{ kind: string; source_id: string }[]>`select kind, source_id from public.retention_items where order_id = ${o.orderId} order by kind`;
+    expect(await artworkFlag()).toBeNull();
+    expect(await records()).toEqual([]);
+
+    // Cerrado hace 25 meses: vencen el arte y las evidencias; los documentos legales no.
+    const close = async (at: Date) => testSql().begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`update public.orders set status = 'closed', closed_at = ${at} where id = ${o.orderId}`;
+    });
+    await close(old);
     await flagExpiredArtwork();
-    const [flagged] = await testSql()<{ flagged: Date | null; deleted: Date | null }[]>`
-      select retention_flagged_at as flagged, deleted_at as deleted from public.artwork_files where request_id = ${o.requestId}`;
-    expect(flagged?.flagged).toBeInstanceOf(Date);
-    expect(flagged?.deleted).toBeNull();
+    await flagExpiredRecords();
+    expect(await artworkFlag()).toBeInstanceOf(Date);
+    expect((await records()).map((r) => r.kind)).toEqual(["evidence"]);
+
+    // Cerrado hace 6 años: también el comprobante, la cotización (PDF) y nada se duplica.
+    await close(veryOld);
+    await flagExpiredRecords();
+    await flagExpiredRecords();
+    const kinds = (await records()).map((r) => r.kind);
+    expect(kinds).toContain("receipt");
+    expect(kinds).toContain("quote_pdf");
+    expect(kinds.filter((k) => k === "evidence")).toHaveLength(1);
+
+    // Solo admin confirma; se borra el archivo y se quita la referencia, el pago queda.
+    const ops = await staff();
+    const adminId = await createUser(`admin-ret-${Date.now()}@test.local`, "admin");
+    const admin: CurrentUser = { userId: adminId, email: null, profileId: adminId, name: null, role: "admin", isActive: true };
+    expect(await listFlaggedRecords(ops)).toEqual([]);
+    const flagged = (await listFlaggedRecords(admin)).filter((r) => r.requestId === o.requestId);
+    expect(flagged.length).toBe(kinds.length);
+    expect(await confirmRecordDeletion(ops, flagged.map((r) => r.id))).toBe(0);
+    expect(await confirmRecordDeletion(admin, flagged.map((r) => r.id))).toBe(flagged.length);
+    const [pay] = await testSql()<{ receipt_path: string | null }[]>`select receipt_path from public.payments where id = ${p!.id}`;
+    expect(pay?.receipt_path).toBeNull();
+    const [ms] = await testSql()<{ evidence: unknown[] }[]>`select evidence from public.milestones where id = ${m!.id}`;
+    expect(ms?.evidence).toEqual([]);
+    const [q] = await testSql()<{ pdf_path: string | null; status: string }[]>`select pdf_path, status from public.quotes where id = ${o.quoteId}`;
+    expect(q).toEqual({ pdf_path: null, status: "accepted" });
   });
 });

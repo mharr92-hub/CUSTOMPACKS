@@ -784,7 +784,7 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - Los pagos se anulan (`voided`, con motivo) y no se borran. Anular un anticipo antes de producir devuelve el pedido a "Esperando anticipo" (nueva transición `deposit_received → pending_deposit`); después de producir se registra un ajuste.
   - La misma referencia no se carga dos veces por pedido y tipo (índice único).
   - Los montos del pedido no se editan; el equipo escribe pagos solo por el servidor (sin permiso directo sobre la tabla).
-- **Cómo cambiarla:** `payment_tolerance` en Configuración; reglas en la migración 016 y en `lib/orders/index.ts`.
+- **Cómo cambiarla:** `payment_tolerance` en Configuración; reglas en la migración 016 y en `lib/orders/index.ts`. **Reemplazada en parte por D-113** (tolerancia del 1 % o USD 25).
 
 ### D-111 · 03/10/2026 · Abuso anónimo y cuenta de administrador (M15)
 - **Decisión:**
@@ -805,4 +805,54 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - La aprobación del proof es inmutable: la única excepción es esta función (`app.anonymizing`).
   - La exportación es un JSON con todo lo del titular (el PDF quedó fuera).
   - Los logs ya no guardan tokens, correos ni teléfonos (`scrub` en `lib/log.ts`).
-- **Cómo cambiarla:** la migración 020 (qué columnas se reemplazan) y `lib/panel/personal-data.ts`.
+- **Cómo cambiarla:** la migración 020 (qué columnas se reemplazan) y `lib/panel/personal-data.ts`. **Reemplazada en parte por D-116** (qué se conserva en solicitudes que llegaron a pedido).
+
+### D-113 · 03/10/2026 · Pagos en partes y tolerancia por comisiones (pregunta 19, decisión de Mark)
+- **Decisión de Mark:** los pagos parciales se acumulan y el pedido pasa a "Anticipo recibido" cuando la suma cubre el 50 %. Se acepta una diferencia por comisiones del 1 % o USD 25, lo que sea menor.
+- **Cómo quedó:**
+  - Settings `payment_tolerance_pct` = 1 y `payment_tolerance_max` = 25 (ya no son PROVISIONAL). Se eliminó `payment_tolerance`.
+  - `public.payment_tolerance(monto)` = el menor entre el % del monto y el máximo. `order_kind_covered` la aplica al anticipo y al saldo (migración 021). El cierre del pedido usa la misma regla.
+  - El portal del cliente usa la misma función de la base, así que el panel, el trigger y el portal no pueden diferir.
+  - El máximo se interpreta en la moneda del pedido (hoy todo es USD).
+- **Cómo cambiarla:** los dos valores en Configuración; la regla en la migración 021.
+
+### D-114 · 03/10/2026 · SLA de la fábrica: 48 horas hábiles (pregunta 23, decisión de Mark)
+- **Decisión de Mark:** `factory_sla_hours` = 48 horas hábiles.
+- **Cómo quedó:**
+  - El cron (cada 10 minutos, junto con el SLA del equipo) revisa el último RFQ de cada solicitud en revisión o con RFQ enviado. Si lleva 48 horas hábiles enviado sin respuesta registrada:
+    - le reenvía el PDF y el Excel a `FACTORY_EMAIL` con un recordatorio, solo si el RFQ había salido por correo a esa dirección;
+    - avisa al equipo con la plantilla `rfq_overdue_team`; si el RFQ salió a mano, el aviso pide recordárselo por el mismo medio;
+    - marca `factory_rfqs.reminded_at`, de modo que se avisa una sola vez por RFQ;
+    - registra la actividad `rfq_overdue`.
+  - El panel muestra en el RFQ "Sin respuesta en el plazo de la fábrica" hasta que se registra la respuesta.
+  - Las horas hábiles son las de `business_hours`, igual que el SLA del equipo.
+- **Cómo cambiarla:** `factory_sla_hours` en Configuración; la lógica en `remindOverdueRfqs` (`lib/rfq/index.ts`).
+
+### D-115 · 03/10/2026 · Retención de archivos (pregunta 21, decisión de Mark)
+- **Decisión de Mark:** los comprobantes y las cotizaciones aceptadas se guardan 5 años; las fotos y video de QA y el arte, 24 meses tras cerrar el pedido.
+- **Cómo quedó:**
+  - **Settings, ya no PROVISIONAL:** `artwork_retention_months` = 24, `evidence_retention_months` = 24 y `legal_documents_retention_years` = 5.
+  - **Arte y proofs:** si la solicitud llegó a pedido, cuentan desde el cierre, y solo cuando todos sus pedidos están cerrados. Un pedido abierto nunca vence. Si la solicitud no llegó a pedido, cuentan desde su última actividad (interpretación: Mark no fijó plazo para ese caso y se mantiene la regla anterior).
+  - **Evidencias de hitos y QA:** 24 meses desde el cierre del pedido.
+  - **Documentos de 5 años** (desde el cierre del pedido):
+    - comprobantes de pago;
+    - PDF de las cotizaciones de la solicitud: la aceptada y las versiones anteriores, que se van con ella;
+    - constancia de aceptación por WhatsApp.
+  - **Flujo:** el cron diario marca y no borra nada (tabla `retention_items` para evidencias y documentos, `artwork_files.retention_flagged_at` para el arte). Admin confirma en Panel → Archivos; se borra el archivo y se quita la referencia del hito, el pago o la cotización. La fila de origen se conserva con sus montos y fechas.
+  - La política de privacidad muestra los plazos leyendo los settings.
+- **Cómo cambiarla:** los tres valores en Configuración; las reglas en `lib/artwork/retention.ts`.
+
+### D-116 · 03/10/2026 · Qué se borra y qué se conserva por Ley 81 (pregunta 22, decisión de Mark)
+- **Decisión de Mark:** anonimizar el contacto y borrar los borradores, las referencias y el arte de las solicitudes no convertidas. Conservar las cotizaciones aceptadas, los pedidos, los pagos y los documentos legales según D-115.
+- **Cómo quedó** (`anonymize_request` redefinida en la migración 021; ahora devuelve un JSON):
+  - **Siempre:**
+    - se anonimiza el contacto de la solicitud, la empresa (si no tiene otras solicitudes), los avisos, el historial, las encuestas, las notas de pedido y de pago, y la auditoría;
+    - se borran los borradores que originaron la solicitud y sus archivos, salvo los que pasaron a ser arte o referencias que se conservan.
+  - **Si no llegó a pedido:**
+    - se borran el arte, los proofs y las referencias (fotos y enlaces), y los PDF de las cotizaciones no aceptadas;
+    - se anonimizan las constancias de aceptación y las aprobaciones de proof.
+  - **Si llegó a pedido:**
+    - se conservan la cotización aceptada con su PDF, el pedido, los pagos con sus comprobantes, el arte y las evidencias, que siguen los plazos de D-115;
+    - en la constancia de aceptación y en la aprobación del proof se conserva el nombre de quien aceptó (es la prueba del contrato) y se quitan su correo, su IP y su navegador.
+  - **Quién lo atiende:** un usuario admin, en Panel → Datos personales (como en D-112).
+- **Cómo cambiarla:** la migración 021 y `lib/panel/personal-data.ts`.

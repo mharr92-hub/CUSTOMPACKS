@@ -34,7 +34,7 @@ export function AnonymizeForm({ requestId, number }: { requestId: string; number
         try {
           const result = await anonymizeAction(requestId, confirm);
           if (result.ok) {
-            toast.success(t("done", { files: result.files }));
+            toast.success(t(result.converted ? "doneConverted" : "done", { files: result.files }));
             setOpen(false);
             router.refresh();
           } else setError(t(`errors.${result.error}`));

@@ -4,9 +4,7 @@ Lo que el sistema necesita de Mark y no se puede decidir desde el código. La li
 
 ## Nuevas (25/09/2026)
 
-1. **ITBMS en los pagos.** Hoy los precios y los montos del pedido (total, anticipo, saldo) son **sin impuesto**, con la leyenda "más ITBMS 7 %" (D-102).
-   - ¿El cliente paga el anticipo y el saldo con el 7 % incluido (y el sistema lo calcula y lo muestra sumado), o el impuesto va en una factura aparte?
-   - Si se incluye, hay que definir si el 7 % se aplica a todas las piezas o hay exentas.
+1. ~~**ITBMS en los pagos.**~~ **Resuelta (03/10/2026, D-102):** los precios y los montos del pedido van sin impuesto, con la leyenda "más ITBMS 7 %" en el editor, el PDF y el portal. La leyenda se cambia en Configuración > `tax_label`.
 2. **Precios en la pantalla de aceptación.** Con la regla 7 corregida, una vez emitida la cotización se podrían mostrar sus precios en el portal, no solo en el PDF.
    - Hoy la pantalla de aceptación remite al PDF (D-068) y solo el pedido aceptado muestra montos (D-101).
    - ¿Mostramos también los precios de la cotización en pantalla antes de aceptar?
@@ -37,21 +35,11 @@ Lo que el sistema necesita de Mark y no se puede decidir desde el código. La li
 
 Estas respuestas definen cómo se corrigen algunos hallazgos de `docs/AUDITORIA.md`. Las tareas de `TAREAS-mejoras.md` que dependen de ellas usan mientras tanto la opción más conservadora.
 
-19. **Pagos en varias partes** (DAT-02, REG-02).
-    - ¿El anticipo o el saldo se pueden pagar en varias transferencias?
-    - ¿Se acepta una diferencia pequeña por comisiones bancarias? ¿De cuánto?
-    - Hoy cualquier pago confirmado cuenta como completo. Mientras no respondas, la corrección exigirá que la suma de los pagos confirmados cubra el monto, sin tolerancia.
-20. **Planes de pago para producción** (sección 8 de la auditoría).
+19. ~~**Pagos en varias partes.**~~ **Resuelta (03/10/2026, D-113):** los pagos parciales se acumulan y el pedido pasa a "Anticipo recibido" cuando la suma cubre el anticipo (50 %). Se acepta una diferencia por comisiones del 1 % o USD 25, lo que sea menor (Configuración > `payment_tolerance_pct` y `payment_tolerance_max`).
+20. **Planes de pago para producción** (sección 8 de la auditoría). **Sigue pendiente de Mark.**
     - Vercel Hobby no permite uso comercial, y Supabase Free se queda sin espacio para archivos en semanas.
     - Estimado: unos USD 45 al mes con 100 solicitudes (Supabase Pro + Vercel Pro), y unos USD 65 con 500, sumando Resend Pro. Son precios de 2025: hay que verificarlos.
     - ¿Apruebas contratar esos planes cuando se lance? El sistema no contrata nada por su cuenta.
-21. **Retención de archivos** (REN, DAT-04).
-    - Hoy el arte se guarda 24 meses y las fotos de QA no se borran nunca.
-    - ¿Cuánto tiempo hay que guardar las evidencias de QA y los comprobantes de pago?
-22. **Datos personales, Ley 81** (DAT-03, SEG-07).
-    - ¿Quién atiende las solicitudes de acceso y eliminación?
-    - ¿Qué datos hay que conservar aunque el cliente pida borrarlos (facturas o pedidos, por obligación contable)? ¿Durante cuánto tiempo?
-23. **Tiempo de respuesta de la fábrica al RFQ** (`docs/MEJORAS.md`, P-12).
-    - Para cotizar en 24 horas hábiles, la fábrica tiene que responder en una fracción de ese tiempo.
-    - ¿Qué tiempo de respuesta se puede acordar con la fábrica?
-    - Mientras tanto, el recordatorio propuesto usa la mitad del SLA de cotización (PROVISIONAL).
+21. ~~**Retención de archivos.**~~ **Resuelta (03/10/2026, D-115):** los comprobantes de pago y las cotizaciones aceptadas se guardan 5 años; las fotos y videos de QA y el arte, 24 meses después de cerrar el pedido. Un proceso diario marca lo vencido y admin confirma el borrado en Panel → Archivos.
+22. ~~**Datos personales, Ley 81.**~~ **Resuelta (03/10/2026, D-116):** al borrar se anonimiza el contacto y se borran los borradores; en solicitudes que no llegaron a pedido también se borran las referencias y el arte. Se conservan las cotizaciones aceptadas, los pedidos, los pagos y los documentos legales durante los plazos de la pregunta 21. Lo atiende un usuario con rol admin en Panel → Datos personales.
+23. ~~**Tiempo de respuesta de la fábrica al RFQ.**~~ **Resuelta (03/10/2026, D-114):** 48 horas hábiles (Configuración > `factory_sla_hours`). Pasado ese plazo, el sistema le reenvía el RFQ a la fábrica con un recordatorio y avisa al equipo.

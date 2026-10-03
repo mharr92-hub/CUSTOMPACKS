@@ -408,7 +408,16 @@
     },
     "files": {
       "title": "Archivos por vencer",
-      "intro": "El arte se conserva según artwork_retention_months (desde la última actividad de la solicitud). Un proceso diario marca lo vencido; nada se borra hasta que lo confirmes aquí.",
+      "intro": "Plazos de Configuración: el arte y las fotos y videos de QA, 24 meses después de cerrar el pedido (el arte de solicitudes que no llegaron a pedido, 24 meses desde su última actividad); los comprobantes de pago y las cotizaciones aceptadas, 5 años después de cerrar el pedido. Un proceso diario marca lo vencido; nada se borra hasta que lo confirmes aquí.",
+      "artworkTitle": "Arte y proofs",
+      "recordsTitle": "Evidencias y documentos",
+      "kind": "Tipo",
+      "kinds": {
+        "evidence": "Foto o video de hito o QA",
+        "receipt": "Comprobante de pago",
+        "quote_pdf": "Cotización (PDF)",
+        "acceptance": "Constancia de aceptación"
+      },
       "none": "No hay archivos marcados.",
       "select": "Elegir",
       "selectFile": "Elegir {name}",
@@ -416,7 +425,7 @@
       "file": "Archivo",
       "size": "Tamaño",
       "flaggedAt": "Marcado el",
-      "warning": "Borrar elimina el archivo del almacenamiento. Queda el registro de la versión, quién la aprobó y cuándo se borró.",
+      "warning": "Borrar elimina el archivo del almacenamiento. Quedan los registros: la versión del arte y quién la aprobó, el hito, el pago o la cotización con sus montos y fechas, y cuándo se borró el archivo.",
       "confirm": "Borrar los archivos elegidos",
       "deleted": "Se borraron {n} archivos.",
       "empty": "Elige al menos un archivo."
@@ -617,6 +626,7 @@
         "artwork_reviewed": "Revisión de arte",
         "artwork_released": "Proof liberado a fábrica",
         "artwork_deleted": "Archivo borrado por retención",
+        "file_deleted": "Evidencia o documento borrado por retención",
         "proof_approved": "Proof aprobado por el cliente",
         "other": "Actividad",
         "rfq_generated": "RFQ generado",
@@ -631,6 +641,7 @@
         "receipt_uploaded": "El cliente subió un comprobante",
         "evidence_uploaded": "Evidencia subida",
         "rfq_sent_manually": "RFQ enviado a fábrica a mano",
+        "rfq_overdue": "La fábrica no respondió el RFQ en el plazo",
         "quote_accepted_staff": "Aceptación del cliente registrada por el equipo",
         "no_print_confirmed": "Pieza confirmada sin impresión",
         "notification_retry": "Aviso reenviado",
@@ -813,6 +824,7 @@
       "sent": "Enviado a {to} el {date}",
       "notSent": "Sin enviar",
       "answered": "Respuesta registrada el {date}",
+      "overdue": "Sin respuesta en el plazo de la fábrica; aviso el {date}",
       "pdf": "PDF",
       "xlsx": "Excel",
       "send": "Enviar a fábrica",
@@ -1119,11 +1131,12 @@
       "export": "Descargar sus datos (JSON)",
       "anonymize": "Anonimizar",
       "anonymized": "Anonimizada",
-      "warning": "Se reemplazan nombre, correo, WhatsApp, dirección, comentarios e IP en la solicitud, los avisos, el historial y la auditoría, y se borran su arte y sus fotos. No se puede deshacer.",
+      "warning": "Se reemplazan nombre, correo, WhatsApp, dirección, comentarios e IP en la solicitud, los avisos, el historial y la auditoría, y se borran sus borradores. Si la solicitud no llegó a pedido, también se borran su arte, sus fotos y las cotizaciones no aceptadas. Si llegó a pedido, se conservan la cotización aceptada, el pedido, los pagos y el arte durante el plazo de retención. No se puede deshacer.",
       "confirmLabel": "Escribe {number} para confirmar",
       "confirm": "Anonimizar definitivamente",
       "cancel": "Cancelar",
       "done": "Solicitud anonimizada ({files} archivos borrados).",
+      "doneConverted": "Solicitud anonimizada ({files} archivos borrados). Como llegó a pedido, se conservan la cotización aceptada, el pedido, los pagos y el arte durante el plazo de retención.",
       "errors": {
         "forbidden": "Solo admin puede hacerlo.",
         "not_found": "No se encontró la solicitud.",
@@ -1385,11 +1398,11 @@
         },
         "retention": {
           "title": "Cuánto tiempo los guardamos",
-          "body": "Los datos de solicitudes, pedidos y pagos, mientras exista la relación comercial y el tiempo que exija la ley. Los archivos de arte, {months} meses después del último movimiento de tu solicitud o pedido; luego los borramos. Si empiezas una cotización y no la envías, borramos el borrador a los 30 días."
+          "body": "Los datos de tus solicitudes, pedidos y pagos, mientras exista la relación comercial y el tiempo que exija la ley. Los comprobantes de pago y las cotizaciones que aceptaste, {years} años después de cerrar el pedido. Tu arte, {months} meses después de cerrar el pedido, y las fotos y videos de producción y control de calidad, {evidenceMonths} meses después; si la solicitud no llegó a pedido, borramos el arte {months} meses después de su último movimiento. Si empiezas una cotización y no la envías, borramos el borrador a los 30 días."
         },
         "rights": {
           "title": "Tus derechos",
-          "body": "Conforme a la Ley 81 de 2019 de Panamá puedes pedir acceso, rectificación, cancelación u oposición al tratamiento de tus datos, y su portabilidad. Escríbenos a {email} desde el correo o el WhatsApp con que cotizaste. Te enviamos una copia de todo lo que guardamos de ti, corregimos lo que nos indiques o anonimizamos tus datos: reemplazamos tu nombre, correo, WhatsApp, dirección e IP y borramos tus archivos de arte y fotos. Conservamos los montos, números de documento y fichas técnicas que exige la ley contable."
+          "body": "Conforme a la Ley 81 de 2019 de Panamá puedes pedir acceso, rectificación, cancelación u oposición al tratamiento de tus datos, y su portabilidad. Escríbenos a {email} desde el correo o el WhatsApp con que cotizaste. Te enviamos una copia de todo lo que guardamos de ti, corregimos lo que nos indiques o anonimizamos tus datos: reemplazamos tu nombre, correo, WhatsApp, dirección e IP y borramos tus borradores. Si tu solicitud no llegó a pedido, también borramos tu arte, tus fotos y las cotizaciones. Si llegó a pedido, conservamos la cotización que aceptaste (con el nombre de quien la aceptó), el pedido, los pagos y el arte durante los plazos de arriba, como exige la ley contable."
         },
         "consent": {
           "title": "Consentimiento",
@@ -2222,7 +2235,11 @@
     "artworkNoFile": "Sin archivo de arte",
     "emailSubject": "RFQ {number} · {brand}",
     "emailText": "Hola. Adjuntamos el RFQ {number} en PDF y Excel con la ficha técnica completa. {artwork}Por favor indícanos el costo unitario por cantidad, la moneda, el tiempo de producción y tus observaciones. Gracias.",
-    "emailArtwork": "Arte liberado (enlaces válidos por 7 días): {links}. "
+    "emailArtwork": "Arte liberado (enlaces válidos por 7 días): {links}. ",
+    "reminderSubject": "Recordatorio: RFQ {number} · {brand}",
+    "reminderText": "Hola. Te escribimos por el RFQ {number}, que te enviamos hace {hours} horas hábiles. Te lo adjuntamos de nuevo. ¿Nos indicas el costo unitario por cantidad, la moneda, el tiempo de producción y tus observaciones? Gracias.",
+    "reminderSent": "Le reenviamos el RFQ con un recordatorio.",
+    "reminderManual": "El RFQ no salió por correo a la fábrica: recuérdaselo por el mismo medio."
   },
   "quotePdf": {
     "title": "Cotización",
