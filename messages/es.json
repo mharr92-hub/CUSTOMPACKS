@@ -819,7 +819,16 @@
         "send_failed": "No se pudo enviar el correo. Inténtalo de nuevo.",
         "costs": "Completa un costo unitario mayor que 0 para cada pieza y cantidad.",
         "days": "El tiempo de producción va en días (1 a 365).",
-        "generic": "No se pudo completar. Inténtalo de nuevo."
+        "generic": "No se pudo completar. Inténtalo de nuevo.",
+        "currency": "Elige la moneda de la respuesta de fábrica.",
+        "fx": "Escribe el tipo de cambio (mayor que 0) y su fecha: la fábrica respondió en otra moneda."
+      },
+      "fxRate": "Tipo de cambio: {currency} por 1 {base}",
+      "fxDate": "Fecha del tipo de cambio",
+      "fxHint": "La fábrica respondió en {currency}: la cotización convierte cada costo a {base} con este tipo de cambio y guarda el costo original.",
+      "currencies": {
+        "USD": "Dólares (USD)",
+        "PEN": "Soles (PEN)"
       }
     },
     "quote": {
@@ -864,9 +873,11 @@
         "no_rfq": "Registra primero la respuesta de fábrica.",
         "lines": "Revisa las líneas: costo mayor que 0, flete de 0 o más, margen entre 0 y 94 %, plazo en días.",
         "valid_until": "La vigencia no puede ser anterior a hoy.",
-        "generic": "No se pudo completar. Inténtalo de nuevo."
+        "generic": "No se pudo completar. Inténtalo de nuevo.",
+        "fx": "La respuesta de fábrica está en otra moneda y no tiene tipo de cambio: edita la respuesta del RFQ y escríbelo."
       },
-      "lineTitle": "{position}. {name} · {quantity} unidades"
+      "lineTitle": "{position}. {name} · {quantity} unidades",
+      "costFx": "Costo de fábrica: {original} ÷ {rate} ({date})"
     },
     "order": {
       "metaTitle": "Pedido {number}",
@@ -983,7 +994,11 @@
       "file": "Ver archivo",
       "shipEstimate": "Embarque estimado (va en el aviso al cliente)"
     },
-    "demo": "DEMO"
+    "demo": "DEMO",
+    "money": {
+      "interpreted": "= {value}",
+      "invalid": "Revisa el número: punto para los decimales y coma para los miles (5,000.00)."
+    }
   },
   "catalog": {
     "title": "Catálogo",

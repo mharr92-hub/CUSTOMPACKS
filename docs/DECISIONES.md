@@ -745,3 +745,13 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - Los marcadores son comentarios HTML (`<!-- COLA:INICIO -->` y `<!-- COLA:FIN -->`), que no se ven en el documento renderizado.
   - La cola no se ejecuta hasta que Mark lo pida.
 - **Cómo cambiarla:** editar `TAREAS-mejoras.md` (quitar, reordenar o agregar bloques). Para volver a priorizar, cambiar el impacto o el esfuerzo en `docs/MEJORAS.md`.
+
+### D-107 · 03/10/2026 · Cómo se leen los montos escritos en el panel (M2)
+- **Duda:** la cola M2 proponía rechazar toda coma decimal, pero desde E7 el equipo escribe costos como "0,35" y las pruebas lo usan.
+- **Decisión:** `parseMoney` lee igual que la pantalla, que muestra "5,000.00":
+  - la coma en grupos de 3 cifras es de miles ("5,000" → 5000; "1,234.50" → 1234,5);
+  - una sola coma que no forma grupos de miles es decimal ("0,35", "0,425", "12,5");
+  - lo ambiguo o al revés se rechaza ("5.000,50", "1,2,3").
+  Junto a cada campo de dinero el panel muestra el valor interpretado ("= USD 5,000.00"), así que una lectura distinta de la esperada se ve antes de guardar.
+- **Moneda de fábrica:** lista cerrada USD y PEN. Si no es la moneda de la cotización, el tipo de cambio (unidades de la moneda de fábrica por 1 de la cotización) y su fecha se escriben con la respuesta del RFQ; la cotización convierte y guarda el costo original.
+- **Cómo cambiarla:** `parseMoney` en `lib/quotes/pricing.ts`; monedas en `RFQ_CURRENCIES` (`lib/rfq/index.ts` y `components/panel/rfq-quote.tsx`).

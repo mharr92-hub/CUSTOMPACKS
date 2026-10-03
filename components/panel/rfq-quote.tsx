@@ -14,6 +14,7 @@ import {
   sendRfqAction,
   updateQuoteDraftAction,
 } from "@/app/admin/(panel)/solicitudes/[id]/actions";
+import { MoneyHint } from "@/components/panel/money-hint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +32,8 @@ export type PanelRfq = {
   respondedAt: string | null;
   costs: { itemId: string; quantity: number; unitCost: number }[];
   currency: string;
+  fxRate: number | null;
+  fxDate: string | null;
   productionDays: number | null;
   notes: string | null;
 };
@@ -38,7 +41,7 @@ export type PanelQuote = {
   id: string;
   number: string;
   status: "draft" | "sent" | "changes_requested" | "accepted" | "rejected" | "expired" | "superseded";
-  lines: { itemId: string; position: number; quantity: number; unitCost: number; freightTotal: number; marginPct: number; unitPrice: number; subtotal: number; leadTimeDays: number }[];
+  lines: { itemId: string; position: number; quantity: number; unitCost: number; freightTotal: number; marginPct: number; unitPrice: number; subtotal: number; leadTimeDays: number; costFx: { currency: string; original: number; rate: number; date: string } | null }[];
   currency: string;
   validUntil: string;
   notes: string | null;
@@ -91,7 +94,24 @@ const fmtInt = (n: number) => new Intl.NumberFormat("es-PA").format(n);
 // ---------------------------------------------------------------------------
 // RFQ
 // ---------------------------------------------------------------------------
-export function RfqPanel({ requestId, items, rfqs, canEdit, canGenerate, factoryEmail }: { requestId: string; items: PanelItem[]; rfqs: PanelRfq[]; canEdit: boolean; canGenerate: boolean; factoryEmail: boolean }) {
+export function RfqPanel({
+  requestId,
+  items,
+  rfqs,
+  canEdit,
+  canGenerate,
+  factoryEmail,
+  baseCurrency,
+}: {
+  requestId: string;
+  items: PanelItem[];
+  rfqs: PanelRfq[];
+  canEdit: boolean;
+  canGenerate: boolean;
+  factoryEmail: boolean;
+  /** Moneda de las cotizaciones (settings.currency). */
+  baseCurrency: string;
+}) {
   const t = useTranslations("admin.rfq");
   const { error, busy, run } = useRun("admin.rfq");
   return (
@@ -135,20 +155,25 @@ export function RfqPanel({ requestId, items, rfqs, canEdit, canGenerate, factory
               ) : null}
             </div>
           </div>
-          {canEdit && index === 0 ? <RfqResponseForm requestId={requestId} rfq={rfq} items={items} /> : null}
+          {canEdit && index === 0 ? <RfqResponseForm requestId={requestId} rfq={rfq} items={items} baseCurrency={baseCurrency} /> : null}
         </article>
       ))}
     </div>
   );
 }
 
-function RfqResponseForm({ requestId, rfq, items }: { requestId: string; rfq: PanelRfq; items: PanelItem[] }) {
+const RFQ_CURRENCIES = ["USD", "PEN"] as const;
+
+function RfqResponseForm({ requestId, rfq, items, baseCurrency }: { requestId: string; rfq: PanelRfq; items: PanelItem[]; baseCurrency: string }) {
   const t = useTranslations("admin.rfq");
   const { error, busy, run } = useRun("admin.rfq");
   const [open, setOpen] = useState(!rfq.respondedAt);
   const initial = Object.fromEntries(items.flatMap((i) => i.quantities.map((q) => [`${i.id}:${q}`, String(rfq.costs.find((c) => c.itemId === i.id && c.quantity === q)?.unitCost ?? "")])));
   const [costs, setCosts] = useState<Record<string, string>>(initial);
-  const [currency, setCurrency] = useState(rfq.currency || "USD");
+  const [currency, setCurrency] = useState(rfq.currency || baseCurrency);
+  const [fxRate, setFxRate] = useState(rfq.fxRate ? String(rfq.fxRate) : "");
+  const [fxDate, setFxDate] = useState(rfq.fxDate ?? "");
+  const foreign = currency !== baseCurrency;
   const [days, setDays] = useState(rfq.productionDays ? String(rfq.productionDays) : "");
   const [notes, setNotes] = useState(rfq.notes ?? "");
   if (!open) {
@@ -167,6 +192,8 @@ function RfqResponseForm({ requestId, rfq, items }: { requestId: string; rfq: Pa
           recordRfqResponseAction(requestId, rfq.id, {
             costs: items.flatMap((i) => i.quantities.map((q) => ({ itemId: i.id, quantity: q, unitCost: costs[`${i.id}:${q}`] ?? "" }))),
             currency,
+            fxRate: foreign ? fxRate : "",
+            fxDate: foreign ? fxDate : "",
             productionDays: days,
             notes,
           }),
@@ -180,6 +207,7 @@ function RfqResponseForm({ requestId, rfq, items }: { requestId: string; rfq: Pa
             <label key={`${i.id}:${q}`} className="grid gap-1 text-xs font-medium">
               {`${t("piece", { n: i.position })} · ${i.label} · ${t("quantity", { n: fmtInt(q) })} · ${t("unitCost")}`}
               <Input inputMode="decimal" value={costs[`${i.id}:${q}`] ?? ""} onChange={(e) => setCosts((c) => ({ ...c, [`${i.id}:${q}`]: e.target.value }))} data-testid="rfq-cost" />
+              <MoneyHint value={costs[`${i.id}:${q}`] ?? ""} currency={currency} unit />
             </label>
           )),
         )}
@@ -187,7 +215,18 @@ function RfqResponseForm({ requestId, rfq, items }: { requestId: string; rfq: Pa
       <div className="grid gap-2 sm:grid-cols-[8rem_10rem_1fr]">
         <label className="grid gap-1 text-xs font-medium">
           {t("currency")}
-          <Input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm font-normal"
+            data-testid="rfq-currency"
+          >
+            {RFQ_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {t(`currencies.${c}`)}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="grid gap-1 text-xs font-medium">
           {t("productionDays")}
@@ -198,6 +237,19 @@ function RfqResponseForm({ requestId, rfq, items }: { requestId: string; rfq: Pa
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </label>
       </div>
+      {foreign ? (
+        <div className="grid gap-2 rounded-md bg-signal-yellow/15 p-3 sm:grid-cols-[14rem_12rem]">
+          <p className="text-xs sm:col-span-2">{t("fxHint", { currency, base: baseCurrency })}</p>
+          <label className="grid gap-1 text-xs font-medium">
+            {t("fxRate", { currency, base: baseCurrency })}
+            <Input inputMode="decimal" value={fxRate} onChange={(e) => setFxRate(e.target.value)} data-testid="rfq-fx-rate" />
+          </label>
+          <label className="grid gap-1 text-xs font-medium">
+            {t("fxDate")}
+            <Input type="date" value={fxDate} onChange={(e) => setFxDate(e.target.value)} data-testid="rfq-fx-date" />
+          </label>
+        </div>
+      ) : null}
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -316,6 +368,7 @@ function QuoteEditor({ requestId, quote, items, taxLabel }: { requestId: string;
           const price = priceLine({ quantity: l.quantity, unitCost: parseMoney(l.unitCost) ?? 0, freightTotal: parseMoney(l.freightTotal) ?? -1, marginPct: parseMoney(l.marginPct) ?? -1 });
           const item = items.find((it) => it.id === l.itemId);
           const suffix = `${l.position} · ${fmtInt(l.quantity)}`;
+          const fx = quote.lines.find((q) => q.itemId === l.itemId && q.quantity === l.quantity)?.costFx ?? null;
           return (
             <fieldset key={`${l.itemId}:${l.quantity}`} className="rounded-md border border-border p-3" data-testid="quote-line">
               <legend className="px-1 text-sm font-semibold">{t("lineTitle", { position: l.position, name: item?.label ?? "", quantity: fmtInt(l.quantity) })}</legend>
@@ -323,10 +376,12 @@ function QuoteEditor({ requestId, quote, items, taxLabel }: { requestId: string;
                 <label className="grid gap-1 text-xs font-medium">
                   {t("unitCost")}
                   <input aria-label={`${t("unitCost")} ${suffix}`} inputMode="decimal" className={cell} value={l.unitCost} onChange={(e) => set(i, { unitCost: e.target.value })} />
+                  <MoneyHint value={l.unitCost} currency={quote.currency} unit />
                 </label>
                 <label className="grid gap-1 text-xs font-medium">
                   {t("freight")}
                   <input aria-label={`${t("freight")} ${suffix}`} inputMode="decimal" className={cell} value={l.freightTotal} onChange={(e) => set(i, { freightTotal: e.target.value })} />
+                  <MoneyHint value={l.freightTotal} currency={quote.currency} />
                 </label>
                 <label className="grid gap-1 text-xs font-medium">
                   {t("margin")}
@@ -337,6 +392,11 @@ function QuoteEditor({ requestId, quote, items, taxLabel }: { requestId: string;
                   <input aria-label={`${t("leadTime")} ${suffix}`} inputMode="numeric" className={cell} value={l.leadTimeDays} onChange={(e) => set(i, { leadTimeDays: e.target.value })} />
                 </label>
               </div>
+              {fx ? (
+                <p className="mt-2 text-xs text-muted-foreground" data-testid="quote-cost-fx">
+                  {t("costFx", { original: formatUnitPrice(fx.original, fx.currency), rate: String(fx.rate), date: fx.date ? formatDate(`${fx.date}T17:00:00Z`) : "" })}
+                </p>
+              ) : null}
               <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
                 <div className="flex gap-2">
                   <dt className="text-muted-foreground">{t("unitPrice")}</dt>

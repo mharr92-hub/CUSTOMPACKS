@@ -2,8 +2,10 @@ import "server-only";
 import { brand } from "@/config/brand";
 import { actorFor, EDITOR_ROLES, type CurrentUser } from "@/lib/auth";
 import { serviceActor, withActor } from "@/lib/db/actor";
+import { getPublicCatalog, publicSetting } from "@/lib/catalog/public";
 import { getServerEnv } from "@/lib/env";
 import { serverT } from "@/lib/i18n";
+import { todayInPanama } from "@/lib/leadtime";
 import { log } from "@/lib/log";
 import { escapeHtml, sendEmail } from "@/lib/mail";
 import { getRequestDetail } from "@/lib/panel/requests";
@@ -31,12 +33,18 @@ export type Rfq = {
   respondedAt: Date | null;
   costs: { itemId: string; quantity: number; unitCost: number }[];
   currency: string;
+  /** Unidades de la moneda de fábrica por 1 de la moneda de la cotización (solo si difieren). */
+  fxRate: number | null;
+  fxDate: string | null;
   productionDays: number | null;
   notes: string | null;
   createdAt: Date;
 };
 
-export type RfqResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "artwork" | "no_factory_email" | "send_failed" | "costs" | "days"; pieces?: number[] };
+/** Monedas en que puede responder la fábrica (lista cerrada; la fábrica está en Perú). */
+export const RFQ_CURRENCIES = ["USD", "PEN"] as const;
+
+export type RfqResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "artwork" | "no_factory_email" | "send_failed" | "costs" | "days" | "currency" | "fx"; pieces?: number[] };
 
 function isEditor(user: CurrentUser): boolean {
   return user.isActive && EDITOR_ROLES.includes(user.role);
@@ -52,6 +60,8 @@ type RfqRowDb = {
   responded_at: Date | null;
   costs: { item_id: string; quantity: number; unit_cost: number }[];
   currency: string;
+  fx_rate: string | null;
+  fx_date: string | null;
   production_days: number | null;
   notes: string | null;
   created_at: Date;
@@ -69,6 +79,8 @@ const toRfq = (r: RfqRowDb): Rfq => ({
   respondedAt: r.responded_at,
   costs: (r.costs ?? []).map((c) => ({ itemId: c.item_id, quantity: Number(c.quantity), unitCost: Number(c.unit_cost) })),
   currency: r.currency,
+  fxRate: r.fx_rate === null ? null : Number(r.fx_rate),
+  fxDate: r.fx_date,
   productionDays: r.production_days,
   notes: r.notes,
   createdAt: r.created_at,
@@ -77,7 +89,7 @@ const toRfq = (r: RfqRowDb): Rfq => ({
 export async function listRfqs(user: CurrentUser, requestId: string): Promise<Rfq[]> {
   if (!UUID.test(requestId)) return [];
   const rows = await withActor(actorFor(user), (tx) => tx<RfqRowDb[]>`
-    select f.*, r.number from public.factory_rfqs f join public.quote_requests r on r.id = f.request_id
+    select f.*, to_char(f.fx_date, 'YYYY-MM-DD') as fx_date, r.number from public.factory_rfqs f join public.quote_requests r on r.id = f.request_id
      where f.request_id = ${requestId} order by f.version desc`);
   return rows.map(toRfq);
 }
@@ -85,7 +97,7 @@ export async function listRfqs(user: CurrentUser, requestId: string): Promise<Rf
 async function loadRfq(user: CurrentUser, rfqId: string): Promise<RfqRowDb | null> {
   if (!UUID.test(rfqId)) return null;
   const rows = await withActor(actorFor(user), (tx) => tx<RfqRowDb[]>`
-    select f.*, r.number from public.factory_rfqs f join public.quote_requests r on r.id = f.request_id where f.id = ${rfqId}`);
+    select f.*, to_char(f.fx_date, 'YYYY-MM-DD') as fx_date, r.number from public.factory_rfqs f join public.quote_requests r on r.id = f.request_id where f.id = ${rfqId}`);
   return rows[0] ?? null;
 }
 
@@ -206,7 +218,15 @@ export async function sendRfq(user: CurrentUser, rfqId: string): Promise<RfqResu
   return { ok: true };
 }
 
-export type RfqResponseInput = { costs: { itemId: string; quantity: number; unitCost: string }[]; currency: string; productionDays: string; notes: string };
+export type RfqResponseInput = {
+  costs: { itemId: string; quantity: number; unitCost: string }[];
+  currency: string;
+  /** Obligatorios si la moneda difiere de la de la cotización. */
+  fxRate?: string;
+  fxDate?: string;
+  productionDays: string;
+  notes: string;
+};
 
 /** Registra la respuesta de la fábrica: costo unitario para cada pieza y cantidad. */
 export async function recordRfqResponse(user: CurrentUser, rfqId: string, input: RfqResponseInput): Promise<RfqResult> {
@@ -225,11 +245,22 @@ export async function recordRfqResponse(user: CurrentUser, rfqId: string, input:
   if (costs.length !== expected.length) return { ok: false, error: "costs" };
   const days = input.productionDays.trim() ? Number(input.productionDays) : null;
   if (days !== null && (!Number.isInteger(days) || days < 1 || days > 365)) return { ok: false, error: "days" };
-  const currency = /^[A-Z]{3}$/.test(input.currency.trim().toUpperCase()) ? input.currency.trim().toUpperCase() : "USD";
+  const currency = input.currency.trim().toUpperCase();
+  if (!(RFQ_CURRENCIES as readonly string[]).includes(currency)) return { ok: false, error: "currency" };
+  // Moneda distinta de la de la cotización: tipo de cambio y fecha obligatorios.
+  const base = publicSetting(await getPublicCatalog(), "currency", "USD");
+  let fxRate: number | null = null;
+  let fxDate: string | null = null;
+  if (currency !== base) {
+    fxRate = parseMoney(input.fxRate ?? "");
+    fxDate = input.fxDate?.trim() ?? "";
+    if (fxRate === null || fxRate <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(fxDate) || fxDate > todayInPanama()) return { ok: false, error: "fx" };
+  }
   await withActor(actorFor(user), async (tx) => {
     await tx`
       update public.factory_rfqs
-         set costs = ${tx.json(costs)}, currency = ${currency}, production_days = ${days}, notes = ${input.notes.trim().slice(0, 4000) || null}, responded_at = now()
+         set costs = ${tx.json(costs)}, currency = ${currency}, fx_rate = ${fxRate}, fx_date = ${fxDate}, production_days = ${days},
+             notes = ${input.notes.trim().slice(0, 4000) || null}, responded_at = now()
        where id = ${rfq.id}`;
     await tx`
       insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)

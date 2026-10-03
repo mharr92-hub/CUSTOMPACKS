@@ -22,11 +22,22 @@ export function priceLine({ quantity, unitCost, freightTotal, marginPct }: Price
   return { unitCostTotal: round(unitCostTotal, 4), unitPrice, subtotal, markupPct };
 }
 
-/** Número decimal escrito en el panel: acepta coma o punto decimal (sin separador de miles). */
+/**
+ * Número escrito en el panel (REG-01). La pantalla muestra "5,000.00", así que
+ * se lee igual:
+ * - coma de miles en grupos de 3 y punto decimal: "5,000" → 5000, "1,234.50";
+ * - una sola coma que no forma grupos de miles es decimal: "0,35", "12,5";
+ * - lo ambiguo o mezclado al revés ("1.234,5", "1,2,3") se rechaza.
+ * El panel muestra junto al campo el valor interpretado antes de guardar.
+ */
 export function parseMoney(text: string): number | null {
-  const t = text.trim().replace(/\s/g, "").replace(",", ".");
-  if (!/^\d+(\.\d+)?$/.test(t)) return null;
-  const n = Number(t);
+  const t = text.trim().replace(/\s/g, "");
+  let normalized: string;
+  if (/^\d+(\.\d+)?$/.test(t)) normalized = t;
+  else if (/^[1-9]\d{0,2}(,\d{3})+(\.\d+)?$/.test(t)) normalized = t.replace(/,/g, "");
+  else if (/^\d+,\d{1,4}$/.test(t) && !/^[1-9]\d{0,2},\d{3}$/.test(t)) normalized = t.replace(",", ".");
+  else return null;
+  const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
 }
 

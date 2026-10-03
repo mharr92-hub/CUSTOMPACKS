@@ -107,6 +107,7 @@ export default async function OrderPage(props: PageProps<"/admin/pedidos/[id]">)
               suggested={suggested}
               defaultKind={order.depositConfirmed ? "balance" : "deposit"}
               today={today}
+              currency={order.currency}
               payments={order.payments.map((p) => ({
                 id: p.id,
                 kind: p.kind,

@@ -29,20 +29,20 @@ Cómo arrancar, cuando Mark lo decida. Abre Claude Code en la carpeta del proyec
 
 Objetivo: que el portal del pedido y la primera cotización funcionen con `DB_POOL_MAX=1`, y que ningún error deje una pantalla en blanco (DAT-01, REN-01, COD-01, DAT-05, COD-02).
 
-- [ ] `getClientOrder` (`lib/orders/index.ts`): validar el token y leer el pedido, los montos y los pagos sin abrir una transacción dentro de otra. Puede ser una sola transacción de servicio después de validar el token. Quitar la doble lectura de pagos.
-- [ ] `createQuoteDraft` (`lib/quotes/index.ts`):
+- [x] `getClientOrder` (`lib/orders/index.ts`): validar el token y leer el pedido, los montos y los pagos sin abrir una transacción dentro de otra. Puede ser una sola transacción de servicio después de validar el token. Quitar la doble lectura de pagos.
+- [x] `createQuoteDraft` (`lib/quotes/index.ts`):
   - numerar en la misma transacción, con una función `security definer` con permiso para el equipo;
-  - bloquear la solicitud con `select … for update` antes de buscar el borrador;
+  - bloquear la solicitud antes de buscar el borrador (se hizo con `pg_advisory_xact_lock` por solicitud, que no necesita permiso de escritura);
   - migración con un índice único parcial en `quotes(request_id) where status = 'draft'`.
-- [ ] `lib/db/actor.ts`: `withActor` detecta el anidamiento con AsyncLocalStorage. Fuera de producción lanza un error; en producción, `log.error`.
-- [ ] Prueba de base con `DB_POOL_MAX=1` que abre el portal de un pedido y prepara la primera cotización. Agregar a CI un paso con `DB_POOL_MAX=1`, y hacer que `verify:deploy` corra con 1.
-- [ ] Fronteras de error con textos en `messages/es.json` y botón Reintentar:
+- [x] `lib/db/actor.ts`: `withActor` detecta el anidamiento con AsyncLocalStorage. Fuera de producción lanza un error; en producción, `log.error`.
+- [x] Prueba de base con `DB_POOL_MAX=1` que abre el portal de un pedido y prepara la primera cotización. Agregar a CI un paso con `DB_POOL_MAX=1`, y hacer que `verify:deploy` corra con 1.
+- [x] Fronteras de error con textos en `messages/es.json` y botón Reintentar:
   - `app/global-error.tsx`;
   - `app/error.tsx`;
   - `app/cotizar/error.tsx`, que avisa que el borrador está guardado;
   - `app/seguimiento/[token]/error.tsx`;
   - `app/admin/(panel)/error.tsx`.
-- [ ] `docs/deploy.md`: quitar el aviso bloqueante de DAT-01 y dejar `DB_POOL_MAX=1` como valor recomendado.
+- [x] `docs/deploy.md`: quitar el aviso bloqueante de DAT-01 y dejar `DB_POOL_MAX=1` como valor recomendado.
 
 Aceptación:
 - Con `DB_POOL_MAX=1`, la prueba del portal y la de "Preparar cotización" terminan sin timeout.
@@ -54,22 +54,23 @@ Aceptación:
 
 Objetivo: que ningún monto del panel se guarde distinto de lo que se escribió, y que un costo en otra moneda no pase como dólares (REG-01, REG-11, PAN-13, FUT-12).
 
-- [ ] `parseMoney` (`lib/quotes/pricing.ts`): un solo formato, el de la pantalla.
-  - Punto decimal, y coma solo como separador de miles en grupos de 3.
-  - Lo demás con coma ("5,5", "5.000,50") se rechaza con el mensaje "Usa punto para los decimales".
-- [ ] Junto a cada campo de dinero del panel (costos, flete, precio, pagos), mostrar el valor interpretado ("= USD 5,000.00") antes de guardar.
-- [ ] Respuesta de fábrica:
+- [x] `parseMoney` (`lib/quotes/pricing.ts`): se lee como la pantalla (D-107).
+  - Coma de miles en grupos de 3 y punto decimal: "5,000" → 5000.
+  - Se conserva la coma decimal que no forma grupos de miles ("0,35", "12,5"), que ya usaba el equipo (E7).
+  - Lo ambiguo o al revés ("5.000,50", "1,2,3") se rechaza.
+- [x] Junto a cada campo de dinero del panel (costos, flete, precio, pagos), mostrar el valor interpretado ("= USD 5,000.00") antes de guardar.
+- [x] Respuesta de fábrica:
   - la moneda sale de una lista cerrada (USD y PEN);
-  - si no es `settings.currency`, "Preparar cotización" pide el tipo de cambio y su fecha;
-  - por línea se guardan `cost_currency`, `fx_rate` y el costo original (migración nueva);
+  - si no es `settings.currency`, la respuesta de fábrica exige el tipo de cambio y su fecha (migración `012_rfq_fx`), y "Preparar cotización" no avanza sin ellos;
+  - por línea de la cotización se guardan `cost_currency`, `cost_original`, `fx_rate` y `fx_date`;
   - el editor muestra la moneda junto a cada costo.
-- [ ] Pruebas unitarias:
+- [x] Pruebas unitarias:
   - "5,000" → 5000;
   - "1,923.00" → 1923;
-  - "5,5" → error;
+  - "0,425" → 0,425 y "12,5" → 12,5;
   - "5.000,50" → error;
-  - "1,20" → error.
-- [ ] Pruebas de base: una respuesta en PEN sin tipo de cambio no deja preparar la cotización; con tipo de cambio, guarda el costo original y el convertido.
+  - "1,2,3" → error.
+- [x] Pruebas de base: una respuesta en PEN sin tipo de cambio no deja preparar la cotización; con tipo de cambio, guarda el costo original y el convertido.
 
 Aceptación:
 - En e2e, escribir "5,000" en un costo muestra "= USD 5,000.00" y la línea queda en 5000.

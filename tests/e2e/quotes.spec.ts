@@ -80,12 +80,18 @@ test.describe("E7 · RFQ y cotización", () => {
     await expect(admin.getByTestId("admin-request-status")).toHaveText("RFQ enviado");
     await expect(rfq).toContainText("Enviado a fabrica@provenpack.test");
     await admin.getByTestId("rfq-cost").first().fill("0,45");
+    // Junto a cada monto se ve cómo se va a guardar (REG-01).
+    await expect(admin.getByTestId("rfq").first().getByTestId("money-hint").first()).toHaveText(/^= USD\s0\.45$/);
     await admin.getByRole("button", { name: "Guardar respuesta" }).click();
     await expect(admin.getByTestId("rfq").first()).toContainText("Respuesta registrada");
 
     await admin.getByRole("button", { name: "Preparar cotización" }).click();
     const editor = admin.getByTestId("quote-editor");
     await expect(editor).toBeVisible();
+    // "1,500" es mil quinientos, como lo muestra la pantalla: (0,45 + 1500/3000) / 0,65 = 1,4615.
+    await editor.getByLabel(/^Flete total 1/).fill("1,500");
+    await expect(editor.getByTestId("quote-line").first().locator("label").filter({ hasText: /^Flete/ }).getByTestId("money-hint")).toHaveText(/^= USD\s1,500\.00$/);
+    await expect(editor.getByTestId("quote-unit-price")).toContainText("1.4615");
     // (0,45 + 90/3000) / (1 − 0,35) = 0,7385
     await editor.getByLabel(/^Flete total 1/).fill("90");
     await expect(editor.getByTestId("quote-unit-price")).toContainText("0.7385");

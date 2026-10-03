@@ -26,6 +26,24 @@ describe("precio por línea (costo + flete + margen)", () => {
     expect(formatUnitPrice(0.3846)).toMatch(/0\.3846/);
     expect(formatUnitPrice(2)).toMatch(/2\.00/);
   });
+
+  it("la coma de miles se lee como la muestra la pantalla: '5,000' son cinco mil (REG-01)", () => {
+    expect(parseMoney("5,000")).toBe(5000);
+    expect(parseMoney("1,200")).toBe(1200);
+    expect(parseMoney("1,923.00")).toBe(1923);
+    expect(parseMoney("12,345,678.90")).toBe(12345678.9);
+    // Una coma que no forma grupos de miles es decimal.
+    expect(parseMoney("0,425")).toBe(0.425);
+    expect(parseMoney("12,5")).toBe(12.5);
+    expect(parseMoney("1234,56")).toBe(1234.56);
+    // Ambiguos o al revés: se rechazan.
+    expect(parseMoney("5.000,50")).toBeNull();
+    expect(parseMoney("1,2,3")).toBeNull();
+    expect(parseMoney("1,23,456")).toBeNull();
+    expect(parseMoney("5,000,5")).toBeNull();
+    expect(parseMoney("")).toBeNull();
+    expect(parseMoney("-5")).toBeNull();
+  });
 });
 
 describe("filas del RFQ", () => {

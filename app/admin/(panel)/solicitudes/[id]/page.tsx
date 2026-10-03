@@ -8,7 +8,7 @@ import { AssignControl, MissingDataControl, NoteForm, StatusControl } from "@/co
 import { QuotePanel, RfqPanel } from "@/components/panel/rfq-quote";
 import { listRequestArtwork } from "@/lib/artwork/staff";
 import { EDITOR_ROLES, requireStaff } from "@/lib/auth";
-import { getPublicCatalog, taxLabel, uploadSettings } from "@/lib/catalog/public";
+import { getPublicCatalog, publicSetting, taxLabel, uploadSettings } from "@/lib/catalog/public";
 import { getServerEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
 import { listRequestNotifications } from "@/lib/notify";
@@ -260,6 +260,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
               canEdit={canEdit}
               canGenerate={request.status === "in_review" || request.status === "rfq_sent"}
               factoryEmail={Boolean(getServerEnv().factoryEmail)}
+              baseCurrency={publicSetting(catalog, "currency", "USD")}
               rfqs={rfqs.map((r) => ({
                 id: r.id,
                 number: r.number,
@@ -269,6 +270,8 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
                 respondedAt: r.respondedAt?.toISOString() ?? null,
                 costs: r.costs,
                 currency: r.currency,
+                fxRate: r.fxRate,
+                fxDate: r.fxDate,
                 productionDays: r.productionDays,
                 notes: r.notes,
               }))}

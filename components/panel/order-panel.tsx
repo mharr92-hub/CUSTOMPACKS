@@ -14,6 +14,7 @@ import {
   updateShippingAction,
 } from "@/app/admin/(panel)/pedidos/[id]/actions";
 import { EvidenceList, type EvidenceItem } from "@/components/orders/evidence-list";
+import { MoneyHint } from "@/components/panel/money-hint";
 import { FileUploader } from "@/components/upload/file-uploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -330,6 +331,7 @@ function ReviewReceipt({ orderId, payment, suggested, today }: { orderId: string
         <label className="grid gap-1 text-xs font-medium">
           {t("amount")}
           <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <MoneyHint value={amount} currency={payment.currency} />
         </label>
         <label className="grid gap-1 text-xs font-medium">
           {t("method")}
@@ -357,7 +359,19 @@ function ReviewReceipt({ orderId, payment, suggested, today }: { orderId: string
   );
 }
 
-function RecordPaymentForm({ orderId, defaultKind, suggested, today }: { orderId: string; defaultKind: "deposit" | "balance"; suggested: Record<"deposit" | "balance", string>; today: string }) {
+function RecordPaymentForm({
+  orderId,
+  defaultKind,
+  suggested,
+  today,
+  currency,
+}: {
+  orderId: string;
+  defaultKind: "deposit" | "balance";
+  suggested: Record<"deposit" | "balance", string>;
+  today: string;
+  currency: string;
+}) {
   const t = useTranslations("admin.order");
   const { error, busy, run } = useRun();
   const [kind, setKind] = useState<"deposit" | "balance">(defaultKind);
@@ -395,6 +409,7 @@ function RecordPaymentForm({ orderId, defaultKind, suggested, today }: { orderId
         <label className="grid gap-1 text-xs font-medium">
           {t("amount")}
           <Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} name="amount" />
+          <MoneyHint value={amount} currency={currency} />
         </label>
         <label className="grid gap-1 text-xs font-medium">
           {t("method")}
@@ -424,6 +439,7 @@ export function PaymentsPanel({
   suggested,
   defaultKind,
   today,
+  currency,
 }: {
   orderId: string;
   payments: PanelPayment[];
@@ -431,6 +447,8 @@ export function PaymentsPanel({
   suggested: Record<"deposit" | "balance", string>;
   defaultKind: "deposit" | "balance";
   today: string;
+  /** Moneda del pedido. */
+  currency: string;
 }) {
   const t = useTranslations("admin.order");
   return (
@@ -465,7 +483,7 @@ export function PaymentsPanel({
           ))}
         </ul>
       ) : null}
-      {canEdit ? <RecordPaymentForm orderId={orderId} defaultKind={defaultKind} suggested={suggested} today={today} /> : null}
+      {canEdit ? <RecordPaymentForm orderId={orderId} defaultKind={defaultKind} suggested={suggested} today={today} currency={currency} /> : null}
     </div>
   );
 }

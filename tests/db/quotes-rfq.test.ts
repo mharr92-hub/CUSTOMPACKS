@@ -161,6 +161,37 @@ describe("cotización", () => {
     ).rejects.toThrow(/quotes_one_draft_per_request/);
   });
 
+  it("la fábrica responde en soles: sin tipo de cambio no se guarda; con él, el costo se convierte y se guarda el original (REG-11)", async () => {
+    const user = await sales();
+    const r = await printedRequest();
+    await changeRequestStatus(user, r.requestId, "in_review");
+    await addArtwork(r.requestId, r.itemId);
+    const gen = await generateRfq(user, r.requestId);
+    if (!gen.ok) throw new Error(`RFQ: ${gen.error}`);
+    await sendRfq(user, gen.rfq.id);
+    const costs = [
+      { itemId: r.itemId, quantity: 1000, unitCost: "1.50" },
+      { itemId: r.itemId, quantity: 20000, unitCost: "1,125" },
+    ];
+    expect(await recordRfqResponse(user, gen.rfq.id, { costs, currency: "EUR", productionDays: "25", notes: "" })).toEqual({ ok: false, error: "currency" });
+    expect(await recordRfqResponse(user, gen.rfq.id, { costs, currency: "PEN", productionDays: "25", notes: "" })).toEqual({ ok: false, error: "fx" });
+    expect(await recordRfqResponse(user, gen.rfq.id, { costs, currency: "PEN", fxRate: "3.75", fxDate: "2099-01-01", productionDays: "25", notes: "" })).toEqual({
+      ok: false,
+      error: "fx",
+    });
+    const today = new Date().toISOString().slice(0, 10);
+    expect(await recordRfqResponse(user, gen.rfq.id, { costs, currency: "PEN", fxRate: "3.75", fxDate: today, productionDays: "25", notes: "" })).toEqual({ ok: true });
+    const draft = await createQuoteDraft(user, r.requestId);
+    expect(draft.ok).toBe(true);
+    if (!draft.ok) return;
+    expect(draft.quote.currency).toBe("USD");
+    // 1.50 ÷ 3.75 = 0.40 y 1.125 ÷ 3.75 = 0.30 (la coma con 3 cifras tras un 1 es de miles: "1,125" = 1125 soles).
+    expect(draft.quote.lines.map((l) => [l.quantity, l.unitCost, l.costFx?.currency, l.costFx?.original, l.costFx?.rate])).toEqual([
+      [1000, 0.4, "PEN", 1.5, 3.75],
+      [20000, 300, "PEN", 1125, 3.75],
+    ]);
+  });
+
   it("se calcula con margen, se emite, avisa al cliente y el cliente la acepta eligiendo cantidades", async () => {
     const { user, requestId, accessToken, itemId } = await readyForQuote();
     const draft = await createQuoteDraft(user, requestId);

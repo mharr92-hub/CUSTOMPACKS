@@ -34,6 +34,8 @@ export type QuoteLine = {
   unitPrice: number;
   subtotal: number;
   leadTimeDays: number;
+  /** Costo original de fábrica cuando respondió en otra moneda (REG-11). */
+  costFx: { currency: string; original: number; rate: number; date: string } | null;
 };
 
 export type Quote = {
@@ -56,9 +58,23 @@ export type Quote = {
   hasPdf: boolean;
 };
 
-export type QuoteResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "no_rfq" | "lines" | "valid_until" | "selection" | "expired" | "name" | "body" };
+export type QuoteResult<T = object> = ({ ok: true } & T) | { ok: false; error: "forbidden" | "not_found" | "status" | "no_rfq" | "lines" | "valid_until" | "selection" | "expired" | "name" | "body" | "fx" };
 
-type DbLine = { item_id: string; position: number; quantity: number; unit_cost: number; freight_total: number; margin_pct: number; unit_price: number; subtotal: number; lead_time_days: number };
+type DbLine = {
+  item_id: string;
+  position: number;
+  quantity: number;
+  unit_cost: number;
+  freight_total: number;
+  margin_pct: number;
+  unit_price: number;
+  subtotal: number;
+  lead_time_days: number;
+  cost_currency?: string;
+  cost_original?: number;
+  fx_rate?: number;
+  fx_date?: string;
+};
 type DbQuote = {
   id: string;
   request_id: string;
@@ -96,6 +112,10 @@ const toQuote = (q: DbQuote): Quote => ({
     unitPrice: Number(l.unit_price),
     subtotal: Number(l.subtotal),
     leadTimeDays: Number(l.lead_time_days),
+    costFx:
+      l.cost_currency && l.cost_original !== undefined && l.fx_rate
+        ? { currency: l.cost_currency, original: Number(l.cost_original), rate: Number(l.fx_rate), date: l.fx_date ?? "" }
+        : null,
   })),
   currency: q.currency,
   depositPct: q.deposit_pct,
@@ -159,6 +179,7 @@ export async function createQuoteDraft(user: CurrentUser, requestId: string): Pr
     select key, value from public.settings where key in ('default_margin_pct', 'quote_validity_days')`);
   const margin = Number(settings.find((s) => s.key === "default_margin_pct")?.value ?? 35);
   const validity = Number(settings.find((s) => s.key === "quote_validity_days")?.value ?? publicSetting(catalog, "quote_validity_days", 15));
+  const currency = publicSetting(catalog, "currency", "USD");
 
   return withActor(actorFor(user), async (tx) => {
     // Dos "Preparar" a la vez: el segundo espera y encuentra el borrador del primero.
@@ -167,15 +188,26 @@ export async function createQuoteDraft(user: CurrentUser, requestId: string): Pr
     const draft = existing.find((q) => q.status === "draft");
     if (draft) return { ok: true, quote: toQuote(draft) } as const;
     const previous = existing[0];
-    const [rfq] = await tx<{ id: string; costs: { item_id: string; quantity: number; unit_cost: number }[] }[]>`
-      select id, costs from public.factory_rfqs where request_id = ${requestId} and responded_at is not null order by version desc limit 1`;
+    const [rfq] = await tx<{ id: string; costs: { item_id: string; quantity: number; unit_cost: number }[]; currency: string; fx_rate: string | null; fx_date: string | null }[]>`
+      select id, costs, currency, fx_rate, to_char(fx_date, 'YYYY-MM-DD') as fx_date
+        from public.factory_rfqs where request_id = ${requestId} and responded_at is not null order by version desc limit 1`;
     if (!previous && !rfq) return { ok: false, error: "no_rfq" } as const;
+    // Fábrica en otra moneda: el costo se convierte con el tipo de cambio de la respuesta.
+    const fx = rfq && rfq.currency !== currency ? Number(rfq.fx_rate ?? 0) : null;
+    if (fx !== null && !(fx > 0)) return { ok: false, error: "fx" } as const;
 
     const lines: DbLine[] = request.items.flatMap((item) =>
       item.spec.quantities.map((quantity) => {
         const prev = previous?.lines.find((l) => l.item_id === item.id && Number(l.quantity) === quantity);
         const cost = rfq?.costs.find((c) => c.item_id === item.id && Number(c.quantity) === quantity);
-        const unitCost = Number(cost?.unit_cost ?? prev?.unit_cost ?? 0);
+        const converted = cost && fx ? Math.round((Number(cost.unit_cost) / fx) * 10000) / 10000 : null;
+        const unitCost = Number(converted ?? cost?.unit_cost ?? prev?.unit_cost ?? 0);
+        const costFx =
+          cost && fx && rfq
+            ? { cost_currency: rfq.currency, cost_original: Number(cost.unit_cost), fx_rate: fx, fx_date: rfq.fx_date ?? "" }
+            : !cost && prev?.cost_currency
+              ? { cost_currency: prev.cost_currency, cost_original: prev.cost_original, fx_rate: prev.fx_rate, fx_date: prev.fx_date }
+              : {};
         const freight = Number(prev?.freight_total ?? 0);
         const marginPct = Number(prev?.margin_pct ?? margin);
         const price = priceLine({ quantity, unitCost, freightTotal: freight, marginPct });
@@ -189,6 +221,7 @@ export async function createQuoteDraft(user: CurrentUser, requestId: string): Pr
           unit_price: price?.unitPrice ?? 0,
           subtotal: price?.subtotal ?? 0,
           lead_time_days: Number(prev?.lead_time_days ?? leadTimeDaysFor(quantity, leadTime)),
+          ...costFx,
         };
       }),
     );
@@ -200,9 +233,9 @@ export async function createQuoteDraft(user: CurrentUser, requestId: string): Pr
     if (!base) throw new Error("no se pudo numerar la cotización");
     const version = (previous?.version ?? 0) + 1;
     const [created] = await tx<DbQuote[]>`
-      insert into public.quotes (request_id, rfq_id, base_number, version, number, lines, deposit_pct, valid_until, notes)
+      insert into public.quotes (request_id, rfq_id, base_number, version, number, lines, currency, deposit_pct, valid_until, notes)
       values (${requestId}, ${rfq?.id ?? previous?.rfq_id ?? null}, ${base}, ${version}, ${`${base}-v${version}`}, ${tx.json(lines as never)},
-              ${depositPct}, ${addDaysIso(todayInPanama(), validity)}, ${previous?.notes ?? null})
+              ${currency}, ${depositPct}, ${addDaysIso(todayInPanama(), validity)}, ${previous?.notes ?? null})
       returning id`;
     const quote = await loadQuote(tx, created!.id);
     return { ok: true, quote: toQuote(quote!) } as const;
