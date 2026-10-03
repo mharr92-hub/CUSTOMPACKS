@@ -92,10 +92,13 @@ export function isValidEmail(text: string): boolean {
   return EMAIL.test(text.trim());
 }
 
-/** WhatsApp con código de país: +507 6123-4567 o 00507… (8 a 15 dígitos en total). */
+/** WhatsApp con código de país (+507 6123-4567 o 00507…, 10 a 15 dígitos) o celular de Panamá sin código. */
 export function normalizeWhatsapp(text: string): string | null {
   const t = text.trim();
-  if (!/^(\+|00)/.test(t) || /[^\d\s+()-]/.test(t)) return null;
+  if (/[^\d\s+()-]/.test(t)) return null;
+  // Celular de Panamá sin código (8 dígitos que empiezan por 6): se guarda como +507 (UX-05).
+  const local = t.replace(/\D/g, "");
+  if (!/^(\+|00)/.test(t)) return /^6\d{7}$/.test(local) ? `+507${local}` : null;
   const digits = t.replace(/^00/, "").replace(/\D/g, "");
   return digits.length >= 10 && digits.length <= 15 ? `+${digits}` : null;
 }

@@ -205,9 +205,9 @@ Aceptación:
 
 Objetivo: menos fricción en el paso de contacto, que concentra 46 de las 66 teclas del camino mínimo (UX-05, UX-12).
 
-- [ ] `normalizeWhatsapp` (`lib/quote/validate.ts`): acepta 8 dígitos que empiezan por 6 y los guarda como +507. Se siguen aceptando "+" y "00".
-- [ ] Paso 8, en este orden: nombre, WhatsApp, correo, ciudad, dirección y, al final, los opcionales.
-- [ ] `enterKeyHint` en cada campo; Enter lleva al siguiente.
+- [x] `normalizeWhatsapp` (`lib/quote/validate.ts`): acepta 8 dígitos que empiezan por 6 y los guarda como +507. Se siguen aceptando "+" y "00".
+- [x] Paso 8, en este orden: nombre, WhatsApp, correo, ciudad, dirección y, al final, los opcionales.
+- [x] `enterKeyHint` en cada campo; Enter lleva al siguiente.
 
 Aceptación:
 - Unitarias:

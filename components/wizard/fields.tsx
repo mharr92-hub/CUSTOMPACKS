@@ -42,6 +42,7 @@ export function TextField({
   autoComplete,
   maxLength,
   multiline,
+  enterKeyHint,
 }: {
   id: string;
   label: string;
@@ -56,6 +57,8 @@ export function TextField({
   autoComplete?: string;
   maxLength?: number;
   multiline?: boolean;
+  /** Tecla Enter del teclado del celular ("next" para pasar al campo siguiente). */
+  enterKeyHint?: React.HTMLAttributes<HTMLInputElement>["enterKeyHint"];
 }) {
   const t = useTranslations("wizard");
   const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(" ") || undefined;
@@ -79,6 +82,7 @@ export function TextField({
         />
       ) : (
         <input
+          enterKeyHint={enterKeyHint}
           id={id}
           type={type}
           value={value}

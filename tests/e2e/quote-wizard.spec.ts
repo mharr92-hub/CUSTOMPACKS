@@ -396,6 +396,14 @@ test.describe("M9 · arte completo a la primera", () => {
     await expect(page.getByRole("radio", { name: /^Aún no tengo arte/ })).toBeChecked();
     await next(page);
     await expectStep(page, "Contacto y entrega");
+    // M10: el celular de Panamá sin código se acepta.
+    await page.getByLabel("Tu nombre").fill("Ana Pérez");
+    await page.getByLabel("WhatsApp").fill("6123-4567");
+    await page.getByLabel("Ciudad").fill("Panamá");
+    await page.getByLabel("Dirección de entrega").fill("Calle 50");
+    await page.getByRole("checkbox", { name: /Acepto que/ }).check();
+    await next(page);
+    await expectStep(page, "Resumen");
   });
 
   test("Continuar espera a que termine una subida lenta y el archivo no se pierde", async ({ page }) => {

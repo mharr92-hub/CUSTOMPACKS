@@ -332,11 +332,9 @@ export function StepContact() {
     <div className="space-y-5">
       <p className="text-muted-foreground">{t("intro")}</p>
       <div className="grid gap-5 sm:grid-cols-2">
-        <TextField id="contact.company" label={t("company")} value={c.company} onChange={(company) => set({ company })} autoComplete="organization" optional maxLength={200} />
-        <TextField id="contact.ruc" label={t("ruc")} value={c.ruc} onChange={(ruc) => set({ ruc })} optional maxLength={40} />
-        <TextField id="contact.name" label={t("name")} value={c.name} onChange={(name) => set({ name })} autoComplete="name" error={errors["contact.name"]} maxLength={160} />
-        <TextField id="contact.position" label={t("position")} value={c.position} onChange={(position) => set({ position })} autoComplete="organization-title" optional maxLength={120} />
+        <TextField enterKeyHint="next" id="contact.name" label={t("name")} value={c.name} onChange={(name) => set({ name })} autoComplete="name" error={errors["contact.name"]} maxLength={160} />
         <TextField
+          enterKeyHint="next"
           id="contact.whatsapp"
           type="tel"
           label={t("whatsapp")}
@@ -350,6 +348,7 @@ export function StepContact() {
           maxLength={40}
         />
         <TextField
+          enterKeyHint="next"
           id="contact.email"
           type="email"
           label={t("email")}
@@ -362,8 +361,11 @@ export function StepContact() {
           error={errors["contact.email"]}
           maxLength={200}
         />
-        <TextField id="contact.city" label={t("city")} value={c.city} onChange={(city) => set({ city })} autoComplete="address-level2" error={errors["contact.city"]} maxLength={120} />
-        <TextField id="contact.address" label={t("address")} value={c.address} onChange={(address) => set({ address })} autoComplete="street-address" error={errors["contact.address"]} maxLength={400} />
+        <TextField enterKeyHint="next" id="contact.city" label={t("city")} value={c.city} onChange={(city) => set({ city })} autoComplete="address-level2" error={errors["contact.city"]} maxLength={120} />
+        <TextField enterKeyHint="next" id="contact.address" label={t("address")} value={c.address} onChange={(address) => set({ address })} autoComplete="street-address" error={errors["contact.address"]} maxLength={400} />
+        <TextField enterKeyHint="next" id="contact.company" label={t("company")} value={c.company} onChange={(company) => set({ company })} autoComplete="organization" optional maxLength={200} />
+        <TextField enterKeyHint="next" id="contact.ruc" label={t("ruc")} value={c.ruc} onChange={(ruc) => set({ ruc })} optional maxLength={40} />
+        <TextField enterKeyHint="next" id="contact.position" label={t("position")} value={c.position} onChange={(position) => set({ position })} autoComplete="organization-title" optional maxLength={120} />
       </div>
       <div>
         <label htmlFor="contact.source" className="block text-sm font-semibold">

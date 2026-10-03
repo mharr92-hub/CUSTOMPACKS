@@ -98,7 +98,11 @@ describe("parsers de campos", () => {
   it("WhatsApp con código de país", () => {
     expect(normalizeWhatsapp("+507 6123-4567")).toBe("+50761234567");
     expect(normalizeWhatsapp("00507 61234567")).toBe("+50761234567");
-    expect(normalizeWhatsapp("6123-4567")).toBeNull();
+    // Celular de Panamá sin código (M10).
+    expect(normalizeWhatsapp("6123-4567")).toBe("+50761234567");
+    expect(normalizeWhatsapp("6123 4567")).toBe("+50761234567");
+    expect(normalizeWhatsapp("1234-5678")).toBeNull();
+    expect(normalizeWhatsapp("612-3456")).toBeNull();
     expect(normalizeWhatsapp("+507 abc")).toBeNull();
   });
 
