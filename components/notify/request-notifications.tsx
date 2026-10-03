@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { MailIcon } from "lucide-react";
-import { markWhatsappSentAction } from "@/app/admin/(panel)/solicitudes/[id]/actions";
+import { markWhatsappSentAction, retryNotificationAction } from "@/app/admin/(panel)/solicitudes/[id]/actions";
 import { WhatsAppIcon } from "@/components/site/whatsapp-fab";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
@@ -92,6 +92,26 @@ export function RequestNotifications({ requestId, rows, canEdit }: { requestId: 
                 }}
               >
                 {t("markSent")}
+              </Button>
+            </div>
+          ) : null}
+          {n.status === "failed" && canEdit ? (
+            <div className="flex items-start">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy === n.id}
+                onClick={async () => {
+                  setBusy(n.id);
+                  try {
+                    if (await retryNotificationAction(requestId, n.id)) router.refresh();
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                {t("retry")}
               </Button>
             </div>
           ) : null}

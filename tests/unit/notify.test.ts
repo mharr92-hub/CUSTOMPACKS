@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { businessHoursBetween, parseBusinessHours } from "@/lib/notify/business-hours";
 import { missingVariables, renderHtml, renderText, templateVariables } from "@/lib/notify/render";
-import { balanceReminderDue, daysBetween, expiryReminderDue, npsDue } from "@/lib/notify/schedule";
+import { balanceReminderDue, daysBetween, expiryReminderDue, npsDue, retryDelayMinutes } from "@/lib/notify/schedule";
 
 describe("plantillas de mensajes (§21-C)", () => {
   const body = "Hola {nombre}, recibimos tu solicitud {numero} para {pieza}. Sigue el estado aquí: {enlace}.";
@@ -57,5 +57,12 @@ describe("recordatorios programados (§12)", () => {
     expect(balanceReminderDue(at("2026-09-20"), at("2026-09-23"))).toBeNull();
     expect(npsDue(at("2026-09-17"), at("2026-09-24"))).toBe(true);
     expect(npsDue(at("2026-09-18"), at("2026-09-24"))).toBe(false);
+  });
+});
+
+describe("reintentos de avisos (M6)", () => {
+  it("esperan 5 min, 30 min y 2 h", () => {
+    expect([1, 2, 3, 4].map(retryDelayMinutes)).toEqual([5, 30, 120, 120]);
+    expect(retryDelayMinutes(0)).toBe(5);
   });
 });

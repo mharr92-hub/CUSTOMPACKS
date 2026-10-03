@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { adminNav } from "@/config/admin-nav";
 import { brand } from "@/config/brand";
 import type { CurrentUser } from "@/lib/auth";
+import { countFailedNotifications } from "@/lib/notify";
 import { signOutAction } from "@/app/admin/actions";
 import { AdminNavLink } from "./admin-nav-link";
 
 export async function AdminShell({ user, children }: { user: CurrentUser; children: React.ReactNode }) {
   const t = await getTranslations("admin");
   const items = adminNav.filter((item) => item.roles.includes(user.role));
+  const failed = await countFailedNotifications(user).catch(() => 0);
   return (
     <div className="flex min-h-dvh flex-col bg-muted/40 lg:flex-row">
       <aside className="border-b border-border bg-sidebar lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0">
@@ -48,6 +50,11 @@ export async function AdminShell({ user, children }: { user: CurrentUser; childr
           </form>
         </header>
         <main id="contenido" className="flex-1 p-4 sm:p-6 lg:p-8">
+          {failed > 0 ? (
+            <p role="status" className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" data-testid="failed-notifications">
+              {t("notifications.failedBanner", { count: failed })}
+            </p>
+          ) : null}
           {children}
         </main>
       </div>

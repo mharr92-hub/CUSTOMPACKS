@@ -65,6 +65,7 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
 - **Duda:** el SLA (4 h sin respuesta) necesita un cron frecuente, pero el plan Hobby de Vercel solo permite crons diarios.
 - **Decisión:** `vercel.json` declara los crons diarios (vigencia, saldo, NPS, retención). El SLA también se recalcula al abrir la bandeja del panel, así que funciona sin cron horario. El cron horario de SLA queda documentado para cuando haya plan Pro.
 - **Cómo cambiarla:** en Pro, agregar `{"path": "/api/cron/sla", "schedule": "0 * * * *"}` a `vercel.json`.
+- **Actualización 03/10/2026 (M6):** sin pagar, `pnpm cron:install` programa en Supabase Cron (pg_cron y pg_net, incluidos en el plan gratuito) una llamada a `/api/cron/notifications` cada 15 minutos. Esa ruta corre el SLA, las cotizaciones, los pedidos y la cola de avisos; cada proceso respeta su intervalo (`job_runs`). Con Vercel Pro se puede usar en su lugar un cron de Vercel con `*/15 * * * *` a la misma ruta.
 
 ### D-014 · 24/09/2026 · Tests con base de datos
 - **Decisión:** `pnpm test` corre dos proyectos de Vitest: `unit` (lógica pura) y `db` (migraciones, RLS y triggers contra un Postgres embebido efímero que se crea y destruye en cada corrida). En CI se usa el mismo mecanismo (binarios Linux). `TEST_DATABASE_URL` permite apuntar a otro Postgres.

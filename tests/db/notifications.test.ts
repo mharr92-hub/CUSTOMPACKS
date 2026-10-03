@@ -10,7 +10,8 @@ const { getSql } = await import("@/lib/db/client");
 const { saveDraft } = await import("@/lib/quote/drafts");
 const { submitDraft } = await import("@/lib/quote/submit");
 const { emptyItem, initialWizardState } = await import("@/lib/quote/types");
-const { checkSlaOverdue, enqueueNotification, markWhatsappSent, processNotificationQueue } = await import("@/lib/notify");
+const { checkSlaOverdue, enqueueNotification, markWhatsappSent, processNotificationQueue, retryNotification } = await import("@/lib/notify");
+const cronRoute = await import("@/app/api/cron/notifications/route");
 type CurrentUser = import("@/lib/auth").CurrentUser;
 
 beforeAll(async () => {
@@ -137,5 +138,66 @@ describe("notificaciones por evento (§12)", () => {
     expect(await markWhatsappSent(as(salesId, "sales"), wa!.id)).toBe(false);
     const [row] = await testSql()<{ status: string; manual_sent_by: string }[]>`select status, manual_sent_by from public.notifications where id = ${wa!.id}`;
     expect(row).toEqual({ status: "sent", manual_sent_by: salesId });
+  });
+});
+
+describe("envío confiable y cron frecuente (M6)", () => {
+  it("un 429 de Resend no gasta intento y espera un minuto; otro fallo espera 5 minutos; Reenviar devuelve a la cola un aviso fallido", async () => {
+    await processNotificationQueue(500); // vacía lo que quedó de otras pruebas, sin credenciales
+    const r = await submitRequest();
+    process.env.RESEND_API_KEY = "re_prueba";
+    resetServerEnvCache();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response("límite", { status: 429 }));
+    const emailRows = () =>
+      testSql()<{ id: string; attempts: number; status: string; wait: number }[]>`
+        select id, attempts, status, extract(epoch from locked_until - now())::int as wait
+          from public.notifications where request_id = ${r.requestId} and channel = 'email' order by created_at`;
+    try {
+      await processNotificationQueue(50);
+      for (const n of await emailRows()) {
+        expect([n.status, n.attempts]).toEqual(["queued", 0]);
+        expect(n.wait).toBeGreaterThan(30);
+        expect(n.wait).toBeLessThanOrEqual(60);
+      }
+      fetchMock.mockImplementation(async () => new Response("caído", { status: 500 }));
+      await testSql()`update public.notifications set locked_until = null where request_id = ${r.requestId}`;
+      await processNotificationQueue(50);
+      for (const n of await emailRows()) {
+        expect([n.status, n.attempts]).toEqual(["queued", 1]);
+        expect(n.wait).toBeGreaterThan(4 * 60);
+        expect(n.wait).toBeLessThanOrEqual(5 * 60);
+      }
+    } finally {
+      fetchMock.mockRestore();
+      delete process.env.RESEND_API_KEY;
+      resetServerEnvCache();
+    }
+    const [one] = await emailRows();
+    await testSql()`update public.notifications set status = 'failed', error = 'caído' where id = ${one!.id}`;
+    const salesId = await createUser(`ventas-m6-${Date.now()}@test.local`, "sales");
+    const viewerId = await createUser(`lector-m6-${Date.now()}@test.local`, "viewer");
+    const as = (userId: string, role: "sales" | "viewer"): CurrentUser => ({ userId, email: null, profileId: userId, name: null, role, isActive: true });
+    expect(await retryNotification(as(viewerId, "viewer"), one!.id)).toBe(false);
+    expect(await retryNotification(as(salesId, "sales"), one!.id)).toBe(true);
+    const [again] = await testSql()<{ status: string; attempts: number; error: string | null }[]>`select status, attempts, error from public.notifications where id = ${one!.id}`;
+    expect(again).toEqual({ status: "queued", attempts: 0, error: null });
+  });
+
+  it("el cron con CRON_SECRET revisa el SLA sin que nadie abra el panel", async () => {
+    process.env.CRON_SECRET = "s".repeat(32);
+    resetServerEnvCache();
+    try {
+      expect((await cronRoute.GET(new Request("http://localhost/api/cron/notifications"))).status).toBe(401);
+      const r = await submitRequest();
+      await testSql()`update public.quote_requests set submitted_at = now() - interval '10 days' where id = ${r.requestId}`;
+      await testSql()`delete from public.job_runs where name = 'sla'`;
+      const res = await cronRoute.GET(new Request("http://localhost/api/cron/notifications", { headers: { authorization: `Bearer ${"s".repeat(32)}` } }));
+      expect(res.status).toBe(200);
+      const sla = (await notificationsOf(r.requestId)).filter((n) => n.template_code === "sla_overdue_team");
+      expect(sla).toHaveLength(1);
+    } finally {
+      delete process.env.CRON_SECRET;
+      resetServerEnvCache();
+    }
   });
 });

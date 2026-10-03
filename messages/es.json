@@ -467,7 +467,9 @@
       "showText": "Ver texto",
       "openWhatsapp": "Abrir WhatsApp",
       "markSent": "Marcar enviado",
-      "manualSent": "enviado a mano el {date}"
+      "manualSent": "enviado a mano el {date}",
+      "retry": "Reenviar",
+      "failedBanner": "{count, plural, one {# aviso falló} other {# avisos fallaron}} en los últimos 30 días: ábrelos en cada solicitud y pulsa Reenviar."
     },
     "statuses": {
       "draft": "Borrador",
@@ -628,7 +630,8 @@
         "evidence_uploaded": "Evidencia subida",
         "rfq_sent_manually": "RFQ enviado a fábrica a mano",
         "quote_accepted_staff": "Aceptación del cliente registrada por el equipo",
-        "no_print_confirmed": "Pieza confirmada sin impresión"
+        "no_print_confirmed": "Pieza confirmada sin impresión",
+        "notification_retry": "Aviso reenviado"
       },
       "by": "por {name}",
       "system": "sistema",

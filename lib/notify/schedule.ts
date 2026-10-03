@@ -35,3 +35,12 @@ export function balanceReminderDue(deliveredAt: Date, now: Date, daysAfter: read
 export function npsDue(closedAt: Date, now: Date, delayDays = 7): boolean {
   return daysBetween(closedAt, now) >= delayDays;
 }
+
+/**
+ * Espera antes de reintentar un envío que falló (REN-02): 5 min, 30 min y
+ * 2 h. Así un corte corto de Resend no gasta los tres intentos en segundos.
+ */
+export function retryDelayMinutes(attempt: number): number {
+  const delays = [5, 30, 120];
+  return delays[Math.min(Math.max(attempt, 1), delays.length) - 1]!;
+}

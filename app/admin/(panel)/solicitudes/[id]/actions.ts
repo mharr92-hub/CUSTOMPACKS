@@ -6,7 +6,7 @@ import type { ArtworkStatus, Checklist } from "@/lib/artwork/states";
 import type { ConfirmResult, SlotResult } from "@/lib/artwork/upload-types";
 import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { assertStaff, EDITOR_ROLES } from "@/lib/auth";
-import { kickNotifications, markWhatsappSent } from "@/lib/notify";
+import { kickNotifications, markWhatsappSent, retryNotification } from "@/lib/notify";
 import { addRequestNote, assignRequest, changeRequestStatus, requestMissingData, type ActionResult } from "@/lib/panel/requests";
 import type { UploadConfirm, UploadSlot } from "@/lib/files/upload-core";
 import {
@@ -76,6 +76,14 @@ export async function confirmProofUploadAction(requestId: string, itemId: string
 export async function markWhatsappSentAction(requestId: string, notificationId: string): Promise<boolean> {
   const user = await assertStaff(EDITOR_ROLES);
   const ok = await markWhatsappSent(user, String(notificationId));
+  if (ok) revalidatePath(`/admin/solicitudes/${requestId}`);
+  return ok;
+}
+
+export async function retryNotificationAction(requestId: string, notificationId: string): Promise<boolean> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const ok = await retryNotification(user, String(notificationId));
+  if (ok) kickNotifications();
   if (ok) revalidatePath(`/admin/solicitudes/${requestId}`);
   return ok;
 }

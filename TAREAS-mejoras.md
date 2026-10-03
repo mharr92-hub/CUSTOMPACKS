@@ -133,23 +133,23 @@ Aceptación:
 
 Objetivo: que las alertas de SLA y los avisos salgan sin que nadie abra el panel, sin contratar nada (REN-03, REN-02).
 
-- [ ] `scripts/cron-install.mjs` (`pnpm cron:install`):
+- [x] `scripts/cron-install.mjs` (`pnpm cron:install`):
   - registra en Supabase Cron (pg_cron y pg_net, incluidos en el plan gratuito) una llamada a `/api/cron/notifications` cada 15 minutos;
   - la URL y `CRON_SECRET` se leen del entorno y se guardan en Vault;
   - no escribe secretos en el repositorio;
   - `--quitar` lo desinstala.
-- [ ] `/api/cron/notifications` también corre la revisión de SLA.
-- [ ] Reintentos:
+- [x] `/api/cron/notifications` también corre la revisión de SLA.
+- [x] Reintentos:
   - espera creciente en `next_attempt_at` (5 min, 30 min y 2 h);
   - un 429 no cuenta como intento;
   - aviso al equipo cuando hay fallidos;
   - botón "Reenviar" en el panel.
-- [ ] `docs/deploy.md`: cómo instalarlo y apagarlo, y la alternativa con cron de Vercel Pro. Actualizar D-013 en `docs/DECISIONES.md`.
+- [x] `docs/deploy.md`: cómo instalarlo y apagarlo, y la alternativa con cron de Vercel Pro. Actualizar D-013 en `docs/DECISIONES.md`.
 
 Aceptación:
 - Prueba: un envío que recibe 429 se reprograma sin gastar intento.
 - Prueba: llamar a la ruta con `CRON_SECRET` marca el SLA vencido sin abrir el panel.
-- `verify:deploy` informa si el job no está instalado cuando la base es Supabase.
+- `pnpm cron:install --estado` informa si el job no está instalado (`verify:deploy` corre siempre contra una base local, así que la comprobación quedó en ese comando y en el checklist de `docs/deploy.md`).
 - Todo en verde.
 
 ## M7 — Datos de los KPI desde el primer día · esfuerzo: medium · P-07

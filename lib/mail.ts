@@ -18,7 +18,7 @@ export type EmailMessage = {
 export type EmailResult =
   | { status: "sent"; providerId: string | null }
   | { status: "simulated"; previewPath: string | null }
-  | { status: "failed"; error: string };
+  | { status: "failed"; error: string; /** Resend respondió 429: no cuenta como intento. */ rateLimited?: boolean };
 
 /** Escapa texto para meterlo en el HTML de un correo (todo lo que escribe el visitante pasa por aquí). */
 export function escapeHtml(value: string): string {
@@ -65,7 +65,7 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
     if (!response.ok) {
       const error = `Resend ${response.status}: ${(await response.text()).slice(0, 300)}`;
       log.error("correo no enviado", { to, subject: message.subject, error });
-      return { status: "failed", error };
+      return { status: "failed", error, rateLimited: response.status === 429 };
     }
     const body = (await response.json().catch(() => ({}))) as { id?: string };
     return { status: "sent", providerId: body.id ?? null };

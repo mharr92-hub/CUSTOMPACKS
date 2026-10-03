@@ -41,7 +41,14 @@ Comandos útiles: `pnpm db:reset` (recrea la base local), `pnpm lint`, `pnpm typ
 
 1. Importa el repositorio `mharr92-hub/CUSTOMPACKS` en <https://vercel.com/new>. Framework: Next.js; install `pnpm install --frozen-lockfile`; build `pnpm build` (ya definidos en `vercel.json`).
 2. Variables de entorno (Production y Preview): todas las de `.env.example` que tengas. Mínimo para producción: `NEXT_PUBLIC_SITE_URL`, `DATABASE_URL`, `DB_POOL_MAX=1`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AUTH_SECRET` (32+ caracteres aleatorios; **obligatoria**: sin ella el panel no deja entrar, D-089), `ADMIN_EMAIL`, `CRON_SECRET`, `NEXT_PUBLIC_WHATSAPP_NUMBER`, `MAIL_FROM`, `RESEND_API_KEY`, `FACTORY_EMAIL`.
-3. Crons: `vercel.json` los declara y Vercel envía `Authorization: Bearer $CRON_SECRET`. El plan Hobby solo permite crons diarios; los recordatorios de SLA cada hora necesitan Pro (ver D-013). Sin Pro, los crons diarios siguen funcionando.
+3. Crons: `vercel.json` declara los crons diarios y Vercel envía `Authorization: Bearer $CRON_SECRET`.
+4. **Cron cada 15 minutos (SLA, recordatorios y cola de avisos), sin pagar:** después del primer despliegue, desde tu computadora y con las variables de producción en `.env` (`DATABASE_URL` del proyecto de Supabase, `NEXT_PUBLIC_SITE_URL` y el mismo `CRON_SECRET` de Vercel):
+   ```bash
+   pnpm cron:install            # programa Supabase Cron: */15 * * * * → /api/cron/notifications
+   pnpm cron:install --estado   # muestra el job y sus últimas corridas
+   pnpm cron:install --quitar   # lo apaga
+   ```
+   La URL y el secreto quedan en Supabase Vault, no en el repositorio. Sin este paso, el SLA de 4 h y 24 h solo se revisa al abrir el panel y una vez al día (D-013).
 4. Despliega. Cada PR genera un preview automáticamente.
 
 ## 3. Resend (correo transaccional)
@@ -114,6 +121,7 @@ Resultado: **23/23 comprobaciones en verde**. Correr de nuevo antes de cada desp
   - el enlace de seguimiento abre y la ficha técnica (PDF) baja;
   - un archivo de arte de prueba sube con barra de progreso (máximo 50 MB en Supabase Free, D-012).
 - [ ] **Vercel → Crons** muestra los 3 procesos. Ejecutar uno a mano responde 200.
+- [ ] `pnpm cron:install --estado` muestra el job `provenpack-avisos` activo y corridas con estado `succeeded`.
 - [ ] GA4 (*Tiempo real*) registra la visita; *Meta Pixel Helper* muestra `PageView` y, al enviar, `Lead`.
 - [ ] En **Configuración**: instrucciones de pago y correo del equipo. En **Plantillas**: textos revisados.
 - [ ] Respaldos activados (sección 6) y primer artefacto descargado y abierto con `gpg --decrypt`.

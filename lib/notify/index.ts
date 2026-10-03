@@ -1,7 +1,7 @@
 import "server-only";
 import { after } from "next/server";
 import { brand } from "@/config/brand";
-import { actorFor, type CurrentUser } from "@/lib/auth";
+import { actorFor, EDITOR_ROLES, type CurrentUser } from "@/lib/auth";
 import { serviceActor, withActor } from "@/lib/db/actor";
 import type { Tx } from "@/lib/db/client";
 import { serverT } from "@/lib/i18n";
@@ -12,6 +12,7 @@ import { absoluteUrl } from "@/lib/urls";
 import { whatsappLink } from "@/lib/whatsapp";
 import { businessHoursBetween, parseBusinessHours } from "./business-hours";
 import { emailLayout, missingVariables, renderHtml, renderText, type TemplateVars } from "./render";
+import { retryDelayMinutes } from "./schedule";
 
 /**
  * Notificaciones (PRD §12). La base encola un mensaje por plantilla activa en
@@ -124,14 +125,18 @@ export async function processNotificationQueue(limit = 25): Promise<QueueResult>
       log.error("no se pudo procesar una notificación", { error, id: n.id });
       return { status: "queued" as const, error: error instanceof Error ? error.message : String(error) };
     });
-    const finalStatus: NotificationStatus = outcome.status === "queued" && n.attempts >= MAX_ATTEMPTS ? "failed" : outcome.status;
+    // Un 429 (límite de Resend) no gasta intento; los demás fallos esperan 5 min, 30 min y 2 h.
+    const attempts = outcome.rateLimited ? n.attempts - 1 : n.attempts;
+    const finalStatus: NotificationStatus = outcome.status === "queued" && attempts >= MAX_ATTEMPTS ? "failed" : outcome.status;
+    const retryIn = outcome.rateLimited ? 1 : retryDelayMinutes(attempts);
     if (finalStatus === "queued") result.retry += 1;
     else result[finalStatus] += 1;
     await withActor(serviceActor, async (tx) => {
       await tx`
         update public.notifications
            set status = ${finalStatus}, subject = ${outcome.subject ?? null}, body = ${outcome.body ?? null}, wa_link = ${outcome.waLink ?? null},
-               error = ${outcome.error ?? null}, locked_until = null, updated_at = now(),
+               error = ${outcome.error ?? null}, attempts = ${attempts}, updated_at = now(),
+               locked_until = ${finalStatus === "queued" ? tx`now() + make_interval(mins => ${retryIn})` : null},
                sent_at = ${finalStatus === "sent" || finalStatus === "simulated" ? tx`now()` : null}
          where id = ${n.id}`;
       if (finalStatus !== "queued" && n.request_id) {
@@ -145,7 +150,7 @@ export async function processNotificationQueue(limit = 25): Promise<QueueResult>
   return result;
 }
 
-type Outcome = { status: NotificationStatus; subject?: string | null; body?: string | null; waLink?: string | null; error?: string | null };
+type Outcome = { status: NotificationStatus; subject?: string | null; body?: string | null; waLink?: string | null; error?: string | null; rateLimited?: boolean };
 
 async function deliver(n: QueueRow): Promise<Outcome> {
   const t = serverT("notify");
@@ -172,7 +177,7 @@ async function deliver(n: QueueRow): Promise<Outcome> {
     text: `${text}\n\n${footer}`,
     html: emailLayout({ brand: brand.name, html: renderHtml(template.body, vars), footer }),
   });
-  if (sent.status === "failed") return { status: "queued", subject, body: text, error: sent.error };
+  if (sent.status === "failed") return { status: "queued", subject, body: text, error: sent.error, rateLimited: sent.rateLimited };
   return { status: sent.status, subject, body: text };
 }
 
@@ -315,4 +320,32 @@ export async function markWhatsappSent(user: CurrentUser, id: string): Promise<b
     }
     return true;
   });
+}
+
+/** "Reenviar" un aviso que falló (M6): vuelve a la cola con los intentos en cero. */
+export async function retryNotification(user: CurrentUser, id: string): Promise<boolean> {
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !user.isActive || !EDITOR_ROLES.includes(user.role)) return false;
+  // El equipo solo puede escribir la marca de WhatsApp: el reintento lo hace el servidor tras validar el rol.
+  const ok = await withActor(serviceActor, async (tx) => {
+    const rows = await tx<{ request_id: string | null }[]>`
+      update public.notifications set status = 'queued', attempts = 0, error = null, locked_until = null, updated_at = now()
+       where id = ${id} and status = 'failed'
+       returning request_id`;
+    const row = rows[0];
+    if (!row) return false;
+    if (row.request_id) {
+      await tx`
+        insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)
+        values (${row.request_id}, 'notification', ${id}, ${user.userId}, 'system', 'notification_retry', null)`;
+    }
+    return true;
+  });
+  return ok;
+}
+
+/** Avisos fallidos de los últimos 30 días: el panel los muestra para que nadie se entere tarde. */
+export async function countFailedNotifications(user: CurrentUser): Promise<number> {
+  const [row] = await withActor(actorFor(user), (tx) => tx<{ n: number }[]>`
+    select count(*)::int as n from public.notifications where status = 'failed' and created_at > now() - interval '30 days'`);
+  return row?.n ?? 0;
 }
