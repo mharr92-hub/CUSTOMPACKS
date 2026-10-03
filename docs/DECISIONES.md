@@ -883,3 +883,23 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - **Fotos de Mark:** las carpetas `catalogo/fotos` y `catalogo/escaneos` no van al repositorio (`.gitignore`).
   - **Dependencias:** `sharp` y `@napi-rs/canvas` son de desarrollo; solo las usan los scripts de importación, nunca la web.
 - **Cómo cambiarla:** columnas y validación en `lib/catalog/catalog-csv.ts`; carga en `lib/catalog/import-catalog.ts`; fotos en `lib/catalog/photos.ts`.
+
+### D-118 · 03/10/2026 · Revisión de textos y datos de pago estructurados (Bloque 3)
+- **Plantillas** (migración 023). Se corrigieron solo las que siguen con el texto original; si alguien ya las editó, se respeta su versión. Siguen PROVISIONAL hasta que Mark las guarde.
+  - QA: el correo dice lo mismo que el WhatsApp aprobado (la plantilla solo se usa al cerrar el QA).
+  - Embarque: voz activa ("ya va en camino").
+  - Saldo: en el WhatsApp, `{fecha}` es la fecha de entrega, igual que en el correo.
+  - Encuesta: "responde" en lugar de "respondes".
+  - Aceptación interna: sin "el cliente de".
+  - El monto del saldo en los avisos lleva la leyenda del impuesto (`tax_label`), como el PDF y el portal.
+- **Textos públicos:**
+  - En "Nosotros", el título es la promesa del PRD ("Probamos que somos los mejores").
+  - El portal dice "Verificación en planta" en lugar de "QA en planta"; el panel conserva "QA".
+  - El comentario de "Pedir de nuevo" usa tú.
+  - Los términos dicen que los precios y montos no incluyen el ITBMS (D-102). La tolerancia por comisiones (D-113) **no** se publica: es un margen operativo del equipo.
+- **Datos de pago:**
+  - Nuevos settings `payment_bank_name`, `payment_account_type`, `payment_account_number`, `payment_account_holder` y `payment_receipts_email` (migración 024; vacíos, PROVISIONAL y no públicos). `payment_instructions` queda para lo demás (Yappy, referencia).
+  - Los leen el portal del pedido (sección "Cómo pagar", con enlace para enviar el comprobante por correo) y el PDF de la cotización (bloque "Cómo pagar").
+  - Sin datos, el portal ofrece pedirlos por WhatsApp y el PDF dice que se envían al aceptar.
+- **Lo que necesita una decisión de Mark** quedó en `docs/TEXTOS-POR-CONFIRMAR.md`.
+- **Cómo cambiarla:** los textos en `messages/es.json` y Panel → Plantillas; los datos de pago en Configuración y en `lib/orders/payment-info.ts`.

@@ -14,6 +14,7 @@ import { RECEIPT_EXT, RECEIPT_KINDS, safeName, slot, verify, type UploadConfirm,
 import { getObject, putObject, readObjectHead, signedUrl } from "@/lib/storage";
 import { fileNonce } from "@/lib/tokens";
 import { absoluteUrl } from "@/lib/urls";
+import { loadPaymentInfo } from "@/lib/orders/payment-info";
 import { renderQuotePdf } from "./pdf";
 import { parseMoney, priceLine } from "./pricing";
 
@@ -291,7 +292,10 @@ export async function issueQuote(user: CurrentUser, quoteId: string): Promise<Qu
   const request = await getRequestDetail(user, quote.request_id);
   if (!request) return { ok: false, error: "not_found" };
   if (!["rfq_sent", "quoted", "expired"].includes(request.status)) return { ok: false, error: "status" };
-  const [token] = await withActor(serviceActor, (tx) => tx<{ access_token: string }[]>`select access_token from public.quote_requests where id = ${quote.request_id}`);
+  const { token, payment } = await withActor(serviceActor, async (tx) => {
+    const [token] = await tx<{ access_token: string }[]>`select access_token from public.quote_requests where id = ${quote.request_id}`;
+    return { token, payment: await loadPaymentInfo(tx) };
+  });
   const q = toQuote(quote);
   const pdfBuffer = await renderQuotePdf({
     number: q.number,
@@ -309,6 +313,7 @@ export async function issueQuote(user: CurrentUser, quoteId: string): Promise<Qu
     notes: q.notes,
     trackingLink: absoluteUrl(`/seguimiento/${token?.access_token ?? ""}`),
     taxLabel: taxLabel(await getPublicCatalog()),
+    payment,
   });
   const path = `requests/${quote.request_id}/quotes/${q.number}.pdf`;
   await putObject("documents", path, pdfBuffer, "application/pdf");

@@ -1,5 +1,6 @@
 import "server-only";
 import { actorFor, EDITOR_ROLES, type CurrentUser } from "@/lib/auth";
+import { getPublicCatalog, taxLabel } from "@/lib/catalog/public";
 import {
   EVIDENCE_EXT,
   EVIDENCE_KINDS,
@@ -25,6 +26,7 @@ import { formatMoney, parseMoney } from "@/lib/quotes/pricing";
 import { signedUrl } from "@/lib/storage";
 import { fileNonce } from "@/lib/tokens";
 import { absoluteUrl } from "@/lib/urls";
+import { loadPaymentInfo, type PaymentInfo } from "./payment-info";
 import { mergeQaResults, qaChecklistFromSpec, qaComplete, type QaKey, type QaPoint } from "./qa";
 import type { ReorderSource } from "./reorder";
 
@@ -585,12 +587,18 @@ export async function recordMilestone(user: CurrentUser, orderId: string, input:
       entityId: result.id,
       vars:
         event === "order_delivered"
-          ? { numero_pedido: detail.number, monto: formatMoney(Number(result.order.balance_amount), result.order.currency), fecha: formatDate(result.order.delivered_at ?? new Date()) }
+          ? { numero_pedido: detail.number, monto: await amountForMessage(Number(result.order.balance_amount), result.order.currency), fecha: formatDate(result.order.delivered_at ?? new Date()) }
           : vars,
       dedupe: `milestone:${result.id}`,
     });
   }
   return { ok: true, milestoneId: result.id };
+}
+
+/** Monto para un aviso al cliente, con la leyenda de impuesto como en el PDF y el portal (D-102). */
+async function amountForMessage(amount: number, currency: string): Promise<string> {
+  const tax = taxLabel(await getPublicCatalog());
+  return tax ? `${formatMoney(amount, currency)} ${tax}` : formatMoney(amount, currency);
 }
 
 /** Transporte, guía de rastreo, ETA y notas internas del pedido. */
@@ -893,7 +901,8 @@ export type ClientOrder = {
   surveyDone: boolean;
   quoteId: string;
   depositPct: number;
-  paymentInstructions: string;
+  /** Datos para pagar, de Configuración (Bloque 3). */
+  paymentInfo: PaymentInfo;
 };
 
 /**
@@ -916,12 +925,11 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
   });
   // Montos y pagos: el enlace ya se validó; se leen con el servicio en una
   // transacción aparte, nunca dentro de la anterior (DAT-01).
-  const { extra, paymentRows } = await withActor(serviceActor, async (s) => {
+  const { extra, paymentRows, paymentInfo } = await withActor(serviceActor, async (s) => {
     const extra = await s<
-      { quote_id: string; deposit_pct: number; survey: boolean; instructions: unknown; deposit_covered: boolean; balance_covered: boolean; currency: string; total_amount: string; deposit_amount: string; balance_amount: string }[]
+      { quote_id: string; deposit_pct: number; survey: boolean; deposit_covered: boolean; balance_covered: boolean; currency: string; total_amount: string; deposit_amount: string; balance_amount: string }[]
     >`
       select o.quote_id, o.deposit_pct, exists (select 1 from public.surveys v where v.order_id = o.id) as survey,
-             (select value from public.settings where key = 'payment_instructions') as instructions,
              public.order_kind_covered(o.id, 'deposit') as deposit_covered, public.order_kind_covered(o.id, 'balance') as balance_covered,
              o.currency, o.total_amount, o.deposit_amount, o.balance_amount
         from public.orders o where o.id = ${row.id}`;
@@ -930,7 +938,7 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
     >`
       select id, kind, status, amount, to_char(paid_on, 'YYYY-MM-DD') as paid_on, created_at, uploaded_by_client
         from public.payments where order_id = ${row.id} order by created_at`;
-    return { extra, paymentRows };
+    return { extra, paymentRows, paymentInfo: await loadPaymentInfo(s) };
   });
   // Misma regla que la base (tolerancia por comisiones de D-113).
   const covered = (kind: PaymentKind) => Boolean(kind === "deposit" ? extra[0]?.deposit_covered : extra[0]?.balance_covered);
@@ -982,7 +990,7 @@ export async function getClientOrder(accessToken: string): Promise<ClientOrder |
     surveyDone: Boolean(extra[0]?.survey),
     quoteId: extra[0]?.quote_id ?? "",
     depositPct: extra[0]?.deposit_pct ?? 0,
-    paymentInstructions: typeof extra[0]?.instructions === "string" ? (extra[0]?.instructions as string) : "",
+    paymentInfo,
   };
 }
 
@@ -1039,7 +1047,7 @@ export async function balanceReminders(now: Date = new Date()): Promise<number> 
     queued += await enqueueNotification("balance_reminder", o.request_id, {
       entityType: "order",
       entityId: o.id,
-      vars: { numero_pedido: o.number, monto: formatMoney(Number(o.balance_amount), o.currency), fecha: formatDate(o.delivered_at) },
+      vars: { numero_pedido: o.number, monto: await amountForMessage(Number(o.balance_amount), o.currency), fecha: formatDate(o.delivered_at) },
       dedupe: `balance_reminder:${o.id}:${due}`,
     });
   }

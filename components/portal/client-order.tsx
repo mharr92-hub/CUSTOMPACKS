@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { getTranslations } from "next-intl/server";
 import { FileTextIcon, RotateCcwIcon } from "lucide-react";
 import { EvidenceList } from "@/components/orders/evidence-list";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { brand } from "@/config/brand";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { ClientOrder as ClientOrderData } from "@/lib/orders";
+import { hasPaymentInfo } from "@/lib/orders/payment-info";
 import { formatMoney } from "@/lib/quotes/pricing";
 import { cn } from "@/lib/utils";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -131,10 +133,30 @@ export async function ClientOrder({ order, token, specHref, maxMb, taxLabel }: {
           <div className="mt-4 space-y-4">
             <div>
               <h4 className="text-sm font-semibold">{t("instructions")}</h4>
-              {order.paymentInstructions ? (
-                <p className="mt-1 text-sm whitespace-pre-line" data-testid="payment-instructions">
-                  {order.paymentInstructions}
-                </p>
+              {hasPaymentInfo(order.paymentInfo) ? (
+                <div data-testid="payment-instructions">
+                  {order.paymentInfo.bank && order.paymentInfo.accountNumber ? (
+                    <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm">
+                      {(["bank", "accountType", "accountNumber", "holder"] as const).map((field) =>
+                        order.paymentInfo[field] ? (
+                          <Fragment key={field}>
+                            <dt className="text-muted-foreground">{t(`paymentFields.${field}`)}</dt>
+                            <dd className={field === "accountNumber" ? "font-medium tabular" : undefined}>{order.paymentInfo[field]}</dd>
+                          </Fragment>
+                        ) : null,
+                      )}
+                    </dl>
+                  ) : null}
+                  {order.paymentInfo.notes ? <p className="mt-2 text-sm whitespace-pre-line">{order.paymentInfo.notes}</p> : null}
+                  {order.paymentInfo.receiptsEmail ? (
+                    <p className="mt-2 text-sm">
+                      {t("receiptsEmail")}{" "}
+                      <a href={`mailto:${order.paymentInfo.receiptsEmail}?subject=${encodeURIComponent(t("receiptsEmailSubject", { number: order.number }))}`} className="font-medium text-forest underline">
+                        {order.paymentInfo.receiptsEmail}
+                      </a>
+                    </p>
+                  ) : null}
+                </div>
               ) : (
                 <p className="mt-1 text-sm">
                   {t("noInstructions")}{" "}

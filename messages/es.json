@@ -1359,8 +1359,8 @@
     "title": "Nosotros",
     "metaDescription": "Empaques de papel y cartón con fábrica propia en Perú y atención directa desde Panamá.",
     "intro": "Vendemos empaques de papel y cartón fabricados en nuestra planta en Perú, con maquinaria industrial de gran escala. Atendemos desde Panamá y viajamos a la planta para verificar cada pedido.",
-    "sloganTitle": "Por qué decimos que probamos que somos los mejores",
-    "sloganBody": "Porque no te pedimos que nos creas: te mostramos la muestra, la ficha técnica, la prueba de tu diseño y las fotos de tu pedido en planta antes de que llegue.",
+    "sloganTitle": "Probamos que somos los mejores",
+    "sloganBody": "No te pedimos que nos creas: te mostramos la muestra, la ficha técnica, la prueba de tu diseño y las fotos de tu pedido en planta antes de que llegue.",
     "reasons": {
       "factoryTitle": "Fábrica propia, sin límite de volumen",
       "factoryBody": "Puedes pedir 500 o 500,000 unidades.",
@@ -1420,7 +1420,7 @@
       "sections": {
         "quotes": {
           "title": "Cotizaciones",
-          "body": "Cada cotización es personal y se emite en dólares estadounidenses (USD). Tiene una vigencia de {validity} días calendario; después se recotiza, porque los costos de materia prima y flete pueden cambiar."
+          "body": "Cada cotización es personal y se emite en dólares estadounidenses (USD). Los precios y los montos del pedido no incluyen el ITBMS (7 %). Tiene una vigencia de {validity} días calendario; después se recotiza, porque los costos de materia prima y flete pueden cambiar."
         },
         "payment": {
           "title": "Forma de pago",
@@ -1981,7 +1981,7 @@
         "pending_deposit": "Esperando anticipo",
         "deposit_received": "Anticipo recibido",
         "in_production": "En producción",
-        "qa": "QA en planta",
+        "qa": "Verificación en planta",
         "shipped": "Embarcado",
         "in_customs": "En aduana",
         "delivered": "Entregado",
@@ -1991,7 +1991,7 @@
         "deposit_received": "Anticipo recibido",
         "artwork_approved": "Arte aprobado",
         "production_started": "Producción iniciada",
-        "qa_completed": "QA en planta",
+        "qa_completed": "Verificación en planta",
         "shipped": "Embarcado",
         "in_customs": "En aduana",
         "delivered": "Entregado",
@@ -2009,7 +2009,7 @@
         "observed": "Observado",
         "na": "No aplica"
       },
-      "photoAlt": "Evidencia de {milestone}",
+      "photoAlt": "Evidencia: {milestone}",
       "video": "Ver video",
       "file": "Ver archivo",
       "paymentsTitle": "Pagos",
@@ -2039,11 +2039,19 @@
       "surveySend": "Enviar",
       "surveyThanks": "Gracias por tu respuesta.",
       "surveyError": "Elige un puntaje de 0 a 10.",
-      "reorderComment": "Repetición del pedido {number}: usar el arte aprobado de ese pedido, salvo que indique cambios.",
+      "reorderComment": "Repetición del pedido {number}: usar el arte aprobado de ese pedido, salvo que indiques cambios aquí.",
       "receiptLimits": "PDF, JPG, PNG o WebP de hasta {max} MB.",
       "receiptSent": "Recibimos tu comprobante. Te avisamos cuando lo confirmemos.",
       "surveyFailed": "No se pudo enviar. Inténtalo de nuevo.",
       "paymentHelp": "Hola {brand}, quiero los datos para pagar el pedido {number}.",
+      "paymentFields": {
+        "bank": "Banco",
+        "accountType": "Tipo de cuenta",
+        "accountNumber": "Número de cuenta",
+        "holder": "Beneficiario"
+      },
+      "receiptsEmail": "También puedes enviar el comprobante a",
+      "receiptsEmailSubject": "Comprobante de pago del pedido {number}",
       "whatsapp": "Escribir por WhatsApp",
       "deliveredOn": "Entregado el {date}",
       "total": "Total del pedido",
@@ -2265,7 +2273,15 @@
     "footer": "{brand} · {number}",
     "piece": "Pieza {n}: {name}",
     "tax": "Precios {label}.",
-    "subtotalTax": "Subtotal ({label})"
+    "subtotalTax": "Subtotal ({label})",
+    "paymentTitle": "Cómo pagar",
+    "paymentBank": "Banco",
+    "paymentAccountType": "Tipo de cuenta",
+    "paymentAccountNumber": "Número de cuenta",
+    "paymentHolder": "Beneficiario",
+    "paymentReceipts": "Al pagar, sube el comprobante en tu enlace de seguimiento.",
+    "paymentReceiptsEmail": "Al pagar, sube el comprobante en tu enlace de seguimiento o envíalo a {email}.",
+    "paymentNone": "Al aceptar, te enviamos los datos para pagar el anticipo por WhatsApp o correo."
   },
   "statementPdf": {
     "title": "Estado de pagos",

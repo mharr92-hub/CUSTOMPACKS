@@ -20,14 +20,14 @@ Lo que el sistema necesita de Mark y no se puede decidir desde el código. La li
 | 6 | Umbral de volumen entre 30 y 45 días | 10.000 unidades (PROVISIONAL) | Configuración > `lead_time_threshold_units` |
 | 7 | Formato del RFQ que prefiere la fábrica | PDF y Excel con la ficha completa | `config/rfq-format.ts` |
 | 8 | Si el plazo incluye tránsito, aduana y entrega local; lugar de entrega estándar | Los términos dicen "incluye producción y tránsito hasta la dirección pactada" | `messages/es.json` > `legal.terms` |
-| 9 | Datos de pago (banco, cuenta, ACH, Yappy) | El portal ofrece pedirlos por WhatsApp | Configuración > `payment_instructions` |
+| 9 | Datos de pago (banco, tipo de cuenta, número, beneficiario, correo de comprobantes; Yappy u otros) | El portal ofrece pedirlos por WhatsApp y el PDF de la cotización dice que se envían al aceptar | Configuración > `payment_bank_name`, `payment_account_type`, `payment_account_number`, `payment_account_holder`, `payment_receipts_email` y `payment_instructions` |
 | 10 | Correo del equipo para avisos internos | Usa el correo de admin | Configuración > `team_notification_email` |
 | 11 | Razón social y RUC para las páginas legales; revisión de un abogado (Ley 81 de 2019) | Dicen "ProvenPack" | `messages/es.json` > `legal` |
 | 12 | Tolerancias de cantidad y color; política de muestras físicas; diseño de arte como servicio y tarifa | Los términos remiten a la ficha técnica de fábrica | `messages/es.json` > `legal.terms` |
 | 13 | ¿Se cotiza fuera de Panamá? Reglas de flete | El flete es un campo manual por línea | Editor de cotización |
 | 14 | Autorización escrita para logos y nombres de clientes (KFC, McDonald's…) | `/clientes` no muestra ninguno | Configuración > `show_client_logos`, con los archivos autorizados |
 | 15 | Margen por defecto, vigencia de la cotización, SLA y horario hábil | 35 %, 15 días, 4 h / 24 h, lun–vie 08:00–17:00 (PROVISIONAL) | Configuración |
-| 16 | Textos de las 15 plantillas de mensajes PROVISIONAL | Redactados con el tono del PRD | Panel → Plantillas |
+| 16 | Textos de las 23 plantillas de mensajes PROVISIONAL | Revisados el 03/10/2026 (redacción, tono y variables); falta que Mark los guarde | Panel → Plantillas |
 | 17 | Cuentas: dominio, Supabase, Vercel, Resend, WhatsApp, GA4, Meta Pixel, correo de la fábrica | Modo local o simulado para cada una | Variables de entorno (`docs/deploy.md`) |
 | 18 | Quiénes cotizan y hacen seguimiento (roles y número de personas) | Roles Ventas, Operaciones y QA y Solo lectura | Panel → Usuarios |
 

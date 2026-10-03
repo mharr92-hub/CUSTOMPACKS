@@ -120,7 +120,7 @@ test.describe("E8 · Pedidos", () => {
     const uploadedAt = Date.now();
     await page.goto(trackingUrl);
     const clientQa = page.getByTestId("client-milestone-qa_completed");
-    await expect(clientQa.getByRole("img", { name: /Evidencia de QA en planta/ })).toBeVisible({ timeout: 60_000 });
+    await expect(clientQa.getByRole("img", { name: /Evidencia: Verificación en planta/ })).toBeVisible({ timeout: 60_000 });
     expect(Date.now() - uploadedAt).toBeLessThan(60_000);
     const photoSrc = (await clientQa.getByRole("img").getAttribute("src")) ?? "";
     const photo = await page.request.get(photoSrc);

@@ -38,9 +38,10 @@ Detalle de cada pregunta: `docs/PREGUNTAS.md`. Detalle técnico de cada cuenta: 
 
 - [ ] **Catálogo real** (PRD §20; pregunta 4): corregir `catalogo/plantilla-catalogo.csv` (ya trae lo de hoy, marcado PROVISIONAL) y cargarlo con `pnpm catalog:import`. Una página de instrucciones: `docs/CATALOGO-COMO-LLENARLO.md`.
 - [ ] **Las 200 muestras** (pregunta 5): datos en `catalogo/plantilla-muestras.csv` (incluye "cliente anterior", que no se publica) y fotos escaneadas con `pnpm gallery:import <carpeta>`, que acepta PDF de varias páginas y JPG grandes.
-- [ ] **Instrucciones de pago** (banco, cuenta, ACH, Yappy) y **correo del equipo** para avisos internos (preguntas 9 y 10).
+- [ ] **Datos de pago** en Configuración: banco, tipo de cuenta, número, beneficiario y correo de comprobantes (`payment_*`); Yappy u otras formas en `payment_instructions`. Salen en el portal del pedido y en el PDF de la cotización (pregunta 9). Y el **correo del equipo** para avisos internos (pregunta 10).
+- [ ] **Textos que dependen de un dato tuyo** (medios de pago, razón social y RUC, plazo con tránsito y aduana, muestras, diseño, tolerancias): lista corta en `docs/TEXTOS-POR-CONFIRMAR.md`.
 - [ ] **Confirmar o cambiar los valores PROVISIONAL** de Configuración: margen, vigencia, umbral 30/45 días, SLA y horario hábil, horas del resumen de WhatsApp (preguntas 6 y 15).
-- [ ] **Revisar los textos PROVISIONAL de las plantillas** de correo y WhatsApp (15 originales y 8 nuevos de los avisos por los dos canales). Al guardarlos dejan de ser provisionales (pregunta 16).
+- [ ] **Guardar las 23 plantillas PROVISIONAL** de correo y WhatsApp (ya corregidas: redacción, tono y variables). Al guardarlas dejan de ser provisionales (pregunta 16).
 - [ ] **Formato del RFQ** que prefiere la fábrica (pregunta 7) y si el plazo incluye tránsito y aduana (pregunta 8).
 - [ ] **Textos legales:** razón social, RUC, tolerancias, muestras físicas y revisión de un abogado de la política de privacidad y los términos (Ley 81; preguntas 11 y 12).
 - [ ] Autorización escrita de los clientes que quieras mostrar en `/clientes` (pregunta 14).

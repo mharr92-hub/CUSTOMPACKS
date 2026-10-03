@@ -209,6 +209,29 @@ describe("pagos conciliados por monto (M12)", () => {
     expect((await orders.getClientOrder(o.accessToken))?.payments.deposit).toBe("confirmed");
   });
 
+  it("el portal muestra los datos de pago de Configuración (Bloque 3)", async () => {
+    const o = await acceptedOrder();
+    expect((await orders.getClientOrder(o.accessToken))?.paymentInfo).toMatchObject({ bank: "", accountNumber: "", notes: "" });
+    const set = (key: string, value: string) => testSql()`update public.settings set value = ${testSql().json(value)} where key = ${key}`;
+    await set("payment_bank_name", "Banco de Prueba");
+    await set("payment_account_type", "Corriente");
+    await set("payment_account_number", "04-01-99-123456-7");
+    await set("payment_account_holder", "Empresa de Prueba, S.A.");
+    await set("payment_receipts_email", "pagos@example.com");
+    try {
+      expect((await orders.getClientOrder(o.accessToken))?.paymentInfo).toEqual({
+        bank: "Banco de Prueba",
+        accountType: "Corriente",
+        accountNumber: "04-01-99-123456-7",
+        holder: "Empresa de Prueba, S.A.",
+        receiptsEmail: "pagos@example.com",
+        notes: "",
+      });
+    } finally {
+      for (const key of ["payment_bank_name", "payment_account_type", "payment_account_number", "payment_account_holder", "payment_receipts_email"]) await set(key, "");
+    }
+  });
+
   it("el anticipo se redondea hacia arriba al centavo y anticipo + saldo = total", () => {
     expect(orders.depositFor(1000.01, 50)).toBe(500.01);
     expect(Math.round((1000.01 - orders.depositFor(1000.01, 50)) * 100) / 100).toBe(500);

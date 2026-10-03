@@ -4,6 +4,7 @@ import { brand } from "@/config/brand";
 import { serverT } from "@/lib/i18n";
 import { pdf, PdfFooter, PdfHeader, PdfRow, formatPdfDate } from "@/lib/pdf/common";
 import { registerPdfFonts } from "@/lib/pdf/fonts";
+import { hasPaymentInfo, type PaymentInfo } from "@/lib/orders/payment-info";
 import type { ItemSpec } from "@/lib/quote/spec";
 import { formatMoney, formatUnitPrice } from "./pricing";
 
@@ -25,6 +26,8 @@ export type QuotePdfInput = {
   trackingLink: string;
   /** Leyenda de impuestos, p. ej. "más ITBMS 7 %" (vacía: no se muestra). */
   taxLabel: string;
+  /** Datos para pagar de Configuración (sin datos: se pide escribir por WhatsApp). */
+  payment: PaymentInfo;
 };
 
 function QuoteDocument({ input }: { input: QuotePdfInput }) {
@@ -88,6 +91,23 @@ function QuoteDocument({ input }: { input: QuotePdfInput }) {
           <Text>{t("validity", { date: formatPdfDate(input.validUntil) })}</Text>
           <Text>{t("leadTimeRule", { city: input.client.city ?? ts("none") })}</Text>
           {input.items.some((i) => i.lines.length > 1) ? <Text>{t("options")}</Text> : null}
+        </View>
+        <View style={pdf.block} wrap={false}>
+          <Text style={pdf.blockTitle}>{t("paymentTitle")}</Text>
+          {hasPaymentInfo(input.payment) ? (
+            <>
+              {input.payment.bank ? <PdfRow label={t("paymentBank")} value={input.payment.bank} /> : null}
+              {input.payment.accountType ? <PdfRow label={t("paymentAccountType")} value={input.payment.accountType} /> : null}
+              {input.payment.accountNumber ? <PdfRow label={t("paymentAccountNumber")} value={input.payment.accountNumber} /> : null}
+              {input.payment.holder ? <PdfRow label={t("paymentHolder")} value={input.payment.holder} /> : null}
+              {input.payment.notes ? <Text style={{ marginTop: 4 }}>{input.payment.notes}</Text> : null}
+              <Text style={{ marginTop: 4 }}>
+                {input.payment.receiptsEmail ? t("paymentReceiptsEmail", { email: input.payment.receiptsEmail }) : t("paymentReceipts")}
+              </Text>
+            </>
+          ) : (
+            <Text>{t("paymentNone")}</Text>
+          )}
         </View>
         {input.notes ? (
           <View style={pdf.block} wrap={false}>
