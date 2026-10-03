@@ -9,6 +9,8 @@ import { QuotePanel, RfqPanel } from "@/components/panel/rfq-quote";
 import { listRequestArtwork } from "@/lib/artwork/staff";
 import { EDITOR_ROLES, requireStaff } from "@/lib/auth";
 import { EditContact, EditItem } from "@/components/panel/edit-request";
+import { TrackingLinkTools } from "@/components/panel/tracking-link";
+import { whatsappLink } from "@/lib/whatsapp";
 import { getPublicCatalog, publicSetting, quoteConditions, taxLabel, uploadSettings } from "@/lib/catalog/public";
 import { todayInPanama } from "@/lib/leadtime";
 import { draftFromSpec, reorderState } from "@/lib/orders/reorder";
@@ -18,7 +20,7 @@ import { formatDateTime } from "@/lib/format";
 import { listRequestNotifications } from "@/lib/notify";
 import { getOrderRefForRequest } from "@/lib/orders";
 import { listTemplates } from "@/lib/notify/templates";
-import { getRequestDetail, getTimeline, listAssignableStaff, type TimelineEntry } from "@/lib/panel/requests";
+import { getRequestDetail, getTimeline, getTrackingLink, listAssignableStaff, type TimelineEntry } from "@/lib/panel/requests";
 import { specRows, type SpecTranslator } from "@/lib/quote/spec";
 import { listQuotes } from "@/lib/quotes";
 import { listRfqs } from "@/lib/rfq";
@@ -115,6 +117,7 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
     }
   }
 
+  const trackingLink = await getTrackingLink(user, request.id);
   // Edición de la ficha y del contacto (M13): hasta que el cliente acepta.
   const editable = ["submitted", "in_review", "data_pending", "rfq_sent", "quoted", "expired"].includes(request.status);
   const wizardSettings = { ...quoteConditions(catalog), upload: uploadSettings(catalog) };
@@ -213,6 +216,14 @@ export default async function RequestPage(props: PageProps<"/admin/solicitudes/[
                 </div>
               ))}
             </dl>
+            {trackingLink ? (
+              <TrackingLinkTools
+                requestId={request.id}
+                link={trackingLink}
+                canEdit={canEdit}
+                whatsappHref={request.contactWhatsapp ? whatsappLink(ta("request.trackingText", { name: request.contactName, number: request.number, link: trackingLink }), request.contactWhatsapp) : null}
+              />
+            ) : null}
             {canEdit && editable ? (
               <EditContact
                 requestId={request.id}

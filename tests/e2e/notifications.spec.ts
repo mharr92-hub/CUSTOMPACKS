@@ -52,8 +52,19 @@ test.describe("E5 · notificaciones", () => {
     const waHref = (await wa.getByRole("link", { name: "Abrir WhatsApp" }).getAttribute("href")) ?? "";
     expect(waHref).toMatch(/^https:\/\/wa\.me\/50765551234\?text=/);
     expect(decodeURIComponent(waHref)).toContain(number);
-    await wa.getByRole("button", { name: "Marcar enviado" }).click();
-    await expect(wa.getByTestId("notification-status")).toHaveText("Enviado");
+
+    // M14: el mismo WhatsApp está en la cola global, con contador en el menú, y se envía desde ahí.
+    await expect(admin.getByRole("link", { name: /WhatsApp pendientes/ }).getByTestId("nav-badge")).toBeVisible();
+    await admin.goto("/admin/whatsapp");
+    const row = admin.getByTestId("whatsapp-pending").filter({ hasText: number });
+    await expect(row).toBeVisible();
+    const [popup] = await Promise.all([admin.context().waitForEvent("page"), row.getByRole("link", { name: "Abrir y marcar enviado" }).click()]);
+    await popup.close().catch(() => {});
+    await expect(admin.getByTestId("whatsapp-pending").filter({ hasText: number })).toHaveCount(0);
+    await admin.goto(`/admin/solicitudes/${requestId}`);
+    await expect(admin.getByTestId("notifications").getByTestId("notification").filter({ hasText: "+50765551234" }).getByTestId("notification-status")).toHaveText("Enviado");
+    // Enlace de seguimiento: copiar y reenviar por WhatsApp.
+    await expect(admin.getByTestId("tracking-link").getByRole("link", { name: "Reenviar enlace por WhatsApp" })).toHaveAttribute("href", /wa\.me\/50765551234/);
     await ctx.close();
   });
 

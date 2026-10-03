@@ -8,6 +8,7 @@ import { confirmUpload, prepareUpload } from "@/lib/artwork/uploads";
 import { assertStaff, EDITOR_ROLES } from "@/lib/auth";
 import { kickNotifications, markWhatsappSent, retryNotification } from "@/lib/notify";
 import { editRequestContact, editRequestItem, type ContactInput, type EditResult } from "@/lib/panel/edit";
+import { logTrackingLinkSent } from "@/lib/panel/requests";
 import { addRequestNote, assignRequest, changeRequestStatus, requestMissingData, type ActionResult } from "@/lib/panel/requests";
 import type { UploadConfirm, UploadSlot } from "@/lib/files/upload-core";
 import {
@@ -77,7 +78,8 @@ export async function confirmProofUploadAction(requestId: string, itemId: string
 export async function markWhatsappSentAction(requestId: string, notificationId: string): Promise<boolean> {
   const user = await assertStaff(EDITOR_ROLES);
   const ok = await markWhatsappSent(user, String(notificationId));
-  if (ok) revalidatePath(`/admin/solicitudes/${requestId}`);
+  if (ok && requestId) revalidatePath(`/admin/solicitudes/${requestId}`);
+  if (ok) revalidatePath("/admin/whatsapp");
   return ok;
 }
 
@@ -273,6 +275,13 @@ export async function editContactAction(requestId: string, input: ContactInput):
     address: String(input.address ?? ""),
     reason: String(input.reason ?? ""),
   });
+  if (result.ok) refresh(requestId);
+  return result;
+}
+
+export async function trackingLinkSentAction(requestId: string): Promise<ActionResult> {
+  const user = await assertStaff(EDITOR_ROLES);
+  const result = await logTrackingLinkSent(user, String(requestId));
   if (result.ok) refresh(requestId);
   return result;
 }

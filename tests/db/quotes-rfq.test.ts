@@ -319,7 +319,7 @@ describe("cotización", () => {
     await quoteExpiryReminders(new Date());
     await quoteExpiryReminders(new Date());
     const reminders = await testSql()`select 1 from public.notifications where request_id = ${b.requestId} and template_code = 'quote_expiring'`;
-    expect(reminders).toHaveLength(1);
+    expect(reminders).toHaveLength(2); // correo y WhatsApp, una vez cada uno (M14)
     await testSql()`update public.quotes set valid_until = (now() at time zone 'America/Panama')::date - 1 where id = ${qb.quote.id}`;
     expect(await acceptQuote(b.accessToken, qb.quote.id, { name: "Paula Ríos", selection: [{ itemId: b.itemId, quantity: 1000 }], ip: null, userAgent: null })).toEqual({
       ok: false,

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-export function AdminNavLink({ href, children }: { href: string; children: React.ReactNode }) {
+export function AdminNavLink({ href, children, badge }: { href: string; children: React.ReactNode; badge?: number }) {
   const pathname = usePathname();
   const active = pathname === href || pathname.startsWith(`${href}/`);
   return (
@@ -17,6 +17,11 @@ export function AdminNavLink({ href, children }: { href: string; children: React
       )}
     >
       {children}
+      {badge ? (
+        <span className="ml-2 rounded-full bg-signal-red px-1.5 py-0.5 text-xs font-semibold text-white" data-testid="nav-badge">
+          {badge}
+        </span>
+      ) : null}
     </Link>
   );
 }

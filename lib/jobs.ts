@@ -1,5 +1,5 @@
 import "server-only";
-import { checkSlaOverdue, claimJob, processNotificationQueue } from "@/lib/notify";
+import { checkSlaOverdue, claimJob, processNotificationQueue, whatsappDigest } from "@/lib/notify";
 import { balanceReminders, npsSurveys } from "@/lib/orders";
 import { expireQuotes, quoteExpiryReminders } from "@/lib/quotes";
 import { purgeRateLimits } from "@/lib/rate-limit";
@@ -22,5 +22,6 @@ export async function runDueJobs(opts: { force?: boolean; batch?: number } = {})
     await npsSurveys();
   }
   if (opts.force || (await claimJob("rate_limits", 1440))) await purgeRateLimits();
+  if (opts.force || (await claimJob("whatsapp_digest", 1440))) await whatsappDigest();
   await processNotificationQueue(opts.batch ?? (opts.force ? 100 : 25));
 }

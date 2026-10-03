@@ -294,17 +294,17 @@ Aceptación:
 
 Objetivo: que ningún aviso al cliente dependa de que alguien abra la solicitud correcta (PAN-04, FUT-02, PAN-15). Depende de M6 (cron).
 
-- [ ] `/admin/whatsapp`:
+- [x] `/admin/whatsapp`:
   - los avisos pendientes de todas las solicitudes y pedidos, con su antigüedad;
   - filtro por responsable;
   - "Abrir y marcar enviado" en un toque;
   - contador en el menú del panel.
-- [ ] Resumen diario por correo al equipo con los WhatsApp pendientes de más de `whatsapp_pending_alert_hours` horas hábiles (setting PROVISIONAL, 2).
-- [ ] Migración con plantillas:
+- [x] Resumen diario por correo al equipo con los WhatsApp pendientes de más de `whatsapp_pending_alert_hours` horas hábiles (setting PROVISIONAL, 2).
+- [x] Migración con plantillas:
   - de correo, para los 5 avisos que hoy solo existen por WhatsApp;
   - de WhatsApp, para "anticipo recibido";
   - con textos PROVISIONAL.
-- [ ] En el detalle: "Copiar enlace de seguimiento" y "Reenviar enlace por WhatsApp", con registro en el historial. Corregir `docs/manual-equipo.md`.
+- [x] En el detalle: "Copiar enlace de seguimiento" y "Reenviar enlace por WhatsApp", con registro en el historial. Corregir `docs/manual-equipo.md`.
 
 Aceptación:
 - E2E: un recordatorio automático aparece en la cola y se marca enviado desde ahí.

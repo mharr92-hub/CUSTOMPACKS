@@ -165,7 +165,7 @@ describe("pagos conciliados por monto (M12)", () => {
     expect(d?.status).toBe("deposit_received");
     expect(d?.depositConfirmed).toBe(true);
     expect(d?.leadTimeStart).toBe(todayInPanama());
-    expect(await notificationsFor(o.requestId, "deposit_received")).toHaveLength(1);
+    expect(await notificationsFor(o.requestId, "deposit_received")).toHaveLength(2); // correo y WhatsApp (M14)
 
     // Anular un abono antes de producir devuelve el pedido a "Esperando anticipo".
     const [b] = await testSql()<{ id: string }[]>`select id from public.payments where order_id = ${o.orderId} and reference = ${`M12-b-${o.orderId}`}`;
@@ -306,7 +306,7 @@ describe("hitos, pagos y cierre", () => {
     await testSql()`update public.artwork_files set deleted_at = null where id = ${o.proofId}`;
     const production = await orders.recordMilestone(ops, o.orderId, { type: "production_started", notes: "Arrancó la impresión." });
     expect(production.ok).toBe(true);
-    expect((await notificationsFor(o.requestId, "order_production")).length).toBe(1);
+    expect((await notificationsFor(o.requestId, "order_production")).length).toBe(2); // correo y WhatsApp (M14)
 
     // La máquina de estados no deja saltar pasos.
     await expect(testSql()`update public.orders set status = 'closed' where id = ${o.orderId}`).rejects.toThrow(/Transición de pedido no permitida/);
@@ -344,14 +344,14 @@ describe("hitos, pagos y cierre", () => {
     expect(await orders.evidenceUrl({ token: o.accessToken }, o.orderId, slot.path)).toBeTruthy();
     expect(await orders.evidenceUrl({ token: o.accessToken }, o.orderId, `orders/${o.orderId}/otro/x.jpg`)).toBeNull();
     const qaNotice = await notificationsFor(o.requestId, "order_milestone");
-    expect(qaNotice).toHaveLength(1);
+    expect(qaNotice).toHaveLength(2); // correo y WhatsApp (M14)
 
     // Embarque con guía y ETA; entrega.
     const eta = addDays(new Date(), 12).toISOString().slice(0, 10);
     expect((await orders.recordMilestone(ops, o.orderId, { type: "shipped", transport: "Marítimo Callao–Balboa", tracking: "MSKU1234567", eta })).ok).toBe(true);
     const shipped = await orders.getOrder(ops, o.orderId);
     expect([shipped?.status, shipped?.tracking, shipped?.eta]).toEqual(["shipped", "MSKU1234567", eta]);
-    expect((await notificationsFor(o.requestId, "order_shipped")).length).toBe(1);
+    expect((await notificationsFor(o.requestId, "order_shipped")).length).toBe(2); // correo y WhatsApp (M14)
     expect((await orders.recordMilestone(ops, o.orderId, { type: "delivered" })).ok).toBe(true);
     expect((await notificationsFor(o.requestId, "order_delivered")).length).toBeGreaterThan(0);
 
@@ -421,10 +421,10 @@ describe("procesos programados y recompra", () => {
     await testSql()`update public.orders set delivered_at = ${deliveredAt} where id = ${o.orderId}`;
     expect(await orders.balanceReminders(new Date())).toBeGreaterThanOrEqual(1);
     await orders.balanceReminders(new Date());
-    expect(await notificationsFor(o.requestId, "balance_reminder")).toHaveLength(1);
+    expect(await notificationsFor(o.requestId, "balance_reminder")).toHaveLength(2); // correo y WhatsApp, una vez (M14)
     await testSql()`update public.orders set delivered_at = ${addDays(new Date(), -3)} where id = ${o.orderId}`;
     await orders.balanceReminders(new Date());
-    expect(await notificationsFor(o.requestId, "balance_reminder")).toHaveLength(1); // el día 3 no toca
+    expect(await notificationsFor(o.requestId, "balance_reminder")).toHaveLength(2); // el día 3 no toca
 
     await testSql()`
       insert into public.payments (order_id, kind, status, amount, confirmed_at)
@@ -437,7 +437,7 @@ describe("procesos programados y recompra", () => {
     await orders.npsSurveys(new Date());
     await orders.npsSurveys(new Date());
     const nps = await notificationsFor(o.requestId, "nps_survey");
-    expect(nps).toHaveLength(1);
+    expect(nps).toHaveLength(2); // correo y WhatsApp (M14)
     expect(nps[0]?.payload.vars.enlace).toContain(`/seguimiento/${o.accessToken}#encuesta`);
   });
 

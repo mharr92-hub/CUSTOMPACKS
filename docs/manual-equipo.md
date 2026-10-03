@@ -30,7 +30,8 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 4. **Fábrica:** genera y envía el RFQ, y registra la respuesta cuando llegue.
 5. **Cotizaciones:** prepara y emite. Revisa las que vencen pronto.
 6. **Pedidos:** confirma comprobantes, registra hitos con fotos y atiende los atrasados.
-7. **WhatsApp:** en cada solicitud, envía los avisos pendientes con **Abrir WhatsApp** y márcalos como enviados.
+7. **WhatsApp pendientes** (menú, con contador): todos los avisos por WhatsApp que esperan envío, de cualquier solicitud o pedido. **Abrir y marcar enviado** abre el chat con el texto listo y lo registra en un toque. Cada mañana el equipo recibe por correo un resumen con los que llevan más de 2 horas hábiles sin enviar.
+8. **Avisos fallidos:** si arriba del panel aparece el aviso rojo, abre la solicitud y pulsa **Reenviar** en el aviso que falló.
 
 ## 3. Bandeja de solicitudes
 
@@ -65,7 +66,9 @@ Los archivos de arte de una solicitud solo los abren la persona asignada y admin
 - **Notificaciones:**
   - Cada aviso que salió o que falta enviar.
   - Los correos salen solos.
-  - Los WhatsApp se envían a mano: **Abrir WhatsApp** abre el chat con el texto listo, y después se pulsa **Marcar enviado**.
+  - Los WhatsApp se envían a mano: **Abrir WhatsApp** abre el chat con el texto listo, y después se pulsa **Marcar enviado**. También se pueden enviar desde **WhatsApp pendientes**.
+  - Cada aviso al cliente sale por correo y por WhatsApp, según el contacto que dejó.
+  - **Copiar enlace de seguimiento** y **Reenviar enlace por WhatsApp** (en Cliente) sirven cuando el cliente perdió su enlace.
 - **Historial:** cada cambio de estado, con quién, cuándo y por qué.
 
 ## 5. Arte y proof

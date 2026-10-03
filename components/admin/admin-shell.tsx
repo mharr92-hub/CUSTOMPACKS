@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { adminNav } from "@/config/admin-nav";
 import { brand } from "@/config/brand";
 import type { CurrentUser } from "@/lib/auth";
-import { countFailedNotifications } from "@/lib/notify";
+import { countFailedNotifications, countPendingWhatsapp } from "@/lib/notify";
 import { signOutAction } from "@/app/admin/actions";
 import { AdminNavLink } from "./admin-nav-link";
 
@@ -13,6 +13,7 @@ export async function AdminShell({ user, children }: { user: CurrentUser; childr
   const t = await getTranslations("admin");
   const items = adminNav.filter((item) => item.roles.includes(user.role));
   const failed = await countFailedNotifications(user).catch(() => 0);
+  const pendingWhatsapp = await countPendingWhatsapp(user).catch(() => 0);
   return (
     <div className="flex min-h-dvh flex-col bg-muted/40 lg:flex-row">
       <aside className="border-b border-border bg-sidebar lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0">
@@ -26,7 +27,9 @@ export async function AdminShell({ user, children }: { user: CurrentUser; childr
           <ul className="flex gap-1 lg:flex-col">
             {items.map((item) => (
               <li key={item.key}>
-                <AdminNavLink href={item.href}>{t(`nav.${item.key}`)}</AdminNavLink>
+                <AdminNavLink href={item.href} badge={item.key === "whatsapp" ? pendingWhatsapp : undefined}>
+                  {t(`nav.${item.key}`)}
+                </AdminNavLink>
               </li>
             ))}
           </ul>

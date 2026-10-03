@@ -349,3 +349,86 @@ export async function countFailedNotifications(user: CurrentUser): Promise<numbe
     select count(*)::int as n from public.notifications where status = 'failed' and created_at > now() - interval '30 days'`);
   return row?.n ?? 0;
 }
+
+// ---------------------------------------------------------------------------
+// Cola de WhatsApp (M14, PAN-04): en el MVP cada WhatsApp lo envía una persona
+// desde su enlace; esta cola junta los pendientes de todas las solicitudes.
+// ---------------------------------------------------------------------------
+export type PendingWhatsapp = {
+  id: string;
+  requestId: string | null;
+  requestNumber: string | null;
+  templateName: string;
+  recipient: string;
+  waLink: string;
+  createdAt: Date;
+  assignedTo: string | null;
+};
+
+export async function listPendingWhatsapp(user: CurrentUser, opts: { mine?: boolean } = {}): Promise<PendingWhatsapp[]> {
+  const rows = await withActor(actorFor(user), (tx) => tx<
+    { id: string; request_id: string | null; number: string | null; name: string; recipient: string; wa_link: string; created_at: Date; assigned_to: string | null }[]
+  >`
+    select n.id, n.request_id, r.number, coalesce(t.name, n.template_code) as name, n.recipient, n.wa_link, n.created_at, r.assigned_to
+      from public.notifications n
+      left join public.quote_requests r on r.id = n.request_id
+      left join public.message_templates t on t.code = n.template_code and t.channel = n.channel
+     where n.channel = 'whatsapp' and n.status = 'simulated' and n.manual_sent_at is null and n.wa_link is not null
+       ${opts.mine ? tx`and r.assigned_to = ${user.userId}` : tx``}
+     order by n.created_at
+     limit 300`);
+  return rows.map((r) => ({
+    id: r.id,
+    requestId: r.request_id,
+    requestNumber: r.number,
+    templateName: r.name,
+    recipient: r.recipient,
+    waLink: r.wa_link,
+    createdAt: r.created_at,
+    assignedTo: r.assigned_to,
+  }));
+}
+
+/** Contador del menú del panel. */
+export async function countPendingWhatsapp(user: CurrentUser): Promise<number> {
+  const [row] = await withActor(actorFor(user), (tx) => tx<{ n: number }[]>`
+    select count(*)::int as n from public.notifications
+     where channel = 'whatsapp' and status = 'simulated' and manual_sent_at is null and wa_link is not null`);
+  return row?.n ?? 0;
+}
+
+/**
+ * Resumen diario al equipo (correo) con los WhatsApp sin enviar desde hace
+ * más de `whatsapp_pending_alert_hours` horas hábiles. Uno por día.
+ */
+export async function whatsappDigest(now: Date = new Date()): Promise<number> {
+  const { rows, limitHours, hours } = await withActor(serviceActor, async (tx) => {
+    const settings = await tx<{ key: string; value: unknown }[]>`
+      select key, value from public.settings where key in ('business_hours', 'whatsapp_pending_alert_hours')`;
+    const get = (k: string) => settings.find((s) => s.key === k)?.value;
+    const rows = await tx<{ number: string | null; name: string; created_at: Date }[]>`
+      select r.number, coalesce(t.name, n.template_code) as name, n.created_at
+        from public.notifications n
+        left join public.quote_requests r on r.id = n.request_id
+        left join public.message_templates t on t.code = n.template_code and t.channel = n.channel
+       where n.channel = 'whatsapp' and n.status = 'simulated' and n.manual_sent_at is null and n.audience = 'client'
+         and not coalesce(r.is_demo, false)
+       order by n.created_at`;
+    return { rows, limitHours: Number(get("whatsapp_pending_alert_hours") ?? 2), hours: parseBusinessHours(get("business_hours")) };
+  });
+  const late = rows.filter((r) => businessHoursBetween(r.created_at, now, hours) >= limitHours);
+  if (!late.length) return 0;
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Panama" }).format(now);
+  return enqueueNotification("whatsapp_pending", null, {
+    vars: {
+      cantidad: late.length,
+      horas: limitHours,
+      enlace: absoluteUrl("/admin/whatsapp"),
+      lista: late
+        .slice(0, 50)
+        .map((r) => `${r.number ?? "—"} · ${r.name}`)
+        .join("\n"),
+    },
+    dedupe: `whatsapp_pending:${day}`,
+  });
+}

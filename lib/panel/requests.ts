@@ -7,6 +7,7 @@ import type { ItemSpec } from "@/lib/quote/spec";
 import { recalcTrafficLight } from "@/lib/panel/edit";
 import { canManuallyTransition, LOSS_REASONS, type LossReason, type RequestStatus } from "@/lib/states";
 import type { MissingField } from "@/lib/traffic-light";
+import { absoluteUrl } from "@/lib/urls";
 
 /**
  * Solicitudes en el panel (PRD §11): bandeja con SLA, detalle, asignación,
@@ -423,4 +424,22 @@ export async function addRequestNote(user: CurrentUser, id: string, input: { cha
       returning id`;
     return rows.length ? ({ ok: true } as const) : ({ ok: false, error: "not_found" } as const);
   });
+}
+
+/** Enlace de seguimiento del cliente, para copiarlo o reenviarlo desde el panel (M14, PAN-15). */
+export async function getTrackingLink(user: CurrentUser, requestId: string): Promise<string | null> {
+  if (!UUID.test(requestId)) return null;
+  const [r] = await withActor(actorFor(user), (tx) => tx<{ access_token: string }[]>`
+    select access_token from public.quote_requests where id = ${requestId}`);
+  return r ? absoluteUrl(`/seguimiento/${r.access_token}`) : null;
+}
+
+/** Deja en el historial que el equipo reenvió el enlace por WhatsApp. */
+export async function logTrackingLinkSent(user: CurrentUser, requestId: string): Promise<ActionResult> {
+  if (!isEditor(user)) return { ok: false, error: "forbidden" };
+  if (!UUID.test(requestId)) return { ok: false, error: "not_found" };
+  await withActor(actorFor(user), (tx) => tx`
+    insert into public.activities (request_id, entity_type, entity_id, user_id, channel, kind, body)
+    values (${requestId}, 'quote_request', ${requestId}, ${user.userId}, 'whatsapp', 'tracking_link_sent', null)`);
+  return { ok: true };
 }

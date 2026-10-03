@@ -164,7 +164,8 @@
       "settings": "Configuración",
       "signOut": "Salir",
       "viewSite": "Ver sitio",
-      "files": "Archivos"
+      "files": "Archivos",
+      "whatsapp": "WhatsApp pendientes"
     },
     "roles": {
       "admin": "Administrador",
@@ -634,7 +635,8 @@
         "notification_retry": "Aviso reenviado",
         "payment_voided": "Pago anulado",
         "item_edited": "Ficha de la pieza editada",
-        "contact_edited": "Contacto corregido"
+        "contact_edited": "Contacto corregido",
+        "tracking_link_sent": "Enlace de seguimiento reenviado por WhatsApp"
       },
       "by": "por {name}",
       "system": "sistema",
@@ -651,7 +653,11 @@
         "generic": "No se pudo guardar. Inténtalo de nuevo."
       },
       "orderLink": "Pedido {number}",
-      "systemStatusHint": "\"RFQ enviado\", \"Cotizada\" y \"Aceptada\" se fijan solos al enviar el RFQ, emitir la cotización y registrar la aceptación."
+      "systemStatusHint": "\"RFQ enviado\", \"Cotizada\" y \"Aceptada\" se fijan solos al enviar el RFQ, emitir la cotización y registrar la aceptación.",
+      "trackingCopy": "Copiar enlace de seguimiento",
+      "trackingCopied": "Enlace copiado",
+      "trackingResend": "Reenviar enlace por WhatsApp",
+      "trackingText": "Hola {name}, este es el enlace para seguir tu solicitud {number}: {link}"
     },
     "users": {
       "title": "Usuarios del equipo",
@@ -1091,6 +1097,16 @@
         "contact": "Revisa el contacto: nombre, y un correo o un WhatsApp válidos.",
         "generic": "No se pudo guardar. Inténtalo de nuevo."
       }
+    },
+    "whatsapp": {
+      "title": "WhatsApp pendientes",
+      "intro": "Avisos por WhatsApp que esperan que alguien del equipo los envíe: datos faltantes, cotizaciones, recordatorios y avances del pedido. Abre cada uno y quedará marcado como enviado.",
+      "filter": "Filtro",
+      "all": "Todos",
+      "mine": "De mis solicitudes",
+      "empty": "No hay WhatsApp pendientes.",
+      "since": "desde el {date}",
+      "openAndMark": "Abrir y marcar enviado"
     }
   },
   "catalog": {

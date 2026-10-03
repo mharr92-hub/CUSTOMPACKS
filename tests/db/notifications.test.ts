@@ -10,7 +10,7 @@ const { getSql } = await import("@/lib/db/client");
 const { saveDraft } = await import("@/lib/quote/drafts");
 const { submitDraft } = await import("@/lib/quote/submit");
 const { emptyItem, initialWizardState } = await import("@/lib/quote/types");
-const { checkSlaOverdue, enqueueNotification, markWhatsappSent, processNotificationQueue, retryNotification } = await import("@/lib/notify");
+const { checkSlaOverdue, enqueueNotification, listPendingWhatsapp, markWhatsappSent, processNotificationQueue, retryNotification, whatsappDigest } = await import("@/lib/notify");
 const cronRoute = await import("@/app/api/cron/notifications/route");
 type CurrentUser = import("@/lib/auth").CurrentUser;
 
@@ -199,5 +199,42 @@ describe("envío confiable y cron frecuente (M6)", () => {
       delete process.env.CRON_SECRET;
       resetServerEnvCache();
     }
+  });
+});
+
+describe("avisos por los dos canales y cola de WhatsApp (M14)", () => {
+  it("cada aviso al cliente del pedido y de la vigencia existe por correo y por WhatsApp", async () => {
+    const rows = await testSql()<{ code: string; channels: string[] }[]>`
+      select code, array_agg(channel::text order by channel) as channels from public.message_templates
+       where audience = 'client' and code in ('quote_expiring', 'deposit_received', 'order_production', 'order_milestone',
+                                              'order_shipped', 'order_delivered', 'balance_reminder', 'nps_survey', 'quote_sent')
+       group by code`;
+    expect(rows).toHaveLength(9);
+    for (const r of rows) expect([r.code, r.channels]).toEqual([r.code, ["email", "whatsapp"]]);
+  });
+
+  it("los WhatsApp pendientes aparecen en la cola y un resumen diario avisa al equipo de los atrasados", async () => {
+    await processNotificationQueue(500);
+    // Lo que dejaron otras pruebas no cuenta para este resumen.
+    await testSql()`update public.notifications set manual_sent_at = now() where channel = 'whatsapp' and manual_sent_at is null`;
+    const r = await submitRequest({ whatsapp: "+507 6555-1212" });
+    await processNotificationQueue(200);
+    const salesId = await createUser(`ventas-cola-${Date.now()}@test.local`, "sales");
+    const sales: CurrentUser = { userId: salesId, email: null, profileId: salesId, name: null, role: "sales", isActive: true };
+    const queue = await listPendingWhatsapp(sales);
+    const mine = queue.find((q) => q.requestId === r.requestId);
+    expect(mine?.waLink?.startsWith("https://wa.me/")).toBe(true);
+    expect(await whatsappDigest(new Date())).toBe(0); // recién creado: no está atrasado
+    await testSql()`update public.notifications set created_at = now() - interval '5 days' where request_id = ${r.requestId} and channel = 'whatsapp'`;
+    expect(await whatsappDigest(new Date())).toBe(1);
+    await whatsappDigest(new Date()); // uno por día: la clave única evita el segundo
+    expect(await testSql()`select 1 from public.notifications where template_code = 'whatsapp_pending_team' and created_at > now() - interval '1 minute'`).toHaveLength(1);
+    await processNotificationQueue(200);
+    const [digest] = await testSql()<{ status: string; body: string }[]>`
+      select status, body from public.notifications where template_code = 'whatsapp_pending_team' order by created_at desc limit 1`;
+    expect(digest?.status).toBe("simulated");
+    expect(digest?.body).toContain(r.number);
+    expect(await markWhatsappSent(sales, mine!.id)).toBe(true);
+    expect((await listPendingWhatsapp(sales)).some((q) => q.id === mine!.id)).toBe(false);
   });
 });
