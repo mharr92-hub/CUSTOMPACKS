@@ -1,4 +1,4 @@
-import { captureError, sentryEnabled } from "@/lib/sentry";
+import { captureError, scrub, sentryEnabled } from "@/lib/sentry";
 
 /**
  * Logger mínimo. En producción solo emite warn/error (y info estructurada del
@@ -18,7 +18,8 @@ function minLevel(): Level {
 
 function emit(level: Level, message: string, data?: Record<string, unknown>) {
   if (order[level] < order[minLevel()]) return;
-  const line = data ? `[${level}] ${message} ${safeJson(data)}` : `[${level}] ${message}`;
+  // Sin tokens, correos ni teléfonos en los logs (M17, SEG-02).
+  const line = scrub(data ? `[${level}] ${message} ${safeJson(data)}` : `[${level}] ${message}`);
   /* eslint-disable no-console */
   if (level === "error") console.error(line);
   else if (level === "warn") console.warn(line);

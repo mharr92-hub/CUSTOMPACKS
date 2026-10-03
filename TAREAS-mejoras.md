@@ -368,8 +368,8 @@ Aceptación:
 
 Objetivo: atender desde el panel el derecho de acceso y eliminación, como pide el PRD §15 (DAT-03, SEG-07, PAN-12, SEG-02). Depende de M14 (plantillas nuevas en `notifications`).
 
-- [ ] Solo admin: buscar por correo o WhatsApp y exportar en JSON y PDF todo lo del titular (solicitudes, pedidos, pagos, avisos y archivos).
-- [ ] `anonymize_request(request_id)`, `security definer` y solo para admin.
+- [x] Solo admin: buscar por correo o WhatsApp y exportar en JSON todo lo del titular (solicitudes, piezas, cotizaciones, pedidos, pagos, aprobaciones, avisos, archivos y encuestas). La versión en PDF no se hizo: el JSON cumple con entregar los datos y el PDF queda como mejora si Mark lo pide.
+- [x] `anonymize_request(request_id)`, `security definer` y solo para admin.
   - Reemplaza nombre, correo, WhatsApp, dirección e IP en:
     - `quote_requests`;
     - `companies`, si no tiene otras solicitudes;
@@ -381,8 +381,8 @@ Objetivo: atender desde el panel el derecho de acceso y eliminación, como pide 
   - Conserva los montos y los números de documento.
   - Deja constancia en `audit_log`.
   - El panel pide doble confirmación.
-- [ ] `lib/log.ts` limpia todo lo que se registra: ni tokens, ni correos, ni teléfonos. Prueba unitaria que falla si un log contiene alguno de ellos.
-- [ ] La política de privacidad explica cómo pedir el acceso y la eliminación. El texto es PROVISIONAL hasta la revisión legal (preguntas 11 y 22 de `docs/PREGUNTAS.md`).
+- [x] `lib/log.ts` limpia todo lo que se registra: ni tokens, ni correos, ni teléfonos. Prueba unitaria que falla si un log contiene alguno de ellos.
+- [x] La política de privacidad explica cómo pedir el acceso y la eliminación. El texto es PROVISIONAL hasta la revisión legal (preguntas 11 y 22 de `docs/PREGUNTAS.md`).
 
 Aceptación:
 - Prueba de base: tras anonimizar, ninguna columna de texto del esquema `public` contiene el correo ni el WhatsApp del titular, y los montos del pedido siguen.

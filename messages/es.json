@@ -165,7 +165,8 @@
       "signOut": "Salir",
       "viewSite": "Ver sitio",
       "files": "Archivos",
-      "whatsapp": "WhatsApp pendientes"
+      "whatsapp": "WhatsApp pendientes",
+      "personalData": "Datos personales"
     },
     "roles": {
       "admin": "Administrador",
@@ -1108,7 +1109,27 @@
       "since": "desde el {date}",
       "openAndMark": "Abrir y marcar enviado"
     },
-    "captchaMissing": "Falta configurar Turnstile (TURNSTILE_SECRET_KEY y NEXT_PUBLIC_TURNSTILE_SITE_KEY en Vercel): el cotizador público queda expuesto a abuso. Ver docs/deploy.md."
+    "captchaMissing": "Falta configurar Turnstile en Vercel (las dos claves de Cloudflare: la del sitio y la secreta): el cotizador público queda expuesto a abuso. Ver docs/deploy.md.",
+    "personalData": {
+      "title": "Datos personales (Ley 81)",
+      "intro": "Atiende las solicitudes de acceso y eliminación de datos. Busca por el correo o el WhatsApp de la persona: puedes descargar todo lo que guardamos de ella o anonimizar sus solicitudes. Se conservan montos, números de documento y fichas técnicas (obligación contable).",
+      "search": "Buscar",
+      "placeholder": "correo@ejemplo.com o 6123-4567",
+      "none": "No hay solicitudes con ese correo o WhatsApp.",
+      "export": "Descargar sus datos (JSON)",
+      "anonymize": "Anonimizar",
+      "anonymized": "Anonimizada",
+      "warning": "Se reemplazan nombre, correo, WhatsApp, dirección, comentarios e IP en la solicitud, los avisos, el historial y la auditoría, y se borran su arte y sus fotos. No se puede deshacer.",
+      "confirmLabel": "Escribe {number} para confirmar",
+      "confirm": "Anonimizar definitivamente",
+      "cancel": "Cancelar",
+      "done": "Solicitud anonimizada ({files} archivos borrados).",
+      "errors": {
+        "forbidden": "Solo admin puede hacerlo.",
+        "not_found": "No se encontró la solicitud.",
+        "confirm": "El número no coincide."
+      }
+    }
   },
   "catalog": {
     "title": "Catálogo",
@@ -1368,7 +1389,7 @@
         },
         "rights": {
           "title": "Tus derechos",
-          "body": "Conforme a la Ley 81 de 2019 de Panamá puedes pedir acceso, rectificación, cancelación u oposición al tratamiento de tus datos, y su portabilidad. Escríbenos a {email} y te respondemos en los plazos que fija la ley."
+          "body": "Conforme a la Ley 81 de 2019 de Panamá puedes pedir acceso, rectificación, cancelación u oposición al tratamiento de tus datos, y su portabilidad. Escríbenos a {email} desde el correo o el WhatsApp con que cotizaste. Te enviamos una copia de todo lo que guardamos de ti, corregimos lo que nos indiques o anonimizamos tus datos: reemplazamos tu nombre, correo, WhatsApp, dirección e IP y borramos tus archivos de arte y fotos. Conservamos los montos, números de documento y fichas técnicas que exige la ley contable."
         },
         "consent": {
           "title": "Consentimiento",

@@ -796,3 +796,13 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - **Administrador:** el formulario de ingreso nunca crea cuentas en Supabase (`shouldCreateUser: false`). El admin se invita con `pnpm admin:invite`, y el correo de `ADMIN_EMAIL` solo recibe el rol con el correo confirmado (migración 019). El registro público de Supabase se cierra a mano (`docs/deploy.md`).
   - **Instrucciones de pago:** dejan de ser públicas.
 - **Cómo cambiarla:** topes en `RATE_RULES` (`lib/rate-limit.ts`), `MAX_DRAFT_BYTES` (`app/cotizar/actions.ts`) y `MAX_PENDING_DRAFT_SLOTS` (`lib/artwork/uploads.ts`).
+
+### D-112 · 03/10/2026 · Acceso y eliminación de datos personales (M17)
+- **Duda:** qué conservar al anonimizar mientras Mark no responde la pregunta 22 (obligación contable).
+- **Decisión:**
+  - `anonymize_request()` (migración 020, solo admin) reemplaza nombre, correo, WhatsApp, dirección, comentarios, IP y navegador en la solicitud, la empresa (si no tiene otras solicitudes), el borrador, los avisos, el historial, las aceptaciones, las aprobaciones del proof y la auditoría. Borra el arte y las fotos de referencia del titular.
+  - Se conservan montos, números de documento, fichas técnicas, estados, fechas, las evidencias de QA y los comprobantes de pago.
+  - La aprobación del proof es inmutable: la única excepción es esta función (`app.anonymizing`).
+  - La exportación es un JSON con todo lo del titular (el PDF quedó fuera).
+  - Los logs ya no guardan tokens, correos ni teléfonos (`scrub` en `lib/log.ts`).
+- **Cómo cambiarla:** la migración 020 (qué columnas se reemplazan) y `lib/panel/personal-data.ts`.

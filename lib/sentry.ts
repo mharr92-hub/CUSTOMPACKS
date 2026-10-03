@@ -24,14 +24,23 @@ const LONG_TOKEN = /\b[A-Za-z0-9_-]{32,64}\b/g;
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const DB_URL = /(postgres(?:ql)?:\/\/[^:\s]+:)[^@\s]+@/g;
 
-/** Quita tokens de enlaces seguros, correos y contraseñas de URLs de base. */
+const WA_LINK = /(wa\.me\/)\d+/g;
+const PHONE = /\+\d{8,15}\b/g;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Quita tokens de enlaces seguros, correos, teléfonos y contraseñas de URLs
+ * de base (Ley 81; SEG-02). Los UUID se conservan: son identificadores, no secretos.
+ */
 export function scrub(text: string): string {
   return text
     .replace(DB_URL, "$1***@")
     .replace(TOKEN_PATH, "/$1/[token]")
     .replace(TOKEN_QUERY, "$1[token]")
     .replace(EMAIL, "[correo]")
-    .replace(LONG_TOKEN, "[token]");
+    .replace(WA_LINK, "$1[teléfono]")
+    .replace(PHONE, "[teléfono]")
+    .replace(LONG_TOKEN, (m) => (UUID.test(m) ? m : "[token]"));
 }
 
 function scrubValue(value: unknown, depth = 0): unknown {

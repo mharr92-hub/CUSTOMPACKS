@@ -1,6 +1,6 @@
 import type { AppRole } from "@/lib/auth";
 
-export type AdminNavKey = "inbox" | "whatsapp" | "orders" | "catalog" | "templates" | "reports" | "users" | "files" | "settings";
+export type AdminNavKey = "inbox" | "whatsapp" | "personalData" | "orders" | "catalog" | "templates" | "reports" | "users" | "files" | "settings";
 
 export type AdminNavItem = { key: AdminNavKey; href: string; roles: readonly AppRole[] };
 
@@ -16,5 +16,6 @@ export const adminNav: readonly AdminNavItem[] = [
   { key: "reports", href: "/admin/reportes", roles: STAFF },
   { key: "users", href: "/admin/usuarios", roles: ["admin"] },
   { key: "files", href: "/admin/archivos", roles: ["admin"] },
+  { key: "personalData", href: "/admin/datos-personales", roles: ["admin"] },
   { key: "settings", href: "/admin/configuracion", roles: ["admin"] },
 ];

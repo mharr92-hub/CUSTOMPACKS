@@ -223,6 +223,11 @@ En **Registrar hito** solo aparece el siguiente paso válido.
   ![Configuración](manual/18-configuracion.png)
 
 - **Archivos:** arte vencido según la retención. Se marca solo; se borra cuando admin lo confirma.
+- **Datos personales (Ley 81):** cuando un cliente pide sus datos o que los borremos.
+  1. Busca por su correo o su WhatsApp.
+  2. **Descargar sus datos (JSON)**: todo lo que guardamos de esa persona, para enviárselo.
+  3. **Anonimizar** cada solicitud: escribe el número de la solicitud para confirmar. Se reemplazan nombre, correo, WhatsApp, dirección, comentarios e IP en todas partes y se borran su arte y sus fotos; se conservan montos, números y fichas. No se puede deshacer.
+  4. Para corregir un dato (rectificación), usa **Editar contacto y entrega** en la solicitud.
 
   ![Archivos](manual/19-archivos.png)
 
