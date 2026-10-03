@@ -765,3 +765,12 @@ Decisiones tomadas durante la construcción que no estaban resueltas en `TAREAS.
   - "Registrar aceptación del cliente" reutiliza la aceptación del portal (`acceptInTx`): mismas reglas de vigencia y cantidades, crea el pedido y guarda canal, quién la registró y la captura opcional (`quotes.accepted_channel`, `accepted_recorded_by`, `accepted_evidence_path`).
   - La máquina del pedido quedó en `lib/states.ts` y una prueba compara las dos máquinas con la base par por par.
 - **Cómo cambiarla:** `MANUAL_TRANSITIONS` y `SYSTEM_ONLY_STATUSES` en `lib/states.ts`, y el trigger de la migración 013.
+
+### D-109 · 03/10/2026 · Definiciones de los KPI del cotizador (M7)
+- **Duda:** con las reglas del semáforo, casi toda solicitud queda amarilla porque peso, medidas y referencias son opcionales; y el abandono solo se veía en GA4.
+- **Decisión:**
+  - **"Completa a la primera"** (meta ≥ 85 %): sin campos **rojos** al enviar, según `quote_requests.initial_traffic_light`, que se congela al enviar. El verde se informa aparte.
+  - **"Abandono"** (meta ≤ 40 %): borradores que pasaron del paso 0 y no se enviaron en 30 días. Cuenta los borradores vivos (`quote_drafts.max_step`) y los purgados (`wizard_funnel`, sin datos personales).
+  - **"Esfuerzo del cliente"** (meta ≤ 5 min): `quote_requests.completion_minutes`, desde el primer paso hasta el envío.
+  - Ningún KPI, reporte ni alerta de SLA cuenta los datos de demostración (`is_demo`).
+- **Cómo cambiarla:** las definiciones viven en las consultas de reportes (`lib/panel/reports.ts`); los datos crudos no cambian.

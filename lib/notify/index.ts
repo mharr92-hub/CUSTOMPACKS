@@ -219,7 +219,7 @@ export async function checkSlaOverdue(now: Date = new Date()): Promise<number> {
     const settings = await tx<{ key: string; value: unknown }[]>`
       select key, value from public.settings where key in ('business_hours', 'first_response_sla_hours', 'quote_sla_hours')`;
     const rows = await tx<{ id: string; status: string; submitted_at: Date; in_review_at: Date | null }[]>`
-      select id, status, submitted_at, in_review_at from public.quote_requests where status in ('submitted', 'in_review', 'rfq_sent')`;
+      select id, status, submitted_at, in_review_at from public.quote_requests where status in ('submitted', 'in_review', 'rfq_sent') and not is_demo`;
     return { settings, rows };
   });
   const get = (key: string) => settings.find((s) => s.key === key)?.value;

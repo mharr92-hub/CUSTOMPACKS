@@ -72,11 +72,12 @@ export async function submitDraft(token: string, meta: { ip: string | null }): P
     const company = await resolveCompany(tx, { state, email, whatsapp });
     const [request] = await tx<{ id: string }[]>`
       insert into public.quote_requests (
-        number, access_token, status, traffic_light, missing_fields, channel, segment, company_id, company_name, ruc,
+        number, access_token, status, traffic_light, missing_fields, initial_traffic_light, initial_missing_fields, completion_minutes, channel, segment, company_id, company_name, ruc,
         contact_name, contact_position, contact_email, contact_whatsapp, delivery_city, delivery_address, desired_date,
         comments, lead_source, needs_advice, utm, referrer, consent_at, consent_ip, draft_id
       ) values (
         ${number}, ${accessToken}, 'submitted', ${traffic.light}, ${traffic.missing.map((m) => `${m.item}:${m.field}`)},
+        ${traffic.light}, ${traffic.missing.map((m) => `${m.item}:${m.field}`)}, ${completionMinutes(state.startedAt)},
         'web', ${state.segment}, ${company}, ${c.company.trim() || null}, ${normalizeRuc(c.ruc)},
         ${c.name.trim()}, ${c.position.trim() || null}, ${email}, ${whatsapp},
         ${c.city.trim()}, ${c.address.trim()}, ${state.desiredDate || null}, ${c.comments.trim() || null}, ${c.source || null},
@@ -198,4 +199,12 @@ async function findRequest(id: string): Promise<{ requestId: string; number: str
     select id, number, access_token from public.quote_requests where id = ${id}`);
   const r = rows[0];
   return r ? { requestId: r.id, number: r.number, accessToken: r.access_token } : null;
+}
+
+/** Minutos desde el primer paso hasta el envío (KPI "esfuerzo del cliente"); null si el dato no es confiable. */
+export function completionMinutes(startedAt: string | null | undefined, now: Date = new Date()): number | null {
+  const start = startedAt ? Date.parse(startedAt) : Number.NaN;
+  if (!Number.isFinite(start)) return null;
+  const minutes = Math.round((now.getTime() - start) / 60000);
+  return minutes >= 0 && minutes <= 60 * 24 * 30 ? minutes : null;
 }

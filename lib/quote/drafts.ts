@@ -50,7 +50,7 @@ export async function saveDraft(token: string | null, input: WizardState): Promi
   if (token && isDraftToken(token)) {
     const updated = await withActor({ kind: "anon", accessToken: token }, (tx) => tx`
       update public.quote_drafts
-         set payload = ${tx.json(state as never)}, step = ${state.step}, contact_email = ${email}, contact_whatsapp = ${whatsapp},
+         set payload = ${tx.json(state as never)}, step = ${state.step}, max_step = greatest(max_step, ${state.step}), contact_email = ${email}, contact_whatsapp = ${whatsapp},
              expires_at = now() + interval '30 days'
        where token = ${token} and submitted_request_id is null
        returning id`);
@@ -61,8 +61,8 @@ export async function saveDraft(token: string | null, input: WizardState): Promi
   }
   const fresh = randomToken(32);
   await withActor({ kind: "anon", accessToken: fresh }, (tx) => tx`
-    insert into public.quote_drafts (token, payload, step, contact_email, contact_whatsapp)
-    values (${fresh}, ${tx.json(state as never)}, ${state.step}, ${email}, ${whatsapp})`);
+    insert into public.quote_drafts (token, payload, step, max_step, contact_email, contact_whatsapp)
+    values (${fresh}, ${tx.json(state as never)}, ${state.step}, ${state.step}, ${email}, ${whatsapp})`);
   return { status: "created", token: fresh };
 }
 
@@ -92,9 +92,16 @@ export async function claimResumeEmail(token: string): Promise<boolean> {
  * sus tokens para limpiar también los archivos subidos a esos borradores.
  */
 export async function purgeExpiredDrafts(): Promise<string[]> {
+  // Antes de borrar, el embudo guarda una fila sin datos personales (M7).
   const rows = await withActor(serviceActor, (tx) => tx<{ token: string }[]>`
-    delete from public.quote_drafts
-     where expires_at < now() and submitted_request_id is null
-     returning token`);
+    with gone as (
+      delete from public.quote_drafts
+       where expires_at < now() and submitted_request_id is null
+       returning token, created_at, updated_at, max_step, payload ->> 'segment' as segment
+    ), funnel as (
+      insert into public.wizard_funnel (draft_started_at, last_activity_at, max_step, segment, submitted)
+      select created_at, updated_at, max_step, segment, false from gone
+    )
+    select token from gone`);
   return rows.map((r) => r.token);
 }

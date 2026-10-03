@@ -33,8 +33,9 @@ export function resolveRange(input: { from?: string | null; to?: string | null }
 
 type T = ReturnType<typeof serverT<"admin">>;
 
+/** Rango de fechas en Panamá; los reportes nunca cuentan los datos de demostración (alias r = quote_requests). */
 function inRange(tx: Tx, column: string, range: ReportRange) {
-  return tx`(${tx(column)} at time zone 'America/Panama')::date between ${range.from}::date and ${range.to}::date`;
+  return tx`(${tx(column)} at time zone 'America/Panama')::date between ${range.from}::date and ${range.to}::date and not r.is_demo`;
 }
 
 async function pipeline(tx: Tx, range: ReportRange, t: T): Promise<ReportTable> {
@@ -213,7 +214,7 @@ async function ordersDue(tx: Tx, t: T, today: string): Promise<ReportTable> {
     select o.number, coalesce(r.company_name, r.contact_name) as company, o.status,
            to_char(coalesce(o.eta, o.estimated_delivery_date), 'YYYY-MM-DD') as due
       from public.orders o join public.quote_requests r on r.id = o.request_id
-     where o.status not in ('delivered', 'closed') and coalesce(o.eta, o.estimated_delivery_date) <= ${limit}::date
+     where o.status not in ('delivered', 'closed') and coalesce(o.eta, o.estimated_delivery_date) <= ${limit}::date and not r.is_demo
      order by coalesce(o.eta, o.estimated_delivery_date), o.number`;
   const days = (due: string) => Math.round((Date.parse(`${due}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86_400_000);
   return {

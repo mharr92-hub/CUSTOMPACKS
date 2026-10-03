@@ -156,11 +156,11 @@ Aceptación:
 
 Objetivo: guardar lo que no se puede reconstruir después para medir el abandono, el esfuerzo y la información completa (PAN-14, REG-12, DAT-16).
 
-- [ ] Migración `quote_drafts`: `max_step` y `first_step_at`, que el guardado actualiza.
-- [ ] `purge-drafts`: antes de borrar un borrador, guarda una fila en `wizard_funnel`. Sin datos personales: inicio, paso máximo, segmento y si se envió.
-- [ ] Migración `quote_requests`: `initial_traffic_light`, `initial_missing_fields` y `completion_minutes`, congelados al enviar.
-- [ ] Los reportes y la revisión de SLA excluyen `is_demo`.
-- [ ] En `docs/DECISIONES.md`, las definiciones:
+- [x] Migración `quote_drafts`: `max_step`, que el guardado actualiza (el inicio es `created_at`: el primer guardado ocurre al tocar el paso 0).
+- [x] `purge-drafts`: antes de borrar un borrador, guarda una fila en `wizard_funnel`. Sin datos personales: inicio, paso máximo, segmento y si se envió.
+- [x] Migración `quote_requests`: `initial_traffic_light`, `initial_missing_fields` y `completion_minutes`, congelados al enviar.
+- [x] Los reportes y la revisión de SLA excluyen `is_demo`.
+- [x] En `docs/DECISIONES.md`, las definiciones:
   - "Completa a la primera": sin campos rojos al enviar; el verde se informa aparte.
   - "Abandono": borrador con el paso 1 completo que no se envía en 30 días.
 
